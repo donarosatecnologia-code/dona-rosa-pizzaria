@@ -1,5 +1,5 @@
 import { Instagram, Facebook } from "lucide-react";
-import logoSmall from "@/assets/logo-small.png";
+import logoBranco from "@/assets/logo-branco.png";
 
 const Footer = () => {
   return (
