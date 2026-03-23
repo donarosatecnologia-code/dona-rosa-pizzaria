@@ -112,7 +112,7 @@ const QuemSomosPage = () => {
               transformou receitas de família em momentos inesquecíveis.
             </p>
           </Editable>
-          <img src={linhaDecorativa} alt="" className="mx-auto mt-10 w-48 opacity-40" />
+          
         </div>
       </section>
 
