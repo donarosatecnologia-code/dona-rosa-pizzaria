@@ -7,6 +7,7 @@ import Cursos from "@/components/Cursos";
 import Saude from "@/components/Saude";
 import Fotos from "@/components/Fotos";
 import Footer from "@/components/Footer";
+import WhatsAppButton from "@/components/WhatsAppButton";
 
 const Index = () => {
   return (
@@ -20,6 +21,7 @@ const Index = () => {
       <Saude />
       <Fotos />
       <Footer />
+      <WhatsAppButton />
     </div>
   );
 };
