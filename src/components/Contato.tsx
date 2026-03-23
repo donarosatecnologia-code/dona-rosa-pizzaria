@@ -1,6 +1,5 @@
 import { Phone, Mail } from "lucide-react";
 import ambiente from "@/assets/ambiente-1.jpg";
-import linhaDecorativa from "@/assets/linha-decorativa.png";
 
 interface ContatoData {
   title: string;
