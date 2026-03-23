@@ -45,9 +45,20 @@ const CardapioPage = () => {
   const scrollToCategory = (slug: string) => {
     const el = categoryRefs.current[slug];
     if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      const headerOffset = 120;
+      const elementPosition = el.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.scrollY - headerOffset;
+      window.scrollTo({ top: offsetPosition, behavior: "smooth" });
     }
   };
+
+  // Handle hash on load
+  useEffect(() => {
+    const hash = window.location.hash.replace("#", "");
+    if (hash) {
+      setTimeout(() => scrollToCategory(hash), 500);
+    }
+  }, [groupedProducts]);
 
   // Intersection observer for active anchor
   useEffect(() => {
@@ -55,11 +66,11 @@ const CardapioPage = () => {
       (entries) => {
         for (const entry of entries) {
           if (entry.isIntersecting) {
-            setActiveCategory(entry.target.id.replace("cat-", ""));
+            setActiveCategory(entry.target.id);
           }
         }
       },
-      { rootMargin: "-100px 0px -60% 0px", threshold: 0 }
+      { rootMargin: "-120px 0px -60% 0px", threshold: 0 }
     );
 
     Object.values(categoryRefs.current).forEach((el) => {
@@ -109,13 +120,13 @@ const CardapioPage = () => {
         {groupedProducts.map((group, idx) => {
           const usePaper = idx % 2 === 0;
           const items = group.items;
-          const isLargeSection = items.length > 8;
+          const isLargeSection = items.length > 6;
           const midpoint = Math.ceil(items.length / 2);
 
           return (
             <section
               key={group.category.id}
-              id={`cat-${group.category.slug}`}
+              id={group.category.slug}
               ref={(el: HTMLDivElement | null) => { categoryRefs.current[group.category.slug] = el; }}
               className={`py-12 md:py-16 ${usePaper ? "section-paper" : "bg-background"} relative overflow-hidden`}
             >
@@ -135,18 +146,20 @@ const CardapioPage = () => {
 
                 {/* Items grid */}
                 {isLargeSection ? (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-0">
-                    <div>
-                      {items.slice(0, midpoint).map((item) => (
-                        <MenuItem key={item.id} item={item} />
-                      ))}
+                  <div className="relative max-w-5xl mx-auto">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-0">
+                      <div>
+                        {items.slice(0, midpoint).map((item) => (
+                          <MenuItem key={item.id} item={item} />
+                        ))}
+                      </div>
+                      <div>
+                        {items.slice(midpoint).map((item) => (
+                          <MenuItem key={item.id} item={item} />
+                        ))}
+                      </div>
                     </div>
-                    <div className="hidden lg:block absolute left-1/2 top-24 bottom-8 w-px bg-border/60" />
-                    <div>
-                      {items.slice(midpoint).map((item) => (
-                        <MenuItem key={item.id} item={item} />
-                      ))}
-                    </div>
+                    <div className="hidden lg:block absolute left-1/2 top-0 bottom-0 w-px bg-border/60" />
                   </div>
                 ) : (
                   <div className="max-w-2xl mx-auto">
