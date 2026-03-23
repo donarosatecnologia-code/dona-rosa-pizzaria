@@ -4,7 +4,7 @@ import logoSmall from "@/assets/logo-small.png";
 
 const navItems = [
   { label: "Quem Somos", href: "/quem-somos" },
-  { label: "Cardápio", href: "#cardapio" },
+  { label: "Cardápio", href: "/cardapio" },
   { label: "Espaços", href: "#contato" },
   { label: "Cursos e Eventos", href: "#cursos" },
   { label: "Saúde e Sustentabilidade", href: "#saude" },

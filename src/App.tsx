@@ -27,6 +27,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/quem-somos" element={<QuemSomosPage />} />
+          <Route path="/cardapio" element={<CardapioPage />} />
           <Route path="/login" element={<Login />} />
 
           {/* Admin routes */}
