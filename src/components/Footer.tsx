@@ -8,7 +8,12 @@ const Footer = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
           {/* Col 1 - Logo & Social */}
           <div>
-            <img src={logoSmall} alt="Dona Rosa" className="h-16 mb-4 brightness-0 invert" />
+            <img
+              src={logoSmall}
+              alt="Dona Rosa"
+              className="h-16 mb-4"
+              style={{ filter: "brightness(0) invert(1) sepia(1) saturate(5) hue-rotate(-10deg) brightness(0.7)" }}
+            />
             <p className="text-sm opacity-70 mb-3">Redes Sociais</p>
             <div className="flex gap-3">
               <a href="#" className="opacity-70 hover:opacity-100 transition-opacity" aria-label="Instagram">
@@ -68,8 +73,12 @@ const Footer = () => {
           </div>
         </div>
 
-        <div className="border-t border-primary-foreground/20 pt-6 text-center text-xs opacity-50">
-          © 2026 Dona Rosa Pizzaria - Desenvolvido por Janaina Guiotti
+        <div className="border-t border-primary-foreground/20 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs opacity-50">
+          <p>© 2026 Dona Rosa Pizzaria - Desenvolvido por Janaina Guiotti</p>
+          <div className="flex gap-4">
+            <a href="/politica-de-privacidade" className="hover:opacity-100 transition-opacity">Políticas de Privacidade</a>
+            <a href="/termos-de-uso" className="hover:opacity-100 transition-opacity">Termos de Uso</a>
+          </div>
         </div>
       </div>
     </footer>
