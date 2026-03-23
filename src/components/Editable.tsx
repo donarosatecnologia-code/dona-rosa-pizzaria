@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import { Pencil } from "lucide-react";
 
 interface EditableProps {
@@ -11,22 +11,45 @@ interface EditableProps {
 /**
  * Wraps any page element to make it editable from the admin panel.
  * In admin mode (?admin=true), shows an edit overlay on hover.
- * Clicking sends a postMessage to the parent AdminLayout iframe host.
+ * Clicking sends a postMessage to the parent AdminLayout iframe host,
+ * including the current visible content so the editor can pre-fill.
  */
 const Editable = ({ id, type, label, children }: EditableProps) => {
-  const isAdminMode = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("admin") === "true";
+  const isAdminMode =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("admin") === "true";
+
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      // Send message to parent (AdminLayout)
+
+      // Extract current visible content from the DOM
+      let currentContent = "";
+      let currentImageUrl = "";
+
+      if (wrapperRef.current) {
+        if (type === "image" || type === "carousel" || type === "gallery") {
+          const img = wrapperRef.current.querySelector("img");
+          if (img) currentImageUrl = img.src;
+        } else {
+          // Get text content from the first text-bearing element
+          const el =
+            wrapperRef.current.querySelector("h1, h2, h3, h4, h5, h6, p, span");
+          if (el) currentContent = el.textContent || "";
+        }
+      }
+
       window.parent.postMessage(
         {
           type: "edit-element",
           elementId: id,
           elementType: type,
           label: label || id,
+          currentContent,
+          currentImageUrl,
         },
         "*"
       );
@@ -39,7 +62,7 @@ const Editable = ({ id, type, label, children }: EditableProps) => {
   }
 
   return (
-    <div className="relative group/editable">
+    <div ref={wrapperRef} className="relative group/editable">
       {children}
       <div
         onClick={handleClick}
