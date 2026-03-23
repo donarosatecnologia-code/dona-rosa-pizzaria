@@ -1,4 +1,5 @@
 import { Phone, Mail } from "lucide-react";
+import EditableWrapper from "@/components/EditableWrapper";
 import ambiente from "@/assets/ambiente-1.jpg";
 
 interface ContatoData {
@@ -13,8 +14,7 @@ interface ContatoData {
 const defaultData: ContatoData = {
   title: "Contato & Reserva de mesa",
   subtitle: "Delivery com atendimento pessoal. Por aqui nada de robôs!",
-  description:
-    "Ligue e fale com um dos nossos atendentes para pedir o seu delivery ou reservar uma mesa!",
+  description: "Ligue e fale com um dos nossos atendentes para pedir o seu delivery ou reservar uma mesa!",
   ctaDelivery: "Delivery",
   ctaReserva: "Reservar uma mesa",
   image: ambiente,
@@ -26,9 +26,15 @@ const Contato = ({ data = defaultData }: { data?: ContatoData }) => {
       <div className="container mx-auto px-4">
         <div className="grid md:grid-cols-2 gap-10 items-center max-w-5xl mx-auto">
           <div>
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">{data.title}</h2>
-            <p className="text-accent font-semibold mb-2">{data.subtitle}</p>
-            <p className="text-muted-foreground mb-8 leading-relaxed">{data.description}</p>
+            <EditableWrapper id="home-contato-title" type="text" label="Título Contato">
+              <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">{data.title}</h2>
+            </EditableWrapper>
+            <EditableWrapper id="home-contato-subtitle" type="text" label="Subtítulo Contato">
+              <p className="text-accent font-semibold mb-2">{data.subtitle}</p>
+            </EditableWrapper>
+            <EditableWrapper id="home-contato-desc" type="textarea" label="Descrição Contato">
+              <p className="text-muted-foreground mb-8 leading-relaxed">{data.description}</p>
+            </EditableWrapper>
 
             <div className="flex flex-wrap gap-4">
               <a href="tel:+551100000000" className="btn-secondary-dr inline-flex items-center gap-2">
@@ -40,14 +46,11 @@ const Contato = ({ data = defaultData }: { data?: ContatoData }) => {
             </div>
           </div>
 
-          <div className="rounded-2xl overflow-hidden shadow-lg">
-            <img
-              src={data.image}
-              alt="Ambiente da pizzaria"
-              loading="lazy"
-              className="w-full h-64 md:h-80 object-cover"
-            />
-          </div>
+          <EditableWrapper id="home-contato-img" type="image" label="Imagem Contato">
+            <div className="rounded-2xl overflow-hidden shadow-lg">
+              <img src={data.image} alt="Ambiente da pizzaria" loading="lazy" className="w-full h-64 md:h-80 object-cover" />
+            </div>
+          </EditableWrapper>
         </div>
       </div>
     </section>

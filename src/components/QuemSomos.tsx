@@ -1,4 +1,5 @@
 import { Home, Users, Leaf, UtensilsCrossed } from "lucide-react";
+import EditableWrapper from "@/components/EditableWrapper";
 
 interface QuemSomosData {
   title: string;
@@ -31,17 +32,23 @@ const QuemSomos = ({ data = defaultData }: { data?: QuemSomosData }) => {
   return (
     <section id="quem-somos" className="bg-background py-16 md:py-24">
       <div className="container mx-auto px-4 max-w-4xl text-center">
-        <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">{data.title}</h2>
-        <p className="text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed">
-          {data.description}
-        </p>
+        <EditableWrapper id="home-quemsmos-title" type="text" label="Título Quem Somos">
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">{data.title}</h2>
+        </EditableWrapper>
+        <EditableWrapper id="home-quemsmos-desc" type="textarea" label="Descrição Quem Somos">
+          <p className="text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed">
+            {data.description}
+          </p>
+        </EditableWrapper>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10 text-left">
           {data.features.map((feat, i) => (
-            <div key={i} className="flex items-start gap-4">
-              <div className="shrink-0 mt-1">{iconMap[feat.icon]}</div>
-              <p className="text-sm text-muted-foreground leading-relaxed">{feat.text}</p>
-            </div>
+            <EditableWrapper key={i} id={`home-quemsmos-feat-${i}`} type="text" label={`Feature ${i + 1}`}>
+              <div className="flex items-start gap-4">
+                <div className="shrink-0 mt-1">{iconMap[feat.icon]}</div>
+                <p className="text-sm text-muted-foreground leading-relaxed">{feat.text}</p>
+              </div>
+            </EditableWrapper>
           ))}
         </div>
 

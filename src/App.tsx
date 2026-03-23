@@ -3,6 +3,8 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AdminEditorProvider } from "@/contexts/AdminEditorContext";
+import AdminEditorSidebar from "@/components/AdminEditorSidebar";
 import Index from "./pages/Index";
 import QuemSomosPage from "./pages/QuemSomosPage";
 import CardapioPage from "./pages/CardapioPage";
@@ -23,25 +25,28 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/quem-somos" element={<QuemSomosPage />} />
-          <Route path="/cardapio" element={<CardapioPage />} />
-          <Route path="/login" element={<Login />} />
+      <AdminEditorProvider>
+        <AdminEditorSidebar />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/quem-somos" element={<QuemSomosPage />} />
+            <Route path="/cardapio" element={<CardapioPage />} />
+            <Route path="/login" element={<Login />} />
 
-          {/* Admin routes */}
-          <Route path="/admin" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
-            <Route path="dashboard" element={<Dashboard />} />
-            <Route path="home" element={<AdminHome />} />
-            <Route path="quem-somos" element={<AdminQuemSomos />} />
-            <Route path="cardapio" element={<AdminCardapio />} />
-            <Route path="configuracoes" element={<AdminConfiguracoes />} />
-          </Route>
+            {/* Admin routes */}
+            <Route path="/admin" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
+              <Route path="dashboard" element={<Dashboard />} />
+              <Route path="home" element={<AdminHome />} />
+              <Route path="quem-somos" element={<AdminQuemSomos />} />
+              <Route path="cardapio" element={<AdminCardapio />} />
+              <Route path="configuracoes" element={<AdminConfiguracoes />} />
+            </Route>
 
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </AdminEditorProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
