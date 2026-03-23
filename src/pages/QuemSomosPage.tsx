@@ -13,7 +13,6 @@ import curso1 from "@/assets/curso-1.jpg";
 import saude1 from "@/assets/saude-1.jpg";
 import prato2 from "@/assets/prato-2.jpg";
 import prato3 from "@/assets/prato-3.jpg";
-import linhaDecorativa from "@/assets/linha-decorativa.png";
 
 const sections = [
   {
