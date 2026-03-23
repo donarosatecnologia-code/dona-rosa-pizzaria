@@ -10,8 +10,6 @@ import Footer from "@/components/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
 
 const Index = () => {
-  const isAdmin = new URLSearchParams(window.location.search).get("admin") === "true";
-
   return (
     <div className="min-h-screen">
       <Header />
@@ -23,7 +21,7 @@ const Index = () => {
       <Saude />
       <Fotos />
       <Footer />
-      {!isAdmin && <WhatsAppButton />}
+      <WhatsAppButton />
     </div>
   );
 };
