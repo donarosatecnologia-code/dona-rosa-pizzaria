@@ -13,7 +13,6 @@ import curso1 from "@/assets/curso-1.jpg";
 import saude1 from "@/assets/saude-1.jpg";
 import prato2 from "@/assets/prato-2.jpg";
 import prato3 from "@/assets/prato-3.jpg";
-import linhaDecorativa from "@/assets/linha-decorativa.png";
 
 const sections = [
   {
@@ -113,7 +112,7 @@ const QuemSomosPage = () => {
               transformou receitas de família em momentos inesquecíveis.
             </p>
           </Editable>
-          <img src={linhaDecorativa} alt="" className="mx-auto mt-10 w-48 opacity-40" />
+          
         </div>
       </section>
 
@@ -132,7 +131,7 @@ const QuemSomosPage = () => {
                   {section.title}
                 </h2>
               </Editable>
-              <img src={linhaDecorativa} alt="" className="mx-auto mb-4 w-32 opacity-30" />
+              
               <Editable id={`qs-${section.id}-desc`} type="textarea" label={`Descrição: ${section.title}`}>
                 <p className="text-muted-foreground max-w-2xl mx-auto leading-relaxed">
                   {section.description}
@@ -223,7 +222,7 @@ const QuemSomosPage = () => {
           <Editable id="qs-gallery-title" type="text" label="Título Galeria">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground text-center mb-3">Nossos Espaços</h2>
           </Editable>
-          <img src={linhaDecorativa} alt="" className="mx-auto mb-10 w-32 opacity-30" />
+          
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {[forno1, ambiente1, pizza1, evento1, curso1, saude1].map((img, i) => (
               <Editable key={i} id={`qs-gallery-img-${i}`} type="image" label={`Foto galeria ${i + 1}`}>

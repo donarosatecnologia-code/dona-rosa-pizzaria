@@ -1,6 +1,5 @@
 import { Phone, Mail } from "lucide-react";
 import ambiente from "@/assets/ambiente-1.jpg";
-import linhaDecorativa from "@/assets/linha-decorativa.png";
 
 interface ContatoData {
   title: string;
@@ -24,11 +23,6 @@ const defaultData: ContatoData = {
 const Contato = ({ data = defaultData }: { data?: ContatoData }) => {
   return (
     <section id="contato" className="bg-background py-16 md:py-24 relative">
-      <img
-        src={linhaDecorativa}
-        alt=""
-        className="absolute left-6 top-0 bottom-0 h-full opacity-30 hidden xl:block pointer-events-none"
-      />
       <div className="container mx-auto px-4">
         <div className="grid md:grid-cols-2 gap-10 items-center max-w-5xl mx-auto">
           <div>

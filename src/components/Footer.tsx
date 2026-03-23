@@ -1,5 +1,5 @@
 import { Instagram, Facebook } from "lucide-react";
-import logoSmall from "@/assets/logo-small.png";
+import logoBranco from "@/assets/logo-branco.png";
 
 const Footer = () => {
   return (
@@ -9,10 +9,9 @@ const Footer = () => {
           {/* Col 1 - Logo & Social */}
           <div>
             <img
-              src={logoSmall}
+              src={logoBranco}
               alt="Dona Rosa"
               className="h-16 mb-4"
-              style={{ filter: "brightness(0) invert(1) sepia(1) saturate(5) hue-rotate(-10deg) brightness(0.7)" }}
             />
             <p className="text-sm opacity-70 mb-3">Redes Sociais</p>
             <div className="flex gap-3">
