@@ -47,6 +47,8 @@ const AdminLayout = () => {
           elementId: event.data.elementId,
           elementType: event.data.elementType,
           label: event.data.label,
+          currentContent: event.data.currentContent || "",
+          currentImageUrl: event.data.currentImageUrl || "",
         });
       }
     };
