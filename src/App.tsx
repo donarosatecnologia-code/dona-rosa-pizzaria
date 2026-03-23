@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Index from "./pages/Index";
 import QuemSomosPage from "./pages/QuemSomosPage";
+import CardapioPage from "./pages/CardapioPage";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -26,6 +27,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/quem-somos" element={<QuemSomosPage />} />
+          <Route path="/cardapio" element={<CardapioPage />} />
           <Route path="/login" element={<Login />} />
 
           {/* Admin routes */}
