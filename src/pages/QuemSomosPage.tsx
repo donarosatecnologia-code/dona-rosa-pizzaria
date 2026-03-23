@@ -222,7 +222,7 @@ const QuemSomosPage = () => {
           <Editable id="qs-gallery-title" type="text" label="Título Galeria">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground text-center mb-3">Nossos Espaços</h2>
           </Editable>
-          <img src={linhaDecorativa} alt="" className="mx-auto mb-10 w-32 opacity-30" />
+          
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {[forno1, ambiente1, pizza1, evento1, curso1, saude1].map((img, i) => (
               <Editable key={i} id={`qs-gallery-img-${i}`} type="image" label={`Foto galeria ${i + 1}`}>
