@@ -131,7 +131,7 @@ const QuemSomosPage = () => {
                   {section.title}
                 </h2>
               </Editable>
-              <img src={linhaDecorativa} alt="" className="mx-auto mb-4 w-32 opacity-30" />
+              
               <Editable id={`qs-${section.id}-desc`} type="textarea" label={`Descrição: ${section.title}`}>
                 <p className="text-muted-foreground max-w-2xl mx-auto leading-relaxed">
                   {section.description}
