@@ -116,7 +116,7 @@ const CardapioPage = () => {
             <section
               key={group.category.id}
               id={`cat-${group.category.slug}`}
-              ref={(el) => { categoryRefs.current[group.category.slug] = el; }}
+              ref={(el: HTMLDivElement | null) => { categoryRefs.current[group.category.slug] = el; }}
               className={`py-12 md:py-16 ${usePaper ? "section-paper" : "bg-background"} relative overflow-hidden`}
             >
               <div className="container mx-auto px-4">
