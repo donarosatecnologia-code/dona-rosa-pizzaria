@@ -1,8 +1,23 @@
-import { Instagram, Facebook } from "lucide-react";
+import { Instagram, Facebook, Youtube, Twitter } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import EditableWrapper from "@/components/EditableWrapper";
 import logoBranco from "@/assets/logo-branco.png";
 
 const Footer = () => {
+  const { data: categories } = useQuery({
+    queryKey: ["footer-categories"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("categories")
+        .select("name, slug")
+        .eq("is_active", true)
+        .order("sort_order");
+      if (error) throw error;
+      return data;
+    },
+  });
+
   return (
     <footer className="bg-foreground text-primary-foreground py-12">
       <div className="container mx-auto px-4">
@@ -10,15 +25,23 @@ const Footer = () => {
           {/* Col 1 - Logo & Social */}
           <div>
             <EditableWrapper id="footer-logo" type="image" label="Logo Footer">
-              <img src={logoBranco} alt="Dona Rosa" className="h-16 mb-4" />
+              <a href="/">
+                <img src={logoBranco} alt="Dona Rosa" className="h-16 mb-4" />
+              </a>
             </EditableWrapper>
             <p className="text-sm opacity-70 mb-3">Redes Sociais</p>
             <div className="flex gap-3">
-              <a href="#" className="opacity-70 hover:opacity-100 transition-opacity" aria-label="Instagram">
+              <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="opacity-70 hover:opacity-100 transition-opacity" aria-label="Instagram">
                 <Instagram size={20} />
               </a>
-              <a href="#" className="opacity-70 hover:opacity-100 transition-opacity" aria-label="Facebook">
+              <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="opacity-70 hover:opacity-100 transition-opacity" aria-label="Facebook">
                 <Facebook size={20} />
+              </a>
+              <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" className="opacity-70 hover:opacity-100 transition-opacity" aria-label="YouTube">
+                <Youtube size={20} />
+              </a>
+              <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="opacity-70 hover:opacity-100 transition-opacity" aria-label="Twitter">
+                <Twitter size={20} />
               </a>
             </div>
             <EditableWrapper id="footer-address" type="textarea" label="Endereço Footer">
@@ -35,25 +58,35 @@ const Footer = () => {
           <div>
             <h4 className="font-semibold mb-4 text-sm">Navegação</h4>
             <ul className="space-y-2 text-xs opacity-70">
-              <li><a href="/quem-somos" className="hover:opacity-100">Quem Somos</a></li>
-              <li><a href="/#contato" className="hover:opacity-100">Contato</a></li>
-              <li><a href="/#cursos" className="hover:opacity-100">Eventos</a></li>
-              <li><a href="/#saude" className="hover:opacity-100">Saúde</a></li>
-              <li><a href="/#fotos" className="hover:opacity-100">Espaços</a></li>
+              <li><a href="/" className="hover:opacity-100 transition-opacity">Home</a></li>
+              <li><a href="/quem-somos" className="hover:opacity-100 transition-opacity">Quem Somos</a></li>
+              <li><a href="/cardapio" className="hover:opacity-100 transition-opacity">Cardápio</a></li>
+              <li><a href="/#contato" className="hover:opacity-100 transition-opacity">Contato</a></li>
+              <li><a href="/#cursos" className="hover:opacity-100 transition-opacity">Eventos</a></li>
+              <li><a href="/#saude" className="hover:opacity-100 transition-opacity">Saúde</a></li>
+              <li><a href="/#fotos" className="hover:opacity-100 transition-opacity">Espaços</a></li>
             </ul>
           </div>
 
-          {/* Col 3 - Cardápio */}
+          {/* Col 3 - Cardápio (dynamic anchors) */}
           <div>
             <h4 className="font-semibold mb-4 text-sm">Cardápio</h4>
             <ul className="space-y-2 text-xs opacity-70">
-              <li>Pizzas</li>
-              <li>Sobremesas</li>
-              <li>Pastéis</li>
-              <li>Salada e Antepastos</li>
-              <li>Esfihas</li>
-              <li>Cervejas</li>
-              <li>Vinhos</li>
+              {(categories ?? []).map((cat) => (
+                <li key={cat.slug}>
+                  <a href={`/cardapio#${cat.slug}`} className="hover:opacity-100 transition-opacity">
+                    {cat.name}
+                  </a>
+                </li>
+              ))}
+              {(!categories || categories.length === 0) && (
+                <>
+                  <li><a href="/cardapio#pizzas" className="hover:opacity-100 transition-opacity">Pizzas</a></li>
+                  <li><a href="/cardapio#bebidas" className="hover:opacity-100 transition-opacity">Bebidas</a></li>
+                  <li><a href="/cardapio#sobremesas" className="hover:opacity-100 transition-opacity">Sobremesas</a></li>
+                  <li><a href="/cardapio#vinhos" className="hover:opacity-100 transition-opacity">Vinhos</a></li>
+                </>
+              )}
             </ul>
           </div>
 
