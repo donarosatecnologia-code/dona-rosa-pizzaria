@@ -20,6 +20,8 @@ interface EditingElement {
   elementId: string;
   elementType: "text" | "textarea" | "image" | "carousel" | "gallery";
   label: string;
+  currentContent: string;
+  currentImageUrl: string;
 }
 
 const AdminLayout = () => {
@@ -45,6 +47,8 @@ const AdminLayout = () => {
           elementId: event.data.elementId,
           elementType: event.data.elementType,
           label: event.data.label,
+          currentContent: event.data.currentContent || "",
+          currentImageUrl: event.data.currentImageUrl || "",
         });
       }
     };
@@ -176,7 +180,7 @@ function InlineEditor({
   const [loading, setLoading] = useState(true);
   const [recordId, setRecordId] = useState<number | null>(null);
 
-  // Load existing content from Supabase
+  // Load existing content from Supabase, fall back to current page content
   useEffect(() => {
     const loadContent = async () => {
       setLoading(true);
@@ -188,10 +192,17 @@ function InlineEditor({
 
       if (data) {
         setRecordId(data.id);
-        if (element.elementType === "image") {
-          setImagePreview(data.image_url || "");
+        if (element.elementType === "image" || element.elementType === "carousel" || element.elementType === "gallery") {
+          setImagePreview(data.image_url || element.currentImageUrl || "");
         } else {
-          setTextValue(data.content || data.title || "");
+          setTextValue(data.content || data.title || element.currentContent || "");
+        }
+      } else {
+        // No DB record yet — use the current content from the page
+        if (element.elementType === "image" || element.elementType === "carousel" || element.elementType === "gallery") {
+          setImagePreview(element.currentImageUrl || "");
+        } else {
+          setTextValue(element.currentContent || "");
         }
       }
       setLoading(false);
