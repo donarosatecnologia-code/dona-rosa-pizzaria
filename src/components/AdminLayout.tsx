@@ -20,6 +20,8 @@ interface EditingElement {
   elementId: string;
   elementType: "text" | "textarea" | "image" | "carousel" | "gallery";
   label: string;
+  currentContent: string;
+  currentImageUrl: string;
 }
 
 const AdminLayout = () => {
