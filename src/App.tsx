@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Index from "./pages/Index";
 import QuemSomosPage from "./pages/QuemSomosPage";
+import CardapioPage from "./pages/CardapioPage";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
