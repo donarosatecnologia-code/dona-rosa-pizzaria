@@ -47,6 +47,111 @@ export type Database = {
         }
         Relationships: []
       }
+      custom_sections: {
+        Row: {
+          columns_per_row: number
+          created_at: string
+          has_paper_texture: boolean
+          id: number
+          is_active: boolean
+          page_key: string
+          section_key: string
+          sort_order: number
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          columns_per_row?: number
+          created_at?: string
+          has_paper_texture?: boolean
+          id?: never
+          is_active?: boolean
+          page_key?: string
+          section_key: string
+          sort_order?: number
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          columns_per_row?: number
+          created_at?: string
+          has_paper_texture?: boolean
+          id?: never
+          is_active?: boolean
+          page_key?: string
+          section_key?: string
+          sort_order?: number
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      gallery_images: {
+        Row: {
+          alt_text: string | null
+          created_at: string
+          id: number
+          image_url: string
+          is_active: boolean
+          section_key: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          alt_text?: string | null
+          created_at?: string
+          id?: never
+          image_url: string
+          is_active?: boolean
+          section_key: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          alt_text?: string | null
+          created_at?: string
+          id?: never
+          image_url?: string
+          is_active?: boolean
+          section_key?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      nav_links: {
+        Row: {
+          column_key: string
+          created_at: string
+          id: number
+          is_active: boolean
+          label: string
+          sort_order: number
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          column_key?: string
+          created_at?: string
+          id?: never
+          is_active?: boolean
+          label: string
+          sort_order?: number
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          column_key?: string
+          created_at?: string
+          id?: never
+          is_active?: boolean
+          label?: string
+          sort_order?: number
+          updated_at?: string
+          url?: string
+        }
+        Relationships: []
+      }
       page_contents: {
         Row: {
           content: string | null
@@ -141,6 +246,83 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      section_elements: {
+        Row: {
+          content: string | null
+          created_at: string
+          element_type: string
+          id: number
+          image_url: string | null
+          is_active: boolean
+          section_id: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          element_type?: string
+          id?: never
+          image_url?: string | null
+          is_active?: boolean
+          section_id: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          element_type?: string
+          id?: never
+          image_url?: string | null
+          is_active?: boolean
+          section_id?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "section_elements_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "custom_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_links: {
+        Row: {
+          created_at: string
+          icon_name: string
+          id: number
+          is_active: boolean
+          platform: string
+          sort_order: number
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          icon_name?: string
+          id?: never
+          is_active?: boolean
+          platform: string
+          sort_order?: number
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          icon_name?: string
+          id?: never
+          is_active?: boolean
+          platform?: string
+          sort_order?: number
+          updated_at?: string
+          url?: string
+        }
+        Relationships: []
       }
       users: {
         Row: {
