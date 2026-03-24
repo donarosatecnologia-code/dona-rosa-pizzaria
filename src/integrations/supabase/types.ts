@@ -18,6 +18,10 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
+          footer_note_extra: string | null
+          footer_note_flour: string | null
+          footer_note_slices: string | null
+          has_pizza_size_pricing: boolean
           id: number
           is_active: boolean
           name: string
@@ -28,6 +32,10 @@ export type Database = {
         Insert: {
           created_at?: string
           description?: string | null
+          footer_note_extra?: string | null
+          footer_note_flour?: string | null
+          footer_note_slices?: string | null
+          has_pizza_size_pricing?: boolean
           id?: never
           is_active?: boolean
           name: string
@@ -38,6 +46,10 @@ export type Database = {
         Update: {
           created_at?: string
           description?: string | null
+          footer_note_extra?: string | null
+          footer_note_flour?: string | null
+          footer_note_slices?: string | null
+          has_pizza_size_pricing?: boolean
           id?: never
           is_active?: boolean
           name?: string
@@ -200,8 +212,16 @@ export type Database = {
           image_url: string | null
           is_active: boolean
           is_featured: boolean
+          is_house_wine: boolean
           name: string
+          country_origin: string | null
+          origin_country: string | null
           price: number
+          price_glass: number | null
+          price_half_carafe: number | null
+          price_carafe: number | null
+          price_half_pitcher: number | null
+          price_pitcher: number | null
           short_description: string | null
           slug: string
           sort_order: number
@@ -215,8 +235,16 @@ export type Database = {
           image_url?: string | null
           is_active?: boolean
           is_featured?: boolean
+          is_house_wine?: boolean
           name: string
+          country_origin?: string | null
+          origin_country?: string | null
           price: number
+          price_glass?: number | null
+          price_half_carafe?: number | null
+          price_carafe?: number | null
+          price_half_pitcher?: number | null
+          price_pitcher?: number | null
           short_description?: string | null
           slug: string
           sort_order?: number
@@ -230,8 +258,16 @@ export type Database = {
           image_url?: string | null
           is_active?: boolean
           is_featured?: boolean
+          is_house_wine?: boolean
           name?: string
+          country_origin?: string | null
+          origin_country?: string | null
           price?: number
+          price_glass?: number | null
+          price_half_carafe?: number | null
+          price_carafe?: number | null
+          price_half_pitcher?: number | null
+          price_pitcher?: number | null
           short_description?: string | null
           slug?: string
           sort_order?: number

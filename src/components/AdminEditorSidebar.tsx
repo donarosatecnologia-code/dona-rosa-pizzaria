@@ -5,6 +5,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { uploadImage, deleteImage } from "@/lib/storage";
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
+import RichTextEditor from "@/components/RichTextEditor";
+
+function getPageKeyFromSectionKey(sectionKey: string) {
+  if (sectionKey.startsWith("qs-")) return "quem-somos";
+  if (sectionKey.startsWith("card-")) return "cardapio";
+  if (sectionKey.startsWith("footer-")) return "footer";
+  if (sectionKey.startsWith("header-")) return "header";
+  return "home";
+}
 
 const AdminEditorSidebar = () => {
   const { isEditing, editingTarget, closeEditor } = useAdminEditor();
@@ -16,6 +25,7 @@ const AdminEditorSidebar = () => {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(false);
   const [recordId, setRecordId] = useState<number | null>(null);
+  const [linkUrlValue, setLinkUrlValue] = useState("");
 
   const isImageType = editingTarget && ["image", "carousel", "gallery"].includes(editingTarget.elementType);
   const isMultiImage = editingTarget && ["carousel", "gallery"].includes(editingTarget.elementType);
@@ -27,10 +37,12 @@ const AdminEditorSidebar = () => {
 
     const loadContent = async () => {
       setLoading(true);
+      const pageKey = getPageKeyFromSectionKey(editingTarget.elementId);
       const { data } = await supabase
         .from("page_contents")
         .select("*")
         .eq("section_key", editingTarget.elementId)
+        .eq("page_key", pageKey)
         .maybeSingle();
 
       if (data) {
@@ -38,18 +50,30 @@ const AdminEditorSidebar = () => {
         if (isImageType && !isMultiImage) {
           setImagePreview(data.image_url || editingTarget.currentImageUrl || "");
           setTextValue("");
+          setLinkUrlValue("");
+        } else if (editingTarget.elementType === "link") {
+          setTextValue(data.title || editingTarget.currentContent || "");
+          setLinkUrlValue(data.content || editingTarget.currentLinkUrl || "");
+          setImagePreview("");
         } else if (!isImageType) {
           setTextValue(data.content || data.title || editingTarget.currentContent || "");
           setImagePreview("");
+          setLinkUrlValue("");
         }
       } else {
         setRecordId(null);
         if (isImageType && !isMultiImage) {
           setImagePreview(editingTarget.currentImageUrl || "");
           setTextValue("");
+          setLinkUrlValue("");
+        } else if (editingTarget.elementType === "link") {
+          setTextValue(editingTarget.currentContent || "");
+          setLinkUrlValue(editingTarget.currentLinkUrl || "");
+          setImagePreview("");
         } else if (!isImageType) {
           setTextValue(editingTarget.currentContent || "");
           setImagePreview("");
+          setLinkUrlValue("");
         }
       }
       setLoading(false);
@@ -72,27 +96,32 @@ const AdminEditorSidebar = () => {
       const payload: Record<string, string> = {};
       if (isImageType && !isMultiImage) {
         payload.image_url = imageUrl;
+      } else if (editingTarget.elementType === "link") {
+        payload.title = textValue;
+        payload.content = linkUrlValue;
       } else if (!isImageType) {
         payload.content = textValue;
         payload.title = textValue;
       }
 
       if (recordId) {
-        await supabase.from("page_contents").update(payload).eq("id", recordId);
+        const { error } = await supabase.from("page_contents").update(payload).eq("id", recordId);
+        if (error) throw error;
       } else {
-        const pageKey = editingTarget.elementId.startsWith("qs-") ? "quem-somos"
-          : editingTarget.elementId.startsWith("card-") ? "cardapio"
-          : editingTarget.elementId.startsWith("footer-") ? "footer"
-          : editingTarget.elementId.startsWith("header-") ? "header"
-          : "home";
+        const pageKey = getPageKeyFromSectionKey(editingTarget.elementId);
 
-        await supabase.from("page_contents").insert({ page_key: pageKey, section_key: editingTarget.elementId, ...payload });
+        const { error } = await supabase.from("page_contents").insert({ page_key: pageKey, section_key: editingTarget.elementId, ...payload });
+        if (error) throw error;
       }
 
       queryClient.invalidateQueries({ queryKey: ["page-contents"] });
+      queryClient.invalidateQueries({ queryKey: ["page-contents-batch"] });
+      queryClient.invalidateQueries({ queryKey: ["page-contents", editingTarget.elementId] });
+      queryClient.invalidateQueries({ queryKey: ["page-contents", editingTarget.elementId, "carousel-columns"] });
       toast.success("Conteúdo salvo com sucesso!");
       closeEditor();
-    } catch {
+    } catch (error) {
+      console.error("Erro ao salvar conteúdo:", error);
       toast.error("Erro ao salvar conteúdo");
     } finally {
       setSaving(false);
@@ -112,6 +141,7 @@ const AdminEditorSidebar = () => {
     image: <Image size={16} />,
     carousel: <Image size={16} />,
     gallery: <Image size={16} />,
+    link: <Type size={16} />,
   };
 
   return (
@@ -140,7 +170,11 @@ const AdminEditorSidebar = () => {
                   <Loader2 size={16} className="animate-spin" /> Carregando...
                 </div>
               ) : isMultiImage ? (
-                <GalleryManager sectionKey={editingTarget.elementId} />
+                <GalleryManager
+                  sectionKey={editingTarget.elementId}
+                  pageKey={getPageKeyFromSectionKey(editingTarget.elementId)}
+                  mediaType={editingTarget.elementType as "carousel" | "gallery"}
+                />
               ) : isImageType ? (
                 <div className="space-y-4">
                   {imagePreview && <img src={imagePreview} alt="Preview" className="w-full h-48 object-cover rounded-xl border border-border" />}
@@ -149,16 +183,27 @@ const AdminEditorSidebar = () => {
                     <input type="file" accept="image/*" onChange={handleFileChange} className="text-sm w-full file:mr-3 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-medium file:bg-primary/10 file:text-primary hover:file:bg-primary/20" />
                   </label>
                 </div>
+              ) : editingTarget.elementType === "link" ? (
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-2 block">Texto do botão</label>
+                    <RichTextEditor value={textValue} onChange={setTextValue} minHeightClassName="min-h-[100px]" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-2 block">Link do botão</label>
+                    <input value={linkUrlValue} onChange={(e) => setLinkUrlValue(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors" placeholder="/contato ou https://..." />
+                  </div>
+                </div>
               ) : editingTarget.elementType === "textarea" ? (
                 <div>
                   <label className="text-sm font-medium text-foreground mb-2 block">Conteúdo</label>
-                  <textarea value={textValue} onChange={(e) => setTextValue(e.target.value)} rows={10} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm resize-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors" />
+                  <RichTextEditor value={textValue} onChange={setTextValue} />
                   <p className="text-xs text-muted-foreground mt-1">{textValue.length} caracteres</p>
                 </div>
               ) : (
                 <div>
                   <label className="text-sm font-medium text-foreground mb-2 block">Texto</label>
-                  <input value={textValue} onChange={(e) => setTextValue(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors" />
+                  <RichTextEditor value={textValue} onChange={setTextValue} minHeightClassName="min-h-[100px]" />
                 </div>
               )}
             </div>
@@ -180,10 +225,20 @@ const AdminEditorSidebar = () => {
 };
 
 // Multi-image gallery/carousel manager
-function GalleryManager({ sectionKey }: { sectionKey: string }) {
+function GalleryManager({
+  sectionKey,
+  pageKey,
+  mediaType,
+}: {
+  sectionKey: string;
+  pageKey: string;
+  mediaType: "carousel" | "gallery";
+}) {
   const queryClient = useQueryClient();
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [uploading, setUploading] = useState(false);
+  const [columns, setColumns] = useState("1");
+  const isCarousel = mediaType === "carousel";
 
   const { data: images, isLoading } = useQuery({
     queryKey: ["gallery-images", sectionKey],
@@ -194,6 +249,27 @@ function GalleryManager({ sectionKey }: { sectionKey: string }) {
     },
   });
 
+  const { data: carouselConfig } = useQuery({
+    queryKey: ["page-contents", sectionKey, "carousel-columns"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("page_contents")
+        .select("id, content")
+        .eq("section_key", sectionKey)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: isCarousel,
+  });
+
+  useEffect(() => {
+    if (!isCarousel) return;
+    const parsed = Number.parseInt(carouselConfig?.content || "1", 10);
+    const normalized = Number.isNaN(parsed) ? 1 : Math.min(4, Math.max(1, parsed));
+    setColumns(normalized.toString());
+  }, [carouselConfig, isCarousel]);
+
   const deleteMutation = useMutation({
     mutationFn: async (ids: number[]) => {
       const { error } = await supabase.from("gallery_images").delete().in("id", ids);
@@ -203,6 +279,34 @@ function GalleryManager({ sectionKey }: { sectionKey: string }) {
       queryClient.invalidateQueries({ queryKey: ["gallery-images", sectionKey] });
       setSelectedIds(new Set());
       toast.success("Imagens removidas!");
+    },
+  });
+
+  const saveColumnsMutation = useMutation({
+    mutationFn: async (nextColumns: number) => {
+      if (carouselConfig?.id) {
+        const { error } = await supabase
+          .from("page_contents")
+          .update({ content: nextColumns.toString() })
+          .eq("id", carouselConfig.id);
+        if (error) throw error;
+        return;
+      }
+
+      const { error } = await supabase.from("page_contents").insert({
+        page_key: pageKey,
+        section_key: sectionKey,
+        content: nextColumns.toString(),
+        title: "carousel_columns",
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["page-contents", sectionKey, "carousel-columns"] });
+      toast.success("Quantidade de colunas do carrossel salva!");
+    },
+    onError: () => {
+      toast.error("Erro ao salvar colunas do carrossel.");
     },
   });
 
@@ -253,6 +357,40 @@ function GalleryManager({ sectionKey }: { sectionKey: string }) {
 
   return (
     <div className="space-y-4">
+      {isCarousel && (
+        <div className="rounded-lg border border-border p-3 space-y-2 bg-muted/20">
+          <label className="text-xs font-medium text-foreground block">
+            Colunas visíveis no carrossel
+          </label>
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min={1}
+              max={4}
+              value={columns}
+              onChange={(e) => setColumns(e.target.value)}
+              className="w-20 px-2 py-1.5 border border-input rounded text-sm bg-background"
+            />
+            <button
+              onClick={() => {
+                const parsed = Number.parseInt(columns, 10);
+                if (Number.isNaN(parsed) || parsed < 1 || parsed > 4) {
+                  toast.error("Informe um valor entre 1 e 4 colunas.");
+                  return;
+                }
+                saveColumnsMutation.mutate(parsed);
+              }}
+              className="btn-primary-dr text-xs px-3 py-1.5"
+            >
+              Salvar colunas
+            </button>
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Exemplo: Cardápio = 3 colunas, Cursos/Eventos = 2 colunas.
+          </p>
+        </div>
+      )}
+
       {/* Upload */}
       <div>
         <label className="flex items-center justify-center gap-2 w-full py-3 border-2 border-dashed border-primary/30 rounded-xl cursor-pointer hover:bg-primary/5 transition-colors">

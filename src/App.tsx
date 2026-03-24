@@ -27,7 +27,7 @@ const App = () => (
       <Sonner />
       <AdminEditorProvider>
         <AdminEditorSidebar />
-        <BrowserRouter>
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/quem-somos" element={<QuemSomosPage />} />

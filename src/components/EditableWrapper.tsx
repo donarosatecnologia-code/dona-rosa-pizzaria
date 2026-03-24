@@ -25,11 +25,18 @@ const EditableWrapper = ({ id, type, label, children, className }: EditableWrapp
 
       let currentContent = "";
       let currentImageUrl = "";
+      let currentLinkUrl = "";
 
       if (wrapperRef.current) {
         if (type === "image" || type === "carousel" || type === "gallery") {
           const img = wrapperRef.current.querySelector("img");
           if (img) currentImageUrl = img.src;
+        } else if (type === "link") {
+          const anchor = wrapperRef.current.querySelector("a");
+          if (anchor) {
+            currentContent = anchor.textContent || "";
+            currentLinkUrl = anchor.getAttribute("href") || "";
+          }
         } else {
           const el = wrapperRef.current.querySelector("h1, h2, h3, h4, h5, h6, p, span, a");
           if (el) currentContent = el.textContent || "";
@@ -42,6 +49,7 @@ const EditableWrapper = ({ id, type, label, children, className }: EditableWrapp
         label: label || id,
         currentContent,
         currentImageUrl,
+        currentLinkUrl,
       });
     },
     [id, type, label, openEditor]

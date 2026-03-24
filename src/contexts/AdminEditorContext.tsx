@@ -5,10 +5,11 @@ import { supabase } from "@/integrations/supabase/client";
 
 export interface EditingTarget {
   elementId: string;
-  elementType: "text" | "textarea" | "image" | "carousel" | "gallery";
+  elementType: "text" | "textarea" | "image" | "carousel" | "gallery" | "link";
   label: string;
   currentContent: string;
   currentImageUrl: string;
+  currentLinkUrl?: string;
 }
 
 interface AdminEditorContextType {
