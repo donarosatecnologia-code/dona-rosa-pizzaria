@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import EditableWrapper from "@/components/EditableWrapper";
 import curso1 from "@/assets/curso-1.jpg";
 import evento1 from "@/assets/evento-1.jpg";
+import { useCmsCarousel } from "@/hooks/useCmsMedia";
+import { useCmsContents } from "@/hooks/useCmsContent";
+import RichText from "@/components/RichText";
 
 interface CursosData {
   title: string;
@@ -22,7 +25,26 @@ const defaultData: CursosData = {
 };
 
 const Cursos = ({ data = defaultData }: { data?: CursosData }) => {
+  const { getText, getLink } = useCmsContents([
+    "home-cursos-title",
+    "home-cursos-desc",
+    "home-cursos-cta",
+  ], "home");
+  const { images: carouselImages, columns } = useCmsCarousel("home-cursos-carousel", data.images, 2);
   const [current, setCurrent] = useState(0);
+  const visibleColumns = Math.min(columns, carouselImages.length);
+  const visibleImages = Array.from({ length: visibleColumns }, (_, idx) => {
+    return carouselImages[(current + idx) % carouselImages.length];
+  });
+  const cursosTitle = getText("home-cursos-title", data.title);
+  const cursosDescription = getText("home-cursos-desc", data.description);
+  const cursosCta = getLink("home-cursos-cta", data.ctaLabel, "#");
+
+  useEffect(() => {
+    if (current > carouselImages.length - 1) {
+      setCurrent(0);
+    }
+  }, [current, carouselImages.length]);
 
   return (
     <section id="cursos" className="section-paper py-16 md:py-24">
@@ -30,30 +52,36 @@ const Cursos = ({ data = defaultData }: { data?: CursosData }) => {
         <div className="grid md:grid-cols-2 gap-10 items-center">
           <div>
             <EditableWrapper id="home-cursos-title" type="text" label="Título Cursos">
-              <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">{data.title}</h2>
+              <RichText as="h2" inline content={cursosTitle} className="text-3xl md:text-4xl font-bold text-foreground mb-4" />
             </EditableWrapper>
             <EditableWrapper id="home-cursos-desc" type="textarea" label="Descrição Cursos">
-              <p className="text-muted-foreground mb-8 leading-relaxed">{data.description}</p>
+              <RichText content={cursosDescription} className="text-muted-foreground mb-8 leading-relaxed space-y-3" />
             </EditableWrapper>
-            <a href="#" className="btn-primary-dr inline-block">{data.ctaLabel}</a>
+            <EditableWrapper id="home-cursos-cta" type="link" label="Botão Cursos">
+              <a href={cursosCta.url} className="btn-primary-dr inline-block"><RichText as="span" inline content={cursosCta.label} /></a>
+            </EditableWrapper>
           </div>
 
           <div className="relative">
             <div className="flex items-center gap-3">
-              <button onClick={() => setCurrent(c => c === 0 ? data.images.length - 1 : c - 1)} className="shrink-0 p-2 rounded-full bg-primary/10 hover:bg-primary/20" aria-label="Anterior">
+              <button onClick={() => setCurrent(c => c === 0 ? carouselImages.length - 1 : c - 1)} className="shrink-0 p-2 rounded-full bg-primary/10 hover:bg-primary/20" aria-label="Anterior">
                 <ChevronLeft className="text-primary" size={20} />
               </button>
-              <EditableWrapper id={`home-cursos-img-${current}`} type="carousel" label="Carrossel Cursos">
-                <div className="rounded-2xl overflow-hidden shadow-lg flex-1">
-                  <img src={data.images[current].src} alt={data.images[current].alt} loading="lazy" className="w-full h-56 md:h-72 object-cover" />
+              <EditableWrapper id="home-cursos-carousel" type="carousel" label="Carrossel Cursos">
+                <div className="grid gap-4 flex-1" style={{ gridTemplateColumns: `repeat(${visibleColumns}, minmax(0, 1fr))` }}>
+                  {visibleImages.map((img, i) => (
+                    <div key={`${img.src}-${current}-${i}`} className="rounded-2xl overflow-hidden shadow-lg">
+                      <img src={img.src} alt={img.alt} loading="lazy" className="w-full h-56 md:h-72 object-cover" />
+                    </div>
+                  ))}
                 </div>
               </EditableWrapper>
-              <button onClick={() => setCurrent(c => c === data.images.length - 1 ? 0 : c + 1)} className="shrink-0 p-2 rounded-full bg-primary/10 hover:bg-primary/20" aria-label="Próximo">
+              <button onClick={() => setCurrent(c => c === carouselImages.length - 1 ? 0 : c + 1)} className="shrink-0 p-2 rounded-full bg-primary/10 hover:bg-primary/20" aria-label="Próximo">
                 <ChevronRight className="text-primary" size={20} />
               </button>
             </div>
             <div className="flex justify-center gap-2 mt-4">
-              {data.images.map((_, i) => (
+              {carouselImages.map((_, i) => (
                 <button key={i} onClick={() => setCurrent(i)} className={`w-2.5 h-2.5 rounded-full transition-colors ${i === current ? "bg-primary" : "bg-border"}`} aria-label={`Slide ${i + 1}`} />
               ))}
             </div>

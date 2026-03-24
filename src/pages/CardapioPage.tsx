@@ -7,6 +7,27 @@ import WhatsAppButton from "@/components/WhatsAppButton";
 import alecrim from "@/assets/alecrim.png";
 import tomilho from "@/assets/tomilho.png";
 
+const DEFAULT_PIZZA_NOTES = {
+  extra: "Cobertura extra R$ 21,00",
+  slices: "Nossa pizza 8 pedaços",
+  flour: "Todas as pizzas são feitas com farinha integral.",
+};
+
+function formatCurrency(value: number) {
+  return `R$ ${value.toFixed(2)}`;
+}
+
+function isWineCategory(category: { name: string; slug: string }) {
+  return /vinho/i.test(`${category.name} ${category.slug}`);
+}
+
+function isPizzaCategory(category: { name: string; slug: string; has_pizza_size_pricing?: boolean }) {
+  if (category.has_pizza_size_pricing) {
+    return true;
+  }
+  return /pizza/i.test(`${category.name} ${category.slug}`) && /(tradicional|vegana|pizza)/i.test(`${category.name} ${category.slug}`);
+}
+
 const CardapioPage = () => {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const categoryRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -122,6 +143,8 @@ const CardapioPage = () => {
           const items = group.items;
           const isLargeSection = items.length > 6;
           const midpoint = Math.ceil(items.length / 2);
+          const hasPizzaRules = isPizzaCategory(group.category);
+          const hasWineGrouping = isWineCategory(group.category);
 
           return (
             <section
@@ -145,17 +168,19 @@ const CardapioPage = () => {
                 </div>
 
                 {/* Items grid */}
-                {isLargeSection ? (
+                {hasWineGrouping ? (
+                  <WineGroupedItems items={items} />
+                ) : isLargeSection ? (
                   <div className="relative max-w-5xl mx-auto">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-0">
                       <div>
                         {items.slice(0, midpoint).map((item) => (
-                          <MenuItem key={item.id} item={item} />
+                          <MenuItem key={item.id} item={item} showPizzaSizes={hasPizzaRules} />
                         ))}
                       </div>
                       <div>
                         {items.slice(midpoint).map((item) => (
-                          <MenuItem key={item.id} item={item} />
+                          <MenuItem key={item.id} item={item} showPizzaSizes={hasPizzaRules} />
                         ))}
                       </div>
                     </div>
@@ -164,10 +189,11 @@ const CardapioPage = () => {
                 ) : (
                   <div className="max-w-2xl mx-auto">
                     {items.map((item) => (
-                      <MenuItem key={item.id} item={item} />
+                      <MenuItem key={item.id} item={item} showPizzaSizes={hasPizzaRules} />
                     ))}
                   </div>
                 )}
+                {hasPizzaRules && <PizzaCategoryFooter category={group.category} />}
               </div>
             </section>
           );
@@ -187,16 +213,148 @@ const CardapioPage = () => {
   );
 };
 
-function MenuItem({ item }: { item: { name: string; price: number; description?: string | null; short_description?: string | null } }) {
+function PizzaCategoryFooter({
+  category,
+}: {
+  category: {
+    footer_note_extra?: string | null;
+    footer_note_slices?: string | null;
+    footer_note_flour?: string | null;
+  };
+}) {
+  const lines = [
+    category.footer_note_extra || DEFAULT_PIZZA_NOTES.extra,
+    category.footer_note_slices || DEFAULT_PIZZA_NOTES.slices,
+    category.footer_note_flour || DEFAULT_PIZZA_NOTES.flour,
+  ].filter(Boolean);
+
+  return (
+    <div className="max-w-2xl mx-auto mt-6 pt-4 border-t border-border/60">
+      {lines.map((line) => (
+        <p key={line} className="text-xs text-muted-foreground text-center leading-relaxed">
+          {line}
+        </p>
+      ))}
+    </div>
+  );
+}
+
+function WineGroupedItems({
+  items,
+}: {
+  items: {
+    id: number;
+    name: string;
+    price: number;
+    description?: string | null;
+    short_description?: string | null;
+    country_origin?: string | null;
+    is_house_wine?: boolean;
+    price_glass?: number | null;
+    price_half_carafe?: number | null;
+    price_carafe?: number | null;
+  }[];
+}) {
+  const regularWines = items.filter((item) => !item.is_house_wine);
+  const houseWines = items.filter((item) => item.is_house_wine);
+
+  const groupedRegular = regularWines.reduce<Record<string, typeof regularWines>>((acc, item) => {
+    const key = item.country_origin?.trim();
+    if (!key) {
+      return acc;
+    }
+    if (!acc[key]) {
+      acc[key] = [];
+    }
+    acc[key].push(item);
+    return acc;
+  }, {});
+
+  const orderedRegularCountries = Object.keys(groupedRegular).sort((a, b) => a.localeCompare(b));
+
+  return (
+    <div className="max-w-3xl mx-auto space-y-8">
+      {orderedRegularCountries.map((country) => (
+        <div key={country}>
+          <h3 className="text-xl md:text-2xl font-bold text-secondary mb-3">{country}</h3>
+          <div className="space-y-0">
+            {groupedRegular[country].map((item) => (
+              <MenuItem key={item.id} item={item} showPizzaSizes={false} />
+            ))}
+          </div>
+        </div>
+      ))}
+      {houseWines.length > 0 && (
+        <div>
+          <h3 className="text-xl md:text-2xl font-bold text-secondary mb-3">Vinhos da Casa</h3>
+          <div className="space-y-0">
+            {houseWines.map((item) => (
+              <MenuItem key={item.id} item={item} showPizzaSizes={false} />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MenuItem({
+  item,
+  showPizzaSizes,
+}: {
+  item: {
+    name: string;
+    price: number;
+    description?: string | null;
+    short_description?: string | null;
+    is_house_wine?: boolean;
+    price_glass?: number | null;
+    price_half_carafe?: number | null;
+    price_carafe?: number | null;
+  };
+  showPizzaSizes: boolean;
+}) {
+  const brotoPrice = item.price * 0.8;
+  const miniPrice = item.price * 0.65;
+  const hasHouseWinePrices = !!item.is_house_wine && (
+    item.price_glass != null ||
+    item.price_half_carafe != null ||
+    item.price_carafe != null
+  );
+
   return (
     <div className="py-3 border-b border-border/40 last:border-b-0">
       <div className="flex items-baseline gap-2">
         <span className="font-semibold text-foreground text-sm md:text-base">{item.name}</span>
         <span className="flex-1 border-b border-dotted border-muted-foreground/40 min-w-[2rem] translate-y-[-3px]" />
-        <span className="font-bold text-secondary text-sm md:text-base whitespace-nowrap">
-          R$ {item.price.toFixed(2)}
-        </span>
+        {hasHouseWinePrices ? (
+          <span className="font-semibold text-secondary text-xs md:text-sm whitespace-nowrap">
+            valores por medida
+          </span>
+        ) : showPizzaSizes ? (
+          <span className="font-bold text-secondary text-sm md:text-base whitespace-nowrap">
+            Grande: {formatCurrency(item.price)}
+          </span>
+        ) : (
+          <span className="font-bold text-secondary text-sm md:text-base whitespace-nowrap">
+            {formatCurrency(item.price)}
+          </span>
+        )}
       </div>
+      {showPizzaSizes && !hasHouseWinePrices && (
+        <p className="text-xs text-muted-foreground mt-1">
+          Broto (6 pedaços): {formatCurrency(brotoPrice)} | Mini (4 pedaços): {formatCurrency(miniPrice)}
+        </p>
+      )}
+      {hasHouseWinePrices && (
+        <p className="text-xs text-muted-foreground mt-1">
+          {item.price_glass !== null && item.price_glass !== undefined ? `Taça: ${formatCurrency(item.price_glass)}` : ""}
+          {item.price_glass !== null && item.price_glass !== undefined && (item.price_half_carafe !== null && item.price_half_carafe !== undefined) ? " | " : ""}
+          {item.price_half_carafe !== null && item.price_half_carafe !== undefined ? `Meia Jarra: ${formatCurrency(item.price_half_carafe)}` : ""}
+          {(item.price_glass !== null && item.price_glass !== undefined || item.price_half_carafe !== null && item.price_half_carafe !== undefined) && (item.price_carafe !== null && item.price_carafe !== undefined) ? " | " : ""}
+          {item.price_carafe !== null && item.price_carafe !== undefined ? `Jarra: ${formatCurrency(item.price_carafe)}` : ""}
+        </p>
+      )}
       {(item.short_description || item.description) && (
         <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
           {item.short_description || item.description}

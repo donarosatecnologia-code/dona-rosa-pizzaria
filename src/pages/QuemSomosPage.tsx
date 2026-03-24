@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
@@ -13,41 +15,90 @@ import curso1 from "@/assets/curso-1.jpg";
 import saude1 from "@/assets/saude-1.jpg";
 import prato2 from "@/assets/prato-2.jpg";
 import prato3 from "@/assets/prato-3.jpg";
+import { useCmsContents } from "@/hooks/useCmsContent";
+import { useCmsCarousel } from "@/hooks/useCmsMedia";
+import RichText from "@/components/RichText";
 
 const sections = [
   {
-    id: "tradicao",
-    title: "Tradição familiar",
-    description: "A história da Dona Rosa é a história de uma família que transformou o amor pela culinária italiana em um legado de sabor e acolhimento.",
+    id: "tradicao-familiar",
+    title: "Tradição Familiar",
+    description: "A história da Dona Rosa é marcada por afeto, receita de família e o costume de reunir pessoas ao redor da mesa.",
     rows: [
-      { type: "image-text" as const, image: forno1, text: "Dona Rosa, que dá nome à nossa pizzaria, é a matriarca da família Fasanaro. Filha de imigrantes italianos, recebeu a tradição do preparo artesanal da pizza napolitana diretamente de sua nonna. Com muito carinho, transmitiu esse conhecimento aos seus filhos e netos." },
-      { type: "two-images" as const, images: [pizza1, prato2] },
-      { type: "text-image" as const, image: ambiente1, text: "Cada pizza que sai do nosso forno a lenha carrega décadas de tradição, amor e dedicação. A atmosfera acolhedora reflete a essência da família italiana: reunir pessoas ao redor da mesa para celebrar a vida." },
+      { type: "text-image" as const, image: evento1, text: "A Dona Rosa, matriarca da família Fasanaro, herdou da nonna italiana o saber do preparo artesanal. Esse legado foi passado com carinho entre gerações e segue vivo em cada detalhe do nosso trabalho." },
+      { type: "image-text" as const, image: prato2, text: "Mais do que receitas, carregamos histórias. Nossa cozinha é um espaço de memórias, técnica e amor pela tradição italiana." },
+      { type: "text-image" as const, image: ambiente1, text: "Cada pizza que sai do forno representa esse encontro entre origem, família e acolhimento." },
     ],
   },
   {
-    id: "segredos",
-    title: "Segredos das nossas pizzas",
-    description: "Da massa ao forno, cada detalhe é cuidadosamente pensado para criar uma experiência gastronômica única.",
+    id: "segredos-das-nossas-pizzas",
+    title: "Segredos das Nossas Pizzas",
+    description: "Do preparo da massa ao forno, cada etapa foi pensada para valorizar textura, sabor e autenticidade.",
     rows: [
-      { type: "image-text" as const, image: prato3, text: "Nossa massa é o resultado de anos de experimentação e aprimoramento. Utilizamos farinha especial importada da Itália, fermentação natural de 72 horas e técnicas tradicionais que garantem uma textura leve, crocante por fora e macia por dentro." },
-      { type: "two-images" as const, images: [forno1, pizza1] },
-      { type: "text-image" as const, image: prato2, text: "Nosso forno a lenha atinge temperaturas superiores a 400°C, proporcionando o cozimento perfeito em poucos minutos. O resultado é uma pizza com sabor defumado único, bordas aeradas e ingredientes que mantêm toda a sua frescura." },
+      { type: "image-text" as const, image: saude1, text: "Nossa massa passa por fermentação lenta, com equilíbrio de hidratação e tempo, para chegar leve e saborosa à mesa." },
+      { type: "text-image" as const, image: prato3, text: "Selecionamos ingredientes frescos e combinações que respeitam o protagonismo de cada sabor." },
+      { type: "image-text" as const, image: forno1, text: "No forno, o ponto certo garante bordas aeradas, centro macio e a assinatura artesanal da Dona Rosa." },
     ],
   },
   {
-    id: "criacoes",
+    id: "criacoes-exclusivas",
     title: "Criações Exclusivas",
-    description: "Um cardápio que celebra a tradição italiana com toques contemporâneos e ingredientes sazonais.",
+    description: "Um cardápio que celebra a tradição italiana com toques contemporâneos e ingredientes selecionados.",
     rows: [
-      { type: "image-text" as const, image: evento1, text: "Além das pizzas tradicionais, oferecemos criações exclusivas que combinam ingredientes sazonais e locais com a autenticidade da receita napolitana. Cada criação conta uma história e proporciona uma nova experiência." },
-      { type: "two-images" as const, images: [curso1, saude1] },
-      { type: "text-image" as const, image: ambiente1, text: "A Margherita DOP com tomate San Marzano, a Tartufo com azeite trufado e a Pizza de Figo com Gorgonzola são algumas das nossas especialidades que encantam paladares e criam experiências gastronômicas memoráveis." },
+      { type: "text-image" as const, image: pizza1, text: "Nossas criações exclusivas nascem da combinação entre técnica italiana e criatividade da casa." },
+      { type: "image-text" as const, image: prato2, text: "Montamos sabores que equilibram tradição, sazonalidade e personalidade em cada receita." },
+      { type: "text-image" as const, image: prato3, text: "Cada pizza é pensada para criar experiência: textura perfeita, aroma marcante e identidade própria." },
+      { type: "image-text" as const, image: evento1, text: "As combinações exclusivas valorizam ingredientes de qualidade e o cuidado artesanal do preparo." },
+      { type: "text-image" as const, image: curso1, text: "Nosso cardápio evolui sem perder essência: acolhimento, sabor e autenticidade." },
     ],
   },
 ];
 
 const QuemSomosPage = () => {
+  const [brindarCurrent, setBrindarCurrent] = useState(0);
+  const cmsKeys = [
+    "qs-hero-subtitle",
+    "qs-hero-title",
+    "qs-hero-description",
+    "qs-brindar-title",
+    "qs-brindar-description",
+    "qs-brindar-cta",
+    ...sections.flatMap((section) => {
+      const sectionBase = [`qs-${section.id}-title`, `qs-${section.id}-desc`];
+      const rowTextKeys = section.rows
+        .map((row, rIdx) => (row.type === "image-text" || row.type === "text-image" ? `qs-${section.id}-text-${rIdx}` : null))
+        .filter((value): value is string => value !== null);
+      const rowImageKeys = section.rows
+        .map((_, rIdx) => `qs-${section.id}-img-${rIdx}`);
+      return [...sectionBase, ...rowTextKeys, ...rowImageKeys];
+    }),
+  ];
+
+  const { getText, getImage, getLink } = useCmsContents(cmsKeys, "quem-somos");
+  const { images: brindarImages } = useCmsCarousel("qs-brindar-carousel", [forno1, ambiente1, pizza1, evento1].map((src, i) => ({
+    src,
+    alt: `Brindar ${i + 1}`,
+  })), 2);
+  const brindarCta = getLink("qs-brindar-cta", "Ver Cardápio", "/cardapio");
+
+  useEffect(() => {
+    if (brindarCurrent > brindarImages.length - 1) {
+      setBrindarCurrent(0);
+    }
+  }, [brindarCurrent, brindarImages.length]);
+
+  const nextBrindar = () => {
+    setBrindarCurrent((prev) => (prev === brindarImages.length - 1 ? 0 : prev + 1));
+  };
+
+  const prevBrindar = () => {
+    setBrindarCurrent((prev) => (prev === 0 ? brindarImages.length - 1 : prev - 1));
+  };
+
+  const visibleBrindarImages = Array.from({ length: Math.min(2, brindarImages.length) }, (_, idx) => {
+    return brindarImages[(brindarCurrent + idx) % brindarImages.length];
+  });
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -60,15 +111,13 @@ const QuemSomosPage = () => {
 
         <div className="container mx-auto px-4 max-w-3xl text-center relative z-10">
           <EditableWrapper id="qs-hero-subtitle" type="text" label="Subtítulo Hero">
-            <span className="inline-block text-sm font-semibold text-secondary tracking-wider uppercase mb-4">Nossa História</span>
+            <RichText as="span" inline content={getText("qs-hero-subtitle", "Quem Somos")} className="inline-block text-sm font-semibold text-secondary tracking-wider uppercase mb-4" />
           </EditableWrapper>
           <EditableWrapper id="qs-hero-title" type="text" label="Título Hero">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-6 leading-tight">Quem Somos</h1>
+            <RichText as="h1" inline content={getText("qs-hero-title", "Nossa História")} className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-6 leading-tight" />
           </EditableWrapper>
           <EditableWrapper id="qs-hero-description" type="textarea" label="Descrição Hero">
-            <p className="text-muted-foreground leading-relaxed max-w-2xl mx-auto text-base md:text-lg">
-              Somos a Dona Rosa Pizzaria, um espaço que nasceu do amor pela tradição italiana e pelo prazer de reunir pessoas ao redor de uma boa mesa.
-            </p>
+            <RichText content={getText("qs-hero-description", "Somos a Dona Rosa Pizzaria, um espaço que nasceu do amor pela tradição italiana e pelo prazer de reunir pessoas ao redor de uma boa mesa.")} className="text-muted-foreground leading-relaxed max-w-2xl mx-auto text-base md:text-lg space-y-3" />
           </EditableWrapper>
         </div>
       </section>
@@ -79,10 +128,10 @@ const QuemSomosPage = () => {
           <div className="container mx-auto px-4 max-w-6xl">
             <div className="text-center mb-14">
               <EditableWrapper id={`qs-${section.id}-title`} type="text" label={`Título: ${section.title}`}>
-                <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-3">{section.title}</h2>
+                <RichText as="h2" inline content={getText(`qs-${section.id}-title`, section.title)} className="text-3xl md:text-4xl font-bold text-foreground mb-3" />
               </EditableWrapper>
               <EditableWrapper id={`qs-${section.id}-desc`} type="textarea" label={`Descrição: ${section.title}`}>
-                <p className="text-muted-foreground max-w-2xl mx-auto leading-relaxed">{section.description}</p>
+                <RichText content={getText(`qs-${section.id}-desc`, section.description)} className="text-muted-foreground max-w-2xl mx-auto leading-relaxed space-y-3" />
               </EditableWrapper>
             </div>
 
@@ -92,28 +141,17 @@ const QuemSomosPage = () => {
                   return (
                     <div key={rIdx} className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
                       <EditableWrapper id={`qs-${section.id}-img-${rIdx}`} type="image" label={`Imagem ${rIdx + 1}`}>
-                        <div className="overflow-hidden rounded-2xl shadow-md group">
-                          <img src={row.image} alt={section.title} loading="lazy" className="w-full h-64 md:h-80 object-cover group-hover:scale-105 transition-transform duration-700" />
+                        <div className="flex justify-center">
+                          <div className="inline-flex max-w-full overflow-hidden rounded-2xl shadow-md bg-muted/10">
+                            <img src={getImage(`qs-${section.id}-img-${rIdx}`, row.image)} alt={section.title} loading="lazy" className="block w-auto max-w-full h-auto max-h-[32rem] object-contain transition-transform duration-700" />
+                          </div>
                         </div>
                       </EditableWrapper>
                       <EditableWrapper id={`qs-${section.id}-text-${rIdx}`} type="textarea" label={`Texto ${rIdx + 1}`}>
                         <div className="border-l-4 border-secondary/60 pl-6">
-                          <p className="text-muted-foreground leading-relaxed text-sm md:text-base">{row.text}</p>
+                          <RichText content={getText(`qs-${section.id}-text-${rIdx}`, row.text)} className="text-muted-foreground leading-relaxed text-sm md:text-base space-y-2" />
                         </div>
                       </EditableWrapper>
-                    </div>
-                  );
-                }
-                if (row.type === "two-images") {
-                  return (
-                    <div key={rIdx} className="grid grid-cols-2 gap-4 md:gap-6">
-                      {row.images?.map((img, imgIdx) => (
-                        <EditableWrapper key={imgIdx} id={`qs-${section.id}-grid-img-${rIdx}-${imgIdx}`} type="image" label={`Imagem grade ${imgIdx + 1}`}>
-                          <div className="overflow-hidden rounded-2xl shadow-md group">
-                            <img src={img} alt={`${section.title} ${imgIdx + 1}`} loading="lazy" className="w-full h-48 md:h-64 object-cover group-hover:scale-105 transition-transform duration-700" />
-                          </div>
-                        </EditableWrapper>
-                      ))}
                     </div>
                   );
                 }
@@ -122,12 +160,14 @@ const QuemSomosPage = () => {
                     <div key={rIdx} className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
                       <EditableWrapper id={`qs-${section.id}-text-${rIdx}`} type="textarea" label={`Texto ${rIdx + 1}`}>
                         <div className="border-r-4 border-secondary/60 pr-6 md:text-right order-2 md:order-1">
-                          <p className="text-muted-foreground leading-relaxed text-sm md:text-base">{row.text}</p>
+                          <RichText content={getText(`qs-${section.id}-text-${rIdx}`, row.text)} className="text-muted-foreground leading-relaxed text-sm md:text-base space-y-2" />
                         </div>
                       </EditableWrapper>
                       <EditableWrapper id={`qs-${section.id}-img-${rIdx}`} type="image" label={`Imagem ${rIdx + 1}`}>
-                        <div className="overflow-hidden rounded-2xl shadow-md group order-1 md:order-2">
-                          <img src={row.image} alt={section.title} loading="lazy" className="w-full h-64 md:h-80 object-cover group-hover:scale-105 transition-transform duration-700" />
+                        <div className="flex justify-center order-1 md:order-2">
+                          <div className="inline-flex max-w-full overflow-hidden rounded-2xl shadow-md bg-muted/10">
+                            <img src={getImage(`qs-${section.id}-img-${rIdx}`, row.image)} alt={section.title} loading="lazy" className="block w-auto max-w-full h-auto max-h-[32rem] object-contain transition-transform duration-700" />
+                          </div>
                         </div>
                       </EditableWrapper>
                     </div>
@@ -140,36 +180,42 @@ const QuemSomosPage = () => {
         </section>
       ))}
 
-      {/* Gallery */}
-      <section className="section-paper py-16 md:py-24">
-        <div className="container mx-auto px-4 max-w-6xl">
-          <EditableWrapper id="qs-gallery-title" type="text" label="Título Galeria">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground text-center mb-3">Nossos Espaços</h2>
-          </EditableWrapper>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {[forno1, ambiente1, pizza1, evento1, curso1, saude1].map((img, i) => (
-              <EditableWrapper key={i} id={`qs-gallery-img-${i}`} type="image" label={`Foto galeria ${i + 1}`}>
-                <div className="rounded-2xl overflow-hidden shadow-md group">
-                  <img src={img} alt={`Espaço ${i + 1}`} loading="lazy" className="w-full h-40 md:h-56 object-cover group-hover:scale-105 transition-transform duration-500" />
-                </div>
-              </EditableWrapper>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA */}
+      {/* Para Começar e Brindar */}
       <section className="bg-background py-16 md:py-24">
-        <div className="container mx-auto px-4 max-w-3xl text-center">
-          <EditableWrapper id="qs-cta-title" type="text" label="Título CTA">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Para começar e brindar</h2>
-          </EditableWrapper>
-          <EditableWrapper id="qs-cta-description" type="textarea" label="Descrição CTA">
-            <p className="text-muted-foreground leading-relaxed mb-8 max-w-xl mx-auto">
-              Conheça nossos antepastos, saladas frescas e uma carta de vinhos e cervejas artesanais cuidadosamente selecionada para harmonizar com nossas pizzas.
-            </p>
-          </EditableWrapper>
-          <a href="/#contato" className="btn-secondary-dr inline-block">Reservar uma mesa</a>
+        <div className="container mx-auto px-4 max-w-5xl">
+          <div className="text-center mb-10">
+            <EditableWrapper id="qs-brindar-title" type="text" label="Título Para Começar e Brindar">
+              <RichText as="h2" inline content={getText("qs-brindar-title", "Para Começar e Brindar")} className="text-3xl md:text-4xl font-bold text-foreground mb-4" />
+            </EditableWrapper>
+            <EditableWrapper id="qs-brindar-description" type="textarea" label="Descrição Para Começar e Brindar">
+              <RichText content={getText("qs-brindar-description", "Conheça nossos antepastos, saladas frescas e uma carta de vinhos cuidadosamente selecionada para harmonizar com nossas pizzas.")} className="text-muted-foreground leading-relaxed max-w-2xl mx-auto space-y-3" />
+            </EditableWrapper>
+          </div>
+
+          <div className="relative max-w-5xl mx-auto">
+            <button onClick={prevBrindar} className="absolute left-0 md:-left-4 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors" aria-label="Anterior">
+              <ChevronLeft className="text-primary" size={20} />
+            </button>
+            <EditableWrapper id="qs-brindar-carousel" type="carousel" label="Carrossel Para Começar e Brindar">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full px-10 md:px-12">
+                {visibleBrindarImages.map((image, index) => (
+                  <div key={`${image.src}-${brindarCurrent}-${index}`} className="rounded-2xl overflow-hidden shadow-md bg-muted/20 h-[18rem] md:h-[22rem]">
+                    <img src={image.src} alt={image.alt} loading="lazy" className="w-full h-full object-cover" />
+                  </div>
+                ))}
+              </div>
+            </EditableWrapper>
+            <button onClick={nextBrindar} className="absolute right-0 md:-right-4 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors" aria-label="Próximo">
+              <ChevronRight className="text-primary" size={20} />
+            </button>
+          </div>
+          <div className="text-center mt-8">
+            <EditableWrapper id="qs-brindar-cta" type="link" label="Botão Para Começar e Brindar">
+              <a href={brindarCta.url} className="btn-secondary-dr inline-block">
+                <RichText as="span" inline content={brindarCta.label} />
+              </a>
+            </EditableWrapper>
+          </div>
         </div>
       </section>
 

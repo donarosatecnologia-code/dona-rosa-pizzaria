@@ -6,6 +6,9 @@ import { useAdminEditor } from "@/contexts/AdminEditorContext";
 import EditableWrapper from "@/components/EditableWrapper";
 import { toast } from "sonner";
 import logoBranco from "@/assets/logo-branco.png";
+import { useCmsImage } from "@/hooks/useCmsMedia";
+import { useCmsContents } from "@/hooks/useCmsContent";
+import RichText from "@/components/RichText";
 
 const iconMap: Record<string, React.ReactNode> = {
   instagram: <Instagram size={20} />,
@@ -19,6 +22,11 @@ const iconMap: Record<string, React.ReactNode> = {
 const Footer = () => {
   const { isAdmin } = useAdminEditor();
   const queryClient = useQueryClient();
+  const footerLogoImage = useCmsImage("footer-logo", logoBranco);
+  const { getText } = useCmsContents(["footer-address", "footer-horario", "footer-contato"], "footer");
+  const footerAddress = getText("footer-address", "Endereço\nRua Camilo de Araújo, 347\nAlto de Pinheiros, Vila Jataí\nSão Paulo - SP, 05431-020");
+  const footerHorario = getText("footer-horario", "Horário de Funcionamento\nTerça – Quinta: 18:30 às 23:00\nSexta – Sábado: 18:00 às 00:00\nDomingo: 18:00 às 23:00");
+  const footerContato = getText("footer-contato", "Contato\n(11) 99860-2878\n(11) 3031-7876");
 
   const { data: socialLinks } = useQuery({
     queryKey: ["social-links"],
@@ -57,7 +65,7 @@ const Footer = () => {
           <div>
             <EditableWrapper id="footer-logo" type="image" label="Logo Footer">
               <a href="/">
-                <img src={logoBranco} alt="Dona Rosa" className="h-16 mb-4" />
+                <img src={footerLogoImage} alt="Dona Rosa" className="h-16 mb-4" />
               </a>
             </EditableWrapper>
             <p className="text-sm opacity-70 mb-3">Redes Sociais</p>
@@ -70,12 +78,7 @@ const Footer = () => {
               {isAdmin && <SocialLinkManager />}
             </div>
             <EditableWrapper id="footer-address" type="textarea" label="Endereço Footer">
-              <div className="mt-4 text-xs opacity-60 leading-relaxed">
-                <p className="font-semibold mb-1">Endereço</p>
-                <p>Rua Camilo de Araújo, 347</p>
-                <p>Alto de Pinheiros, Vila Jataí</p>
-                <p>São Paulo - SP, 05431-020</p>
-              </div>
+              <RichText content={footerAddress} className="mt-4 text-xs opacity-60 leading-relaxed space-y-2" />
             </EditableWrapper>
           </div>
 
@@ -108,21 +111,10 @@ const Footer = () => {
           {/* Col 4 - Horário */}
           <div>
             <EditableWrapper id="footer-horario" type="textarea" label="Horário de Funcionamento">
-              <div>
-                <h4 className="font-semibold mb-4 text-sm">Horário de Funcionamento</h4>
-                <ul className="space-y-2 text-xs opacity-70">
-                  <li>Terça – Quinta: 18:30 às 23:00</li>
-                  <li>Sexta – Sábado: 18:00 às 00:00</li>
-                  <li>Domingo: 18:00 às 23:00</li>
-                </ul>
-              </div>
+              <RichText content={footerHorario} className="text-xs opacity-70 leading-relaxed space-y-2" />
             </EditableWrapper>
             <EditableWrapper id="footer-contato" type="textarea" label="Contato Footer">
-              <div className="mt-4">
-                <p className="font-semibold text-xs mb-1">Contato</p>
-                <p className="text-xs opacity-70">(11) 99860-2878</p>
-                <p className="text-xs opacity-70">(11) 3031-7876</p>
-              </div>
+              <RichText content={footerContato} className="mt-4 text-xs opacity-70 leading-relaxed space-y-2" />
             </EditableWrapper>
           </div>
         </div>
@@ -147,6 +139,11 @@ function SocialLinkManager() {
 
   const { data: allLinks } = useQuery({
     queryKey: ["social-links"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("social_links").select("*").order("sort_order");
+      if (error) throw error;
+      return data;
+    },
   });
 
   const createMutation = useMutation({

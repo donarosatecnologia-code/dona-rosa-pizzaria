@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Menu, X } from "lucide-react";
 import EditableWrapper from "@/components/EditableWrapper";
 import logoSmall from "@/assets/logo-small.png";
+import { useCmsImage } from "@/hooks/useCmsMedia";
 
 const navItems = [
   { label: "Quem Somos", href: "/quem-somos" },
@@ -13,13 +14,14 @@ const navItems = [
 
 const Header = () => {
   const [open, setOpen] = useState(false);
+  const headerLogoImage = useCmsImage("header-logo", logoSmall);
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
       <div className="container mx-auto flex items-center justify-between h-16 px-4">
         <EditableWrapper id="header-logo" type="image" label="Logo Header">
           <a href="/">
-            <img src={logoSmall} alt="Dona Rosa" className="h-12" />
+            <img src={headerLogoImage} alt="Dona Rosa" className="h-12" />
           </a>
         </EditableWrapper>
 
