@@ -86,6 +86,9 @@ const Footer = () => {
           <div>
             <h4 className="font-semibold mb-4 text-sm">Navegação</h4>
             <ul className="space-y-2 text-xs opacity-70">
+              <li>
+                <a href="/espacos" className="hover:opacity-100 transition-opacity">Espaços</a>
+              </li>
               {navegacaoLinks.map((link) => (
                 <li key={link.id} className="flex items-center gap-1 group">
                   <a href={link.url} className="hover:opacity-100 transition-opacity">{link.label}</a>

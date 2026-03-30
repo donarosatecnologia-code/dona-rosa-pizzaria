@@ -6,6 +6,7 @@ import evento1 from "@/assets/evento-1.jpg";
 import { useCmsCarousel } from "@/hooks/useCmsMedia";
 import { useCmsContents } from "@/hooks/useCmsContent";
 import RichText from "@/components/RichText";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface CursosData {
   title: string;
@@ -25,6 +26,7 @@ const defaultData: CursosData = {
 };
 
 const Cursos = ({ data = defaultData }: { data?: CursosData }) => {
+  const isMobile = useIsMobile();
   const { getText, getLink } = useCmsContents([
     "home-cursos-title",
     "home-cursos-desc",
@@ -32,7 +34,7 @@ const Cursos = ({ data = defaultData }: { data?: CursosData }) => {
   ], "home");
   const { images: carouselImages, columns } = useCmsCarousel("home-cursos-carousel", data.images, 2);
   const [current, setCurrent] = useState(0);
-  const visibleColumns = Math.min(columns, carouselImages.length);
+  const visibleColumns = isMobile ? 1 : Math.min(columns, carouselImages.length);
   const visibleImages = Array.from({ length: visibleColumns }, (_, idx) => {
     return carouselImages[(current + idx) % carouselImages.length];
   });

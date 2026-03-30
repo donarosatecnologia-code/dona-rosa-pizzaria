@@ -28,7 +28,9 @@ const Fotos = ({ data = defaultData }: { data?: FotosData }) => {
   const { getText } = useCmsContents(["home-fotos-title"], "home");
   const galleryImages = useCmsGallery("home-fotos-gallery", data.images);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [visibleCount, setVisibleCount] = useState(12);
   const fotosTitle = getText("home-fotos-title", data.title);
+  const visibleImages = galleryImages.slice(0, visibleCount);
 
   const goNext = useCallback(() => {
     if (lightboxIndex === null) return;
@@ -48,6 +50,10 @@ const Fotos = ({ data = defaultData }: { data?: FotosData }) => {
       setLightboxIndex(0);
     }
   }, [lightboxIndex, galleryImages.length]);
+
+  useEffect(() => {
+    setVisibleCount(12);
+  }, [galleryImages.length]);
 
   useEffect(() => {
     if (lightboxIndex === null) return;
@@ -70,7 +76,7 @@ const Fotos = ({ data = defaultData }: { data?: FotosData }) => {
 
           <EditableWrapper id="home-fotos-gallery" type="gallery" label="Galeria Fotos">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-5xl mx-auto">
-              {galleryImages.map((img, i) => (
+              {visibleImages.map((img, i) => (
                 <button
                   key={`${img.src}-${i}`}
                   onClick={() => setLightboxIndex(i)}
@@ -81,6 +87,16 @@ const Fotos = ({ data = defaultData }: { data?: FotosData }) => {
               ))}
             </div>
           </EditableWrapper>
+          {galleryImages.length > visibleCount && (
+            <div className="mt-8">
+              <button
+                onClick={() => setVisibleCount((count) => count + 12)}
+                className="btn-secondary-dr inline-block"
+              >
+                Carregar mais
+              </button>
+            </div>
+          )}
         </div>
       </section>
 

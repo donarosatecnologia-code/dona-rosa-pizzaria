@@ -1,4 +1,28 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,400&display=swap");
+
+@font-face {
+  font-family: "ARCENA";
+  src: url("/fonts/ARCENA.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "ARCENA";
+  src: url("/fonts/ARCENA.woff") format("woff");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "ARCENA";
+  src: url("/fonts/ARCENA.woff") format("woff");
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
 
 @tailwind base;
 @tailwind components;
@@ -45,17 +69,38 @@
     --sidebar-border: 35 20% 82%;
     --sidebar-ring: 133 18% 37%;
 
-    font-family: 'Montserrat', sans-serif;
+    font-family: "Lato", sans-serif;
   }
 }
 
 @layer base {
   * {
     @apply border-border;
+    font-family: "Lato", sans-serif;
   }
 
   body {
     @apply bg-background text-foreground;
+    font-family: "Lato", sans-serif;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: "ARCENA", "Lato", sans-serif !important;
+    letter-spacing: 0.01em;
+    font-synthesis: none;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: "ARCENA", "Lato", sans-serif !important;
+    letter-spacing: 0.01em;
+    font-synthesis: none;
   }
 }
 
@@ -93,6 +138,17 @@
 
   .rich-text-content li + li {
     margin-top: 0.25rem;
+  }
+
+  .rich-text-content h1,
+  .rich-text-content h2,
+  .rich-text-content h3,
+  .rich-text-content h4,
+  .rich-text-content h5,
+  .rich-text-content h6 {
+    font-family: "ARCENA", "Lato", sans-serif !important;
+    letter-spacing: 0.01em;
+    font-synthesis: none;
   }
 
   .section-paper {
