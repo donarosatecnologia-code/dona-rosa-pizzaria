@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Instagram, Facebook, Youtube, Twitter, Linkedin, Globe, Plus, Pencil, Trash2, Check, X, ChevronUp, ChevronDown } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchFooterCategories, fetchNavLinks, fetchSocialLinks } from "@/lib/cms-queryFns";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminMirrorSurface } from "@/hooks/useAdminMirrorSurface";
 import EditableWrapper from "@/components/EditableWrapper";
@@ -52,29 +53,17 @@ const Footer = () => {
 
   const { data: socialLinks } = useQuery({
     queryKey: ["social-links"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("social_links").select("*").order("sort_order");
-      if (error) throw error;
-      return data;
-    },
+    queryFn: fetchSocialLinks,
   });
 
   const { data: navLinks } = useQuery({
     queryKey: ["nav-links"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("nav_links").select("*").order("sort_order");
-      if (error) throw error;
-      return data;
-    },
+    queryFn: fetchNavLinks,
   });
 
   const { data: categories } = useQuery({
     queryKey: ["footer-categories"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("categories").select("name, slug").eq("is_active", true).order("sort_order");
-      if (error) throw error;
-      return data;
-    },
+    queryFn: fetchFooterCategories,
   });
 
   const navegacaoLinks = (navLinks ?? [])

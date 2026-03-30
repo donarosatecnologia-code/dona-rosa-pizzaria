@@ -5,6 +5,8 @@ import EditableWrapper from "@/components/EditableWrapper";
 import RichText from "@/components/RichText";
 import { CmsPlaceholder } from "@/components/CmsPlaceholder";
 import { BrandAlecrim, BrandLinhaDecorativa, BrandTomilho, BrandTomilhoB, BrandTrigo } from "@/components/BrandAccents";
+import { LoadingScreen } from "@/components/LoadingScreen";
+import { useSiteShellReady } from "@/hooks/useSiteShellReady";
 import { useCmsContents } from "@/hooks/useCmsContent";
 
 const PRIVACY_PAGE_KEY = "politica-privacidade";
@@ -43,7 +45,21 @@ function LegalContentSection({ sectionKey, label, getText }: LegalContentSection
 }
 
 function PrivacyPolicyPage() {
-  const { getText } = useCmsContents([...PRIVACY_CMS_KEYS], PRIVACY_PAGE_KEY);
+  const shell = useSiteShellReady();
+  const { getText, isPending, isError } = useCmsContents([...PRIVACY_CMS_KEYS], PRIVACY_PAGE_KEY);
+
+  if (shell.isPending || isPending) {
+    return <LoadingScreen message="Carregando conteúdo…" />;
+  }
+
+  if (isError) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <p className="text-center text-muted-foreground">Não foi possível carregar o conteúdo. Tente novamente mais tarde.</p>
+      </div>
+    );
+  }
+
   const title = getText("privacy-page-title");
 
   return (

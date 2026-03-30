@@ -7,6 +7,7 @@ import EditableWrapper from "@/components/EditableWrapper";
 import { BrandAlecrim, BrandTomilho, BrandTrigo } from "@/components/BrandAccents";
 import { CmsPlaceholder } from "@/components/CmsPlaceholder";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { useSiteShellReady } from "@/hooks/useSiteShellReady";
 import { useCmsContents } from "@/hooks/useCmsContent";
 import { useCmsCarousel } from "@/hooks/useCmsMedia";
 import RichText from "@/components/RichText";
@@ -72,6 +73,7 @@ const sections: { id: string; label: string; rows: { type: RowType }[] }[] = [
 ];
 
 const QuemSomosPage = () => {
+  const shell = useSiteShellReady();
   const isMobile = useIsMobile();
   const [brindarCurrent, setBrindarCurrent] = useState(0);
   const cmsKeys = [
@@ -90,7 +92,10 @@ const QuemSomosPage = () => {
   ];
 
   const { getText, getImage, getLink, isPending, isError } = useCmsContents(cmsKeys, "quem-somos");
-  const { images: brindarImages, columns: brindarColumns } = useCmsCarousel("qs-brindar-carousel", 2);
+  const { images: brindarImages, columns: brindarColumns, isPending: brindarPending } = useCmsCarousel(
+    "qs-brindar-carousel",
+    2,
+  );
   const brindarCta = getLink("qs-brindar-cta");
 
   const brindarLen = brindarImages.length;
@@ -114,7 +119,7 @@ const QuemSomosPage = () => {
     setBrindarCurrent((prev) => (brindarLen === 0 ? 0 : prev === 0 ? brindarLen - 1 : prev - 1));
   };
 
-  if (isPending) {
+  if (shell.isPending || isPending || brindarPending) {
     return <LoadingScreen />;
   }
 

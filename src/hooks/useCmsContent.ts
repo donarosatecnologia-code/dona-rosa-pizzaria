@@ -1,18 +1,9 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { fetchPageContentsBatch, type PageContentBatchRow } from "@/lib/cms-queryFns";
 import { useCmsDisplayMode } from "@/contexts/CmsDisplayModeContext";
 
-interface CmsContentRecord {
-  section_key: string;
-  title: string | null;
-  content: string | null;
-  subtitle: string | null;
-  image_url: string | null;
-  title_draft: string | null;
-  content_draft: string | null;
-  image_url_draft: string | null;
-}
+type CmsContentRecord = PageContentBatchRow;
 
 /**
  * Conteúdo CMS. Modo `published` (padrão): site público.
@@ -20,24 +11,14 @@ interface CmsContentRecord {
  */
 export function useCmsContents(sectionKeys: string[], pageKey?: string) {
   const displayMode = useCmsDisplayMode();
-  const safeKeys = useMemo(() => Array.from(new Set(sectionKeys)), [sectionKeys]);
+  const safeKeys = useMemo(
+    () => Array.from(new Set(sectionKeys)).sort((a, b) => a.localeCompare(b)),
+    [sectionKeys],
+  );
 
   const { data, isPending, isError } = useQuery({
     queryKey: ["page-contents-batch", pageKey || "all", safeKeys.join("|"), displayMode],
-    queryFn: async () => {
-      let query = supabase
-        .from("page_contents")
-        .select("section_key, title, content, subtitle, image_url, title_draft, content_draft, image_url_draft")
-        .in("section_key", safeKeys);
-      if (pageKey) {
-        query = query.eq("page_key", pageKey);
-      }
-      const { data, error } = await query;
-      if (error) {
-        throw error;
-      }
-      return data as CmsContentRecord[];
-    },
+    queryFn: () => fetchPageContentsBatch(pageKey, safeKeys),
     enabled: safeKeys.length > 0,
   });
 

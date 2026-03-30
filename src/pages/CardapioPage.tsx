@@ -7,6 +7,7 @@ import WhatsAppButton from "@/components/WhatsAppButton";
 import { BrandAlecrim, BrandTomilho, BrandTrigo } from "@/components/BrandAccents";
 import { useAdminMirrorEmbed } from "@/contexts/AdminMirrorEmbedContext";
 import { useCmsContents } from "@/hooks/useCmsContent";
+import { useSiteShellReady } from "@/hooks/useSiteShellReady";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { cn } from "@/lib/utils";
 
@@ -23,10 +24,11 @@ function isPizzaCategory(category: { has_pizza_size_pricing?: boolean | null }) 
 }
 
 const CardapioPage = () => {
+  const shell = useSiteShellReady();
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const categoryRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const isEmbed = useAdminMirrorEmbed();
-  const { getText } = useCmsContents(["cardapio-hero-title", "cardapio-hero-subtitle"], "cardapio");
+  const { getText, isPending: cmsHeroPending } = useCmsContents(["cardapio-hero-title", "cardapio-hero-subtitle"], "cardapio");
   const heroTitle = getText("cardapio-hero-title");
   const heroSubtitle = getText("cardapio-hero-subtitle");
 
@@ -56,7 +58,7 @@ const CardapioPage = () => {
     },
   });
 
-  const showLoader = categoriesPending || productsPending;
+  const showLoader = shell.isPending || cmsHeroPending || categoriesPending || productsPending;
 
   const groupedProducts = (categories ?? []).map((cat) => ({
     category: cat,

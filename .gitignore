@@ -12,6 +12,21 @@ dist
 dist-ssr
 *.local
 
+# Ambiente e segredos (nunca commitar chaves ou URL de banco)
+.env
+.env.*
+!.env.example
+
+# Supabase CLI — estado local e credenciais (migrations em supabase/migrations permanecem versionadas)
+supabase/.branches
+supabase/.temp
+supabase/.env
+supabase/.secrets
+
+# Chaves e certificados comuns
+*.pem
+*.key
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

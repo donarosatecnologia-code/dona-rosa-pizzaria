@@ -1,0 +1,20 @@
+# Dona Rosa Pizzaria
+
+> Site institucional de uma pizzaria artesanal em São Paulo (Brasil): cardápio, história, espaços para eventos, cursos de pizza, sustentabilidade, política de privacidade e contato. Há área administrativa autenticada para gestão de conteúdo (CMS); rotas /admin e /login não devem ser indexadas como conteúdo principal.
+
+## Páginas públicas principais
+
+- / — Início
+- /quem-somos — Sobre a pizzaria
+- /cardapio — Cardápio
+- /espacos — Espaços e eventos
+- /cursos-e-eventos — Cursos e eventos
+- /saude-e-sustentabilidade — Saúde e sustentabilidade
+- /contato — Contato e localização
+- /politica-de-privacidade — Política de privacidade
+- /termos-de-uso — Termos de uso
+
+## Desenvolvimento
+
+- Stack: React (Vite), TypeScript, Tailwind CSS, Supabase, TanStack Query.
+- Desenvolvedora: Janaina Guiotti — https://janaina-guiotti.vercel.app/
