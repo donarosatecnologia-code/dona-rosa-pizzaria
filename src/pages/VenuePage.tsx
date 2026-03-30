@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
 import EditableWrapper from "@/components/EditableWrapper";
+import { BrandAlecrim, BrandLinhaDecorativa } from "@/components/BrandAccents";
 import RichText from "@/components/RichText";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useCmsContents } from "@/hooks/useCmsContent";
@@ -132,8 +133,10 @@ function VenueIntro({
   getImage: (sectionKey: string, fallbackUrl: string) => string;
 }) {
   return (
-    <section className="section-paper pt-28 pb-16 md:pt-36 md:pb-24">
-      <div className="container mx-auto px-4 max-w-6xl">
+    <section className="section-paper relative overflow-hidden pt-28 pb-16 md:pt-36 md:pb-24">
+      <BrandAlecrim className="absolute left-0 top-28 h-40 w-auto opacity-[0.18] hidden lg:block" />
+      <BrandLinhaDecorativa className="absolute right-4 top-1/3 h-11 w-auto opacity-15 hidden xl:block rotate-6" />
+      <div className="container relative z-10 mx-auto px-4 max-w-6xl">
         <div className="text-center max-w-3xl mx-auto mb-12">
           <EditableWrapper id="venue-intro-title" type="text" label="Título Nosso Espaço">
             <RichText

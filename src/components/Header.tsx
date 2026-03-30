@@ -8,8 +8,8 @@ const navItems = [
   { label: "Quem Somos", href: "/quem-somos" },
   { label: "Cardápio", href: "/cardapio" },
   { label: "Espaços", href: "/espacos" },
-  { label: "Cursos e Eventos", href: "/#cursos" },
-  { label: "Saúde e Sustentabilidade", href: "/#saude" },
+  { label: "Cursos e Eventos", href: "/cursos-e-eventos" },
+  { label: "Saúde e Sustentabilidade", href: "/saude-e-sustentabilidade" },
 ];
 
 const Header = () => {
@@ -37,7 +37,7 @@ const Header = () => {
           ))}
         </nav>
 
-        <a href="/#contato" className="hidden lg:inline-block btn-primary-dr">
+        <a href="/contato" className="hidden lg:inline-block btn-primary-dr">
           Contato
         </a>
 
@@ -62,7 +62,7 @@ const Header = () => {
               {item.label}
             </a>
           ))}
-          <a href="/#contato" className="inline-block mt-3 btn-primary-dr" onClick={() => setOpen(false)}>
+          <a href="/contato" className="inline-block mt-3 btn-primary-dr" onClick={() => setOpen(false)}>
             Contato
           </a>
         </div>

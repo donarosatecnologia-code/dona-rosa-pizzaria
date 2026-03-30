@@ -1,5 +1,6 @@
 import { Home, Users, Leaf, UtensilsCrossed } from "lucide-react";
 import EditableWrapper from "@/components/EditableWrapper";
+import { BrandAlecrim, BrandTomilho } from "@/components/BrandAccents";
 import { useCmsContents } from "@/hooks/useCmsContent";
 import RichText from "@/components/RichText";
 
@@ -43,15 +44,17 @@ const QuemSomos = ({ data = defaultData }: { data?: QuemSomosData }) => {
 
   const quemSomosTitle = getText("home-quemsmos-title", data.title);
   const quemSomosDescription = getText("home-quemsmos-desc", data.description);
-  const cta = getLink("home-quemsmos-cta", data.ctaLabel, "#contato");
+  const cta = getLink("home-quemsmos-cta", data.ctaLabel, "/contato");
   const features = data.features.map((feature, index) => ({
     ...feature,
     text: getText(`home-quemsmos-feat-${index}`, feature.text),
   }));
 
   return (
-    <section id="quem-somos" className="bg-background py-16 md:py-24">
-      <div className="container mx-auto px-4 max-w-4xl text-center">
+    <section id="quem-somos" className="relative overflow-hidden bg-background py-16 md:py-24">
+      <BrandAlecrim className="absolute left-0 top-12 h-28 w-auto opacity-[0.18] hidden md:block" />
+      <BrandTomilho className="absolute right-0 bottom-16 h-20 w-auto opacity-[0.18] hidden lg:block" />
+      <div className="container relative z-10 mx-auto px-4 max-w-4xl text-center">
         <EditableWrapper id="home-quemsmos-title" type="text" label="Título Quem Somos">
           <RichText as="h2" inline content={quemSomosTitle} className="text-3xl md:text-4xl font-bold text-foreground mb-6" />
         </EditableWrapper>

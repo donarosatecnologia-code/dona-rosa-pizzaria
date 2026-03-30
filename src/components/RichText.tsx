@@ -23,7 +23,22 @@ function sanitizeRichTextHtml(value: string) {
     return value;
   }
 
-  const allowedTags = new Set(["p", "br", "strong", "b", "em", "i", "u", "ul", "ol", "li"]);
+  const allowedTags = new Set([
+    "p",
+    "div",
+    "br",
+    "strong",
+    "b",
+    "em",
+    "i",
+    "u",
+    "ul",
+    "ol",
+    "li",
+    "h2",
+    "h3",
+    "h4",
+  ]);
   const template = document.createElement("template");
   template.innerHTML = value;
 
@@ -75,6 +90,13 @@ function toBlockHtml(value: string) {
 
   const paragraphs = trimmed.split(/\n{2,}/).map((part) => part.trim()).filter(Boolean);
   if (paragraphs.length === 0) return "";
+  if (paragraphs.length === 1) {
+    const part = paragraphs[0];
+    const lines = part.split(/\n/).map((l) => l.trim()).filter(Boolean);
+    if (lines.length > 1) {
+      return lines.map((line) => `<p>${escapeHtml(line)}</p>`).join("");
+    }
+  }
   return paragraphs
     .map((part) => `<p>${escapeHtml(part).replace(/\n/g, "<br />")}</p>`)
     .join("");

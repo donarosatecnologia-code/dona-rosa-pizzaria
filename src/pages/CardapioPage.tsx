@@ -4,8 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
-import alecrim from "@/assets/alecrim.png";
-import tomilho from "@/assets/tomilho.png";
+import { BrandAlecrim, BrandTomilho, BrandTrigo } from "@/components/BrandAccents";
 
 const DEFAULT_PIZZA_NOTES = {
   extra: "Cobertura extra R$ 21,00",
@@ -108,12 +107,15 @@ const CardapioPage = () => {
       {/* Hero banner */}
       <div className="pt-16 section-paper">
         <div className="container mx-auto px-4 py-12 md:py-16 text-center relative overflow-hidden">
-          <img src={alecrim} alt="" className="absolute left-0 top-0 h-32 opacity-20 pointer-events-none hidden lg:block" />
-          <img src={tomilho} alt="" className="absolute right-0 bottom-0 h-28 opacity-20 pointer-events-none hidden lg:block" />
+          <BrandAlecrim className="absolute left-0 top-0 h-32 opacity-20 hidden lg:block" />
+          <BrandTomilho className="absolute right-0 bottom-0 h-28 opacity-20 hidden lg:block" />
+          <BrandTrigo className="absolute right-8 top-1/2 h-24 w-auto -translate-y-1/2 opacity-[0.14] hidden xl:block" />
+          <div className="relative z-10">
           <h1 className="text-4xl md:text-5xl font-bold text-secondary mb-3">Nosso Cardápio</h1>
           <p className="text-muted-foreground max-w-xl mx-auto">
             Pratos preparados com ingredientes selecionados e muito carinho artesanal.
           </p>
+          </div>
         </div>
       </div>
 

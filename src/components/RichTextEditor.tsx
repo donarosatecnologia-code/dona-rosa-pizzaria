@@ -11,7 +11,22 @@ function sanitizeEditorHtml(value: string) {
     return value;
   }
 
-  const allowedTags = new Set(["p", "br", "strong", "b", "em", "i", "u", "ul", "ol", "li"]);
+  const allowedTags = new Set([
+    "p",
+    "div",
+    "br",
+    "strong",
+    "b",
+    "em",
+    "i",
+    "u",
+    "ul",
+    "ol",
+    "li",
+    "h2",
+    "h3",
+    "h4",
+  ]);
   const template = document.createElement("template");
   template.innerHTML = value;
 
@@ -74,15 +89,26 @@ const RichTextEditor = ({ value, onChange, minHeightClassName = "min-h-[180px]" 
 
   useEffect(() => {
     if (!editorRef.current) return;
+    const el = editorRef.current;
+    if (document.activeElement === el) {
+      return;
+    }
     const sanitized = sanitizeEditorHtml(value || "");
-    if (editorRef.current.innerHTML !== sanitized) {
-      editorRef.current.innerHTML = sanitized;
+    if (el.innerHTML !== sanitized) {
+      el.innerHTML = sanitized;
     }
   }, [value]);
 
   function emitValue() {
-    const nextValue = sanitizeEditorHtml(editorRef.current?.innerHTML || "");
-    if (editorRef.current) {
+    if (!editorRef.current) return;
+    const nextValue = sanitizeEditorHtml(editorRef.current.innerHTML || "");
+    onChange(nextValue);
+  }
+
+  function syncSanitizedToDom() {
+    if (!editorRef.current) return;
+    const nextValue = sanitizeEditorHtml(editorRef.current.innerHTML || "");
+    if (editorRef.current.innerHTML !== nextValue) {
       editorRef.current.innerHTML = nextValue;
     }
     onChange(nextValue);
@@ -96,23 +122,15 @@ const RichTextEditor = ({ value, onChange, minHeightClassName = "min-h-[180px]" 
         <ToolbarButton label="U" command="underline" onAfterCommand={emitValue} />
         <ToolbarButton label="• Lista" command="insertUnorderedList" onAfterCommand={emitValue} />
         <ToolbarButton label="1. Lista" command="insertOrderedList" onAfterCommand={emitValue} />
+        <ToolbarButton label="H2" command="formatBlock" value="h2" onAfterCommand={emitValue} />
+        <ToolbarButton label="H3" command="formatBlock" value="h3" onAfterCommand={emitValue} />
       </div>
       <div
         ref={editorRef}
         contentEditable
         className={`w-full rounded-lg border border-input bg-background p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 ${minHeightClassName}`}
         onInput={emitValue}
-        onBlur={emitValue}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            const inserted = document.execCommand("insertHTML", false, "<p><br></p>");
-            if (!inserted) {
-              document.execCommand("insertHTML", false, "<br><br>");
-            }
-            emitValue();
-          }
-        }}
+        onBlur={syncSanitizedToDom}
       />
       <p className="text-[11px] text-muted-foreground">
         Enter cria novo parágrafo. Use os botões para negrito, itálico e listas.

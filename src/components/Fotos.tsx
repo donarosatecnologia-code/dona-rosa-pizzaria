@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import EditableWrapper from "@/components/EditableWrapper";
+import { BrandLinhaDecorativa, BrandTrigo } from "@/components/BrandAccents";
 import forno1 from "@/assets/forno-1.jpg";
 import ambiente1 from "@/assets/ambiente-1.jpg";
 import pizza1 from "@/assets/pizza-1.jpg";
@@ -68,8 +69,10 @@ const Fotos = ({ data = defaultData }: { data?: FotosData }) => {
 
   return (
     <>
-      <section id="fotos" className="section-paper py-16 md:py-24">
-        <div className="container mx-auto px-4 text-center">
+      <section id="fotos" className="section-paper relative overflow-hidden py-16 md:py-24">
+        <BrandTrigo className="absolute right-4 top-1/3 h-28 w-auto opacity-[0.2] hidden lg:block" />
+        <BrandLinhaDecorativa className="absolute left-6 bottom-12 h-8 w-auto opacity-15 -rotate-6 hidden xl:block" />
+        <div className="container relative z-10 mx-auto px-4 text-center">
           <EditableWrapper id="home-fotos-title" type="text" label="Título Fotos">
             <RichText as="h2" inline content={fotosTitle} className="text-3xl md:text-4xl font-bold text-foreground mb-10" />
           </EditableWrapper>

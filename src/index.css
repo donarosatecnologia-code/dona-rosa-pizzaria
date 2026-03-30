@@ -1,4 +1,5 @@
 @import url("https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,400&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,600;0,700;1,400&display=swap");
 
 @font-face {
   font-family: "ARCENA";
@@ -114,12 +115,14 @@
     text-transform: inherit;
   }
 
-  .rich-text-content p {
-    margin: 0;
+  .rich-text-content p,
+  .rich-text-content div {
+    margin: 0 0 0.75rem;
   }
 
-  .rich-text-content p + p {
-    margin-top: 0.75rem;
+  .rich-text-content p:last-child,
+  .rich-text-content div:last-child {
+    margin-bottom: 0;
   }
 
   .rich-text-content ul,
@@ -149,6 +152,82 @@
     font-family: "ARCENA", "Lato", sans-serif !important;
     letter-spacing: 0.01em;
     font-synthesis: none;
+  }
+
+  /* Páginas legais — base creme #FDFCF0 com mesma textura do papel */
+  .legal-page-paper {
+    background-color: #fdfcf0;
+    background-image:
+      radial-gradient(circle at 12% 18%, hsla(38, 22%, 72%, 0.2) 0 1px, transparent 1.4px),
+      radial-gradient(circle at 78% 28%, hsla(45, 20%, 68%, 0.16) 0 1px, transparent 1.35px),
+      radial-gradient(circle at 32% 70%, hsla(42, 18%, 64%, 0.14) 0 1px, transparent 1.3px),
+      radial-gradient(circle at 64% 82%, hsla(40, 16%, 66%, 0.13) 0 1px, transparent 1.25px),
+      radial-gradient(circle at 20% 42%, hsla(44, 20%, 70%, 0.12) 0 0.9px, transparent 1.2px),
+      radial-gradient(circle at 86% 64%, hsla(37, 18%, 66%, 0.11) 0 0.9px, transparent 1.2px),
+      linear-gradient(180deg, hsla(40, 35%, 94%, 0.5), hsla(45, 28%, 92%, 0.35)),
+      repeating-linear-gradient(
+        14deg,
+        hsla(42, 22%, 70%, 0.045) 0 2px,
+        transparent 2px 5px,
+        hsla(35, 18%, 72%, 0.04) 5px 7px,
+        transparent 7px 11px
+      ),
+      repeating-linear-gradient(
+        -18deg,
+        hsla(38, 18%, 68%, 0.03) 0 1px,
+        transparent 1px 4px
+      );
+    background-size:
+      150px 150px,
+      170px 170px,
+      190px 190px,
+      220px 220px,
+      140px 140px,
+      200px 200px,
+      100% 100%,
+      130px 130px,
+      120px 120px;
+    background-repeat: repeat;
+    background-position: center;
+  }
+
+  .legal-rich .rich-text-content h2,
+  .legal-rich .rich-text-content h3,
+  .legal-rich .rich-text-content h4 {
+    font-family: "ARCENA", "Lato", sans-serif !important;
+    letter-spacing: 0.01em;
+    font-synthesis: none;
+    color: hsl(var(--primary));
+  }
+
+  .legal-rich .rich-text-content h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 2rem 0 0.75rem;
+  }
+
+  .legal-rich .rich-text-content h2:first-child {
+    margin-top: 0;
+  }
+
+  .legal-rich .rich-text-content h3 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin: 1.5rem 0 0.5rem;
+  }
+
+  .legal-rich .rich-text-content h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 1.25rem 0 0.5rem;
+  }
+
+  /* Termos de Uso — corpo em Montserrat; títulos (h2–h4) seguem ARCENA em .legal-rich */
+  .terms-page .legal-rich .rich-text-content p,
+  .terms-page .legal-rich .rich-text-content li,
+  .terms-page .legal-rich .rich-text-content ul,
+  .terms-page .legal-rich .rich-text-content ol {
+    font-family: "Montserrat", "Lato", sans-serif !important;
   }
 
   .section-paper {
