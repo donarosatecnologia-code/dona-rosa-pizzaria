@@ -5,6 +5,8 @@ import EditableWrapper from "@/components/EditableWrapper";
 import RichText from "@/components/RichText";
 import { CmsPlaceholder } from "@/components/CmsPlaceholder";
 import { BrandAlecrim, BrandLinhaDecorativa, BrandTomilho, BrandTomilhoB, BrandTrigo } from "@/components/BrandAccents";
+import { LoadingScreen } from "@/components/LoadingScreen";
+import { useSiteShellReady } from "@/hooks/useSiteShellReady";
 import { useCmsContents } from "@/hooks/useCmsContent";
 
 const TERMS_PAGE_KEY = "termos-de-uso";
@@ -45,7 +47,21 @@ function LegalTextWrapper({ sectionKey, label, getText }: LegalTextWrapperProps)
 }
 
 function TermsOfUsePage() {
-  const { getText } = useCmsContents([...TERMS_CMS_KEYS], TERMS_PAGE_KEY);
+  const shell = useSiteShellReady();
+  const { getText, isPending, isError } = useCmsContents([...TERMS_CMS_KEYS], TERMS_PAGE_KEY);
+
+  if (shell.isPending || isPending) {
+    return <LoadingScreen message="Carregando conteúdo…" />;
+  }
+
+  if (isError) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <p className="text-center text-muted-foreground">Não foi possível carregar o conteúdo. Tente novamente mais tarde.</p>
+      </div>
+    );
+  }
+
   const title = getText("terms-page-title");
 
   return (

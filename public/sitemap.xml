@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <!-- Substitua BASE pela URL absoluta do domínio de produção (ex.: https://www.seudominio.com.br) -->
+  <url><loc>https://www.example.com/</loc><changefreq>weekly</changefreq><priority>1</priority></url>
+  <url><loc>https://www.example.com/quem-somos</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.example.com/cardapio</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.example.com/espacos</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.example.com/cursos-e-eventos</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.example.com/saude-e-sustentabilidade</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://www.example.com/contato</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.example.com/politica-de-privacidade</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://www.example.com/termos-de-uso</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+</urlset>

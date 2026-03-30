@@ -1,5 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  fetchCarouselColumnsRow,
+  fetchGalleryImages,
+  fetchPageContentImageRow,
+} from "@/lib/cms-queryFns";
 import { useCmsDisplayMode } from "@/contexts/CmsDisplayModeContext";
 
 interface CmsMediaImage {
@@ -13,17 +17,7 @@ export function useCmsImage(sectionKey: string) {
 
   const { data } = useQuery({
     queryKey: ["page-contents", sectionKey, displayMode],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("page_contents")
-        .select("image_url, image_url_draft, content, content_draft")
-        .eq("section_key", sectionKey)
-        .maybeSingle();
-      if (error) {
-        throw error;
-      }
-      return data;
-    },
+    queryFn: () => fetchPageContentImageRow(sectionKey),
   });
 
   if (displayMode === "preview") {
@@ -36,30 +30,20 @@ export function useCmsImage(sectionKey: string) {
 }
 
 export function useCmsGallery(sectionKey: string) {
-  const { data } = useQuery({
+  const { data, isPending } = useQuery({
     queryKey: ["gallery-images", sectionKey],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("gallery_images")
-        .select("id, image_url, alt_text, sort_order")
-        .eq("section_key", sectionKey)
-        .eq("is_active", true)
-        .order("sort_order");
-      if (error) {
-        throw error;
-      }
-      return data;
-    },
+    queryFn: () => fetchGalleryImages(sectionKey),
   });
 
-  if (!data || data.length === 0) {
-    return [] as CmsMediaImage[];
-  }
+  const images: CmsMediaImage[] =
+    !data || data.length === 0
+      ? []
+      : data.map((image, idx) => ({
+          src: image.image_url,
+          alt: image.alt_text || `Imagem ${idx + 1}`,
+        }));
 
-  return data.map((image, idx) => ({
-    src: image.image_url,
-    alt: image.alt_text || `Imagem ${idx + 1}`,
-  }));
+  return { images, isPending };
 }
 
 function normalizeColumns(value: string | null | undefined, fallbackColumns: number) {
@@ -72,21 +56,11 @@ function normalizeColumns(value: string | null | undefined, fallbackColumns: num
 
 export function useCmsCarousel(sectionKey: string, fallbackColumns: number) {
   const displayMode = useCmsDisplayMode();
-  const images = useCmsGallery(sectionKey);
+  const { images, isPending: galleryPending } = useCmsGallery(sectionKey);
 
-  const { data } = useQuery({
+  const { data, isPending: columnsPending } = useQuery({
     queryKey: ["page-contents", sectionKey, "carousel-columns", displayMode],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("page_contents")
-        .select("content, content_draft")
-        .eq("section_key", sectionKey)
-        .maybeSingle();
-      if (error) {
-        throw error;
-      }
-      return data;
-    },
+    queryFn: () => fetchCarouselColumnsRow(sectionKey),
   });
 
   const rawColumns =
@@ -97,5 +71,6 @@ export function useCmsCarousel(sectionKey: string, fallbackColumns: number) {
   return {
     images,
     columns: normalizeColumns(rawColumns, fallbackColumns),
+    isPending: galleryPending || columnsPending,
   };
 }

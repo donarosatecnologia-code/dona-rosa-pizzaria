@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useCmsContents } from "@/hooks/useCmsContent";
+import { useSiteShellReady } from "@/hooks/useSiteShellReady";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { BrandAlecrim, BrandLinhaDecorativa, BrandTomilho, BrandTomilhoB, BrandTrigo } from "@/components/BrandAccents";
 
@@ -164,6 +165,7 @@ function ContactForm() {
 }
 
 function ContactPage() {
+  const shell = useSiteShellReady();
   const cmsKeys = [
     "contact-s1-title",
     "contact-s1-desc",
@@ -195,7 +197,7 @@ function ContactPage() {
   );
   const reservationWhatsAppUrl = `https://wa.me/${CONTACT_WHATSAPP_PHONE}?text=${reservationMessage}`;
 
-  if (isPending) {
+  if (shell.isPending || isPending) {
     return <LoadingScreen message="Carregando conteúdo…" />;
   }
 

@@ -25,6 +25,7 @@ import AdminCardapio from "./pages/admin/AdminCardapio";
 import AdminMirrorPage from "./pages/admin/AdminMirrorPage";
 import AdminPreviewPage from "./pages/admin/AdminPreviewPage";
 import { CmsConfirmDialog } from "./components/CmsConfirmDialog";
+import { SeoShell } from "./components/SeoShell";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +36,7 @@ const App = () => (
       <Sonner />
       <AdminEditorProvider>
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <SeoShell />
           <CmsConfirmDialog />
           <Routes>
             <Route path="/" element={<Index />} />

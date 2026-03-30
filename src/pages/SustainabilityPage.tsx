@@ -8,6 +8,7 @@ import EditableWrapper from "@/components/EditableWrapper";
 import RichText from "@/components/RichText";
 import { CmsPlaceholder } from "@/components/CmsPlaceholder";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { useSiteShellReady } from "@/hooks/useSiteShellReady";
 import { useCmsContents } from "@/hooks/useCmsContent";
 import { useCmsCarousel } from "@/hooks/useCmsMedia";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -246,6 +247,7 @@ function SustainabilityGrid({
 }
 
 function SustainabilityPage() {
+  const shell = useSiteShellReady();
   const cmsKeys = [
     "sustain-fermentation-title",
     "sustain-fermentation-body",
@@ -257,7 +259,7 @@ function SustainabilityPage() {
 
   const fermentationCarousel = useCmsCarousel("sustain-fermentation-carousel", 3);
 
-  if (isPending) {
+  if (shell.isPending || isPending || fermentationCarousel.isPending) {
     return <LoadingScreen />;
   }
 

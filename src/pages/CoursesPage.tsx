@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CmsPlaceholder } from "@/components/CmsPlaceholder";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { useSiteShellReady } from "@/hooks/useSiteShellReady";
 import { useCmsContents } from "@/hooks/useCmsContent";
 import { useCmsCarousel } from "@/hooks/useCmsMedia";
 
@@ -175,6 +176,7 @@ function SingleImageCarousel({
 }
 
 function CoursesPage() {
+  const shell = useSiteShellReady();
   const cmsKeys = [
     "courses-s1-title",
     "courses-s1-subtitle",
@@ -199,6 +201,9 @@ function CoursesPage() {
 
   const homeCarousel = useCmsCarousel("courses-home-carousel", 1);
 
+  const carouselsPending =
+    eventsCarousel.isPending || pizzaCarousel.isPending || homeCarousel.isPending;
+
   const s1Cta = getLink("courses-s1-cta");
   const s2Cta = getLink("courses-s2-cta");
   const s3Cta = getLink("courses-s3-cta");
@@ -211,7 +216,7 @@ function CoursesPage() {
     }
   }, []);
 
-  if (isPending) {
+  if (shell.isPending || isPending || carouselsPending) {
     return <LoadingScreen />;
   }
 

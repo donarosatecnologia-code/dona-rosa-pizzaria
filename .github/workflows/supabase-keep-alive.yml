@@ -1,0 +1,25 @@
+# Dispara uma leitura leve no Supabase todos os dias (UTC) para reduzir risco de inatividade.
+# Requer secrets no repositório: SUPABASE_FUNCTIONS_URL e KEEP_ALIVE_SECRET (o mesmo da Edge Function).
+# Ex.: SUPABASE_FUNCTIONS_URL = https://SEU_REF.supabase.co/functions/v1
+
+name: Supabase keep-alive
+
+on:
+  schedule:
+    - cron: "0 8 * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Chamar função keep-alive
+        env:
+          BASE_URL: ${{ secrets.SUPABASE_FUNCTIONS_URL }}
+          SECRET: ${{ secrets.KEEP_ALIVE_SECRET }}
+        run: |
+          if [ -z "$BASE_URL" ] || [ -z "$SECRET" ]; then
+            echo "Defina os secrets SUPABASE_FUNCTIONS_URL e KEEP_ALIVE_SECRET no repositório."
+            exit 1
+          fi
+          curl -fsS "${BASE_URL}/keep-alive?secret=${SECRET}"

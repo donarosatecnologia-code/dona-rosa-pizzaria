@@ -8,9 +8,9 @@ export function LoadingPizzaSpinner({ className = "" }: { className?: string }) 
     <img
       src={loadingPizzaImg}
       alt=""
-      className={className}
-      width={120}
-      height={120}
+      className={className || "h-[50px] w-[50px]"}
+      width={50}
+      height={50}
       decoding="async"
       draggable={false}
     />
@@ -30,7 +30,7 @@ export function LoadingScreen({ message = "Carregando conteúdo…" }: LoadingSc
       aria-busy="true"
     >
       <div className="animate-[spin_2.2s_linear_infinite]">
-        <LoadingPizzaSpinner className="h-24 w-24 md:h-28 md:w-28" />
+        <LoadingPizzaSpinner />
       </div>
       <p className="text-sm font-medium text-muted-foreground">{message}</p>
     </div>

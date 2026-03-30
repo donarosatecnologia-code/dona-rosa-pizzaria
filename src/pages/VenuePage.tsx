@@ -10,6 +10,7 @@ import RichText from "@/components/RichText";
 import { CmsPlaceholder } from "@/components/CmsPlaceholder";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useSiteShellReady } from "@/hooks/useSiteShellReady";
 import { useCmsContents } from "@/hooks/useCmsContent";
 import { useCmsCarousel, useCmsGallery } from "@/hooks/useCmsMedia";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,6 +30,7 @@ const venueIntroRows: VenueZigZagRow[] = [
 ];
 
 function VenuePage() {
+  const shell = useSiteShellReady();
   const isMobile = useIsMobile();
   const cmsKeys = [
     "venue-intro-title",
@@ -47,7 +49,10 @@ function VenuePage() {
 
   const menuCtaLink = getLink("venue-menu-cta");
 
-  if (isPending) {
+  const mediaPending =
+    menuCarousel.isPending || momentsGallery.isPending || customerMural.isPending;
+
+  if (shell.isPending || isPending || mediaPending) {
     return <LoadingScreen />;
   }
 
@@ -71,7 +76,7 @@ function VenuePage() {
         menuCtaLink={menuCtaLink}
         isMobile={isMobile}
       />
-      <MomentsCarousel momentsGallery={momentsGallery} getText={getText} />
+      <MomentsCarousel momentsGallery={momentsGallery.images} getText={getText} />
       <CustomerMural customerMural={customerMural.images} getText={getText} />
 
       <Footer />

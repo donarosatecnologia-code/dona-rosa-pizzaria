@@ -9,7 +9,7 @@ import RichText from "@/components/RichText";
 
 const Fotos = () => {
   const { getText } = useCmsContents(["home-fotos-title"], "home");
-  const galleryImages = useCmsGallery("home-fotos-gallery");
+  const { images: galleryImages } = useCmsGallery("home-fotos-gallery");
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [visibleCount, setVisibleCount] = useState(12);
   const fotosTitle = getText("home-fotos-title");

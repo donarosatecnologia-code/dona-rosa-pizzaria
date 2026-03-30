@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Menu, X } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { NavLink } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { fetchNavLinks } from "@/lib/cms-queryFns";
 import EditableWrapper from "@/components/EditableWrapper";
 import { CmsPlaceholder } from "@/components/CmsPlaceholder";
 import { useCmsImage } from "@/hooks/useCmsMedia";
@@ -50,13 +50,7 @@ const Header = () => {
 
   const { data: navLinks } = useQuery({
     queryKey: ["nav-links"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("nav_links").select("*").order("sort_order");
-      if (error) {
-        throw error;
-      }
-      return data;
-    },
+    queryFn: fetchNavLinks,
   });
 
   const headerFromDb = (navLinks ?? [])
