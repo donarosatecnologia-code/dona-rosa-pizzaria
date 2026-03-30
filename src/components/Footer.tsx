@@ -2,14 +2,15 @@ import { useState, useEffect } from "react";
 import { Instagram, Facebook, Youtube, Twitter, Linkedin, Globe, Plus, Pencil, Trash2, Check, X, ChevronUp, ChevronDown } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAdminEditor } from "@/contexts/AdminEditorContext";
+import { useAdminMirrorSurface } from "@/hooks/useAdminMirrorSurface";
 import EditableWrapper from "@/components/EditableWrapper";
 import { BrandFooterAccent } from "@/components/BrandAccents";
 import { toast } from "sonner";
-import logoBranco from "@/assets/logo-branco.png";
+import { CmsPlaceholder } from "@/components/CmsPlaceholder";
 import { useCmsImage } from "@/hooks/useCmsMedia";
 import { useCmsContents } from "@/hooks/useCmsContent";
 import RichText from "@/components/RichText";
+import { stripHtmlTags } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
 
 type NavLinkRow = Database["public"]["Tables"]["nav_links"]["Row"];
@@ -24,13 +25,30 @@ const iconMap: Record<string, React.ReactNode> = {
 };
 
 const Footer = () => {
-  const { isAdmin } = useAdminEditor();
+  const mirrorSurface = useAdminMirrorSurface();
   const queryClient = useQueryClient();
-  const footerLogoImage = useCmsImage("footer-logo", logoBranco);
-  const { getText } = useCmsContents(["footer-address", "footer-horario", "footer-contato"], "footer");
-  const footerAddress = getText("footer-address", "Endereço\nRua Camilo de Araújo, 347\nAlto de Pinheiros, Vila Jataí\nSão Paulo - SP, 05431-020");
-  const footerHorario = getText("footer-horario", "Horário de Funcionamento\nTerça – Quinta: 18:30 às 23:00\nSexta – Sábado: 18:00 às 00:00\nDomingo: 18:00 às 23:00");
-  const footerContato = getText("footer-contato", "Contato\n(11) 99860-2878\n(11) 3031-7876");
+  const footerLogoImage = useCmsImage("footer-logo");
+  const { getText } = useCmsContents(
+    [
+      "footer-address",
+      "footer-horario",
+      "footer-contato",
+      "footer-title-social",
+      "footer-title-nav",
+      "footer-title-cardapio",
+      "footer-title-col4",
+      "footer-col4-extra",
+    ],
+    "footer",
+  );
+  const footerAddress = getText("footer-address");
+  const footerHorario = getText("footer-horario");
+  const footerContato = getText("footer-contato");
+  const titleSocial = stripHtmlTags(getText("footer-title-social"));
+  const titleNav = stripHtmlTags(getText("footer-title-nav"));
+  const titleCardapio = stripHtmlTags(getText("footer-title-cardapio"));
+  const titleCol4 = stripHtmlTags(getText("footer-title-col4"));
+  const footerCol4Extra = getText("footer-col4-extra");
 
   const { data: socialLinks } = useQuery({
     queryKey: ["social-links"],
@@ -64,32 +82,34 @@ const Footer = () => {
     .slice()
     .sort((a, b) => a.sort_order - b.sort_order);
 
-  const showNavColumn = navegacaoLinks.length > 0 || isAdmin;
-
   return (
     <footer className="bg-foreground text-primary-foreground py-12">
       <div className="container mx-auto px-4">
         <BrandFooterAccent />
-        <div
-          className={`grid gap-8 mb-10 grid-cols-1 sm:grid-cols-2 ${
-            showNavColumn ? "lg:grid-cols-4" : "lg:grid-cols-3"
-          }`}
-        >
+        <div className="mb-10 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
           {/* Col 1 - Logo & Social */}
           <div>
             <EditableWrapper id="footer-logo" type="image" label="Logo Footer">
-              <a href="/">
-                <img src={footerLogoImage} alt="Dona Rosa" className="h-16 mb-4" />
+              <a href="/" className="block mb-4">
+                {footerLogoImage ? (
+                  <img src={footerLogoImage} alt="Dona Rosa" className="h-16" />
+                ) : (
+                  <CmsPlaceholder label="Logo do rodapé" className="py-6 text-xs max-w-xs" />
+                )}
               </a>
             </EditableWrapper>
-            <p className="text-sm opacity-70 mb-3">Redes Sociais</p>
+            <EditableWrapper id="footer-title-social" type="text" label="Título — Redes sociais">
+              <h4 className="mb-4 text-sm font-semibold">
+                {titleSocial || (mirrorSurface ? "\u00A0" : "Redes sociais")}
+              </h4>
+            </EditableWrapper>
             <div className="flex gap-3 items-center flex-wrap">
               {(socialLinks ?? []).map((link) => (
                 <a key={link.id} href={link.url} target="_blank" rel="noopener noreferrer" className="opacity-70 hover:opacity-100 transition-opacity" aria-label={link.platform}>
                   {iconMap[link.icon_name] || <Globe size={20} />}
                 </a>
               ))}
-              {isAdmin && <SocialLinkManager />}
+              {mirrorSurface && <SocialLinkManager />}
             </div>
             <EditableWrapper id="footer-address" type="textarea" label="Endereço Footer">
               <RichText content={footerAddress} className="mt-4 text-xs opacity-60 leading-relaxed space-y-2" />
@@ -97,38 +117,40 @@ const Footer = () => {
           </div>
 
           {/* Col 2 - Navegação (100% via nav_links; ordem = sort_order) */}
-          {showNavColumn && (
-            <div>
-              <h4 className="font-semibold mb-4 text-sm">Navegação</h4>
-              <ul className="space-y-2 text-xs opacity-70">
-                {navegacaoLinks.map((link, index) => (
-                  <li key={link.id} className="flex flex-wrap items-center gap-1 group">
-                    <a href={link.url} className="hover:opacity-100 transition-opacity">
-                      {link.label}
-                    </a>
-                    {isAdmin && (
-                      <NavLinkActions
-                        linkId={link.id}
-                        label={link.label}
-                        url={link.url}
-                        canMoveUp={index > 0}
-                        canMoveDown={index < navegacaoLinks.length - 1}
-                        allLinks={navegacaoLinks}
-                      />
-                    )}
-                  </li>
-                ))}
-              </ul>
-              {isAdmin && navegacaoLinks.length === 0 && (
-                <p className="text-xs opacity-50 mb-2">Nenhum item no menu. Adicione links abaixo.</p>
-              )}
-              {isAdmin && <AddNavLinkButton columnKey="navegacao" existingLinks={navegacaoLinks} />}
-            </div>
-          )}
+          <div>
+            <EditableWrapper id="footer-title-nav" type="text" label="Título — Navegação">
+              <h4 className="mb-4 text-sm font-semibold">{titleNav || (mirrorSurface ? "\u00A0" : "Navegação")}</h4>
+            </EditableWrapper>
+            <ul className="space-y-2 text-xs opacity-70">
+              {navegacaoLinks.map((link, index) => (
+                <li key={link.id} className="group flex flex-wrap items-center gap-1">
+                  <a href={link.url} className="transition-opacity hover:opacity-100">
+                    {link.label}
+                  </a>
+                  {mirrorSurface && (
+                    <NavLinkActions
+                      linkId={link.id}
+                      label={link.label}
+                      url={link.url}
+                      canMoveUp={index > 0}
+                      canMoveDown={index < navegacaoLinks.length - 1}
+                      allLinks={navegacaoLinks}
+                    />
+                  )}
+                </li>
+              ))}
+            </ul>
+            {mirrorSurface && navegacaoLinks.length === 0 && (
+              <p className="mb-2 text-xs opacity-50">Nenhum item no menu. Adicione links abaixo.</p>
+            )}
+            {mirrorSurface && <AddNavLinkButton columnKey="navegacao" existingLinks={navegacaoLinks} />}
+          </div>
 
           {/* Col 3 - Cardápio */}
           <div>
-            <h4 className="font-semibold mb-4 text-sm">Cardápio</h4>
+            <EditableWrapper id="footer-title-cardapio" type="text" label="Título — Cardápio">
+              <h4 className="mb-4 text-sm font-semibold">{titleCardapio || (mirrorSurface ? "\u00A0" : "Cardápio")}</h4>
+            </EditableWrapper>
             <ul className="space-y-2 text-xs opacity-70">
               {(categories ?? []).map((cat) => (
                 <li key={cat.slug}>
@@ -138,13 +160,19 @@ const Footer = () => {
             </ul>
           </div>
 
-          {/* Col 4 - Horário */}
+          {/* Col 4 - Horário, contato e blocos extras */}
           <div>
+            <EditableWrapper id="footer-title-col4" type="text" label="Título — Coluna 4 (horário / info)">
+              <h4 className="mb-4 text-sm font-semibold">{titleCol4 || (mirrorSurface ? "\u00A0" : "Horário e contato")}</h4>
+            </EditableWrapper>
             <EditableWrapper id="footer-horario" type="textarea" label="Horário de Funcionamento">
-              <RichText content={footerHorario} className="text-xs opacity-70 leading-relaxed space-y-2" />
+              <RichText content={footerHorario} className="space-y-2 text-xs leading-relaxed opacity-70" />
             </EditableWrapper>
             <EditableWrapper id="footer-contato" type="textarea" label="Contato Footer">
-              <RichText content={footerContato} className="mt-4 text-xs opacity-70 leading-relaxed space-y-2" />
+              <RichText content={footerContato} className="mt-4 space-y-2 text-xs leading-relaxed opacity-70" />
+            </EditableWrapper>
+            <EditableWrapper id="footer-col4-extra" type="textarea" label="Textos extras (coluna 4)">
+              <RichText content={footerCol4Extra} className="mt-4 space-y-2 text-xs leading-relaxed opacity-70" />
             </EditableWrapper>
           </div>
         </div>
@@ -284,7 +312,7 @@ async function swapNavLinkSortOrder(a: NavLinkRow, b: NavLinkRow): Promise<void>
 }
 
 // Nav link admin actions: editar, excluir, subir/descer ordem
-function NavLinkActions({
+export function NavLinkActions({
   linkId,
   label,
   url,
@@ -428,7 +456,7 @@ function NavLinkActions({
   );
 }
 
-function AddNavLinkButton({ columnKey, existingLinks }: { columnKey: string; existingLinks: NavLinkRow[] }) {
+export function AddNavLinkButton({ columnKey, existingLinks }: { columnKey: string; existingLinks: NavLinkRow[] }) {
   const [show, setShow] = useState(false);
   const [label, setLabel] = useState("");
   const [url, setUrl] = useState("");

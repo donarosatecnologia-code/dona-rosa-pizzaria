@@ -1,10 +1,9 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AdminEditorProvider } from "@/contexts/AdminEditorContext";
-import AdminEditorSidebar from "@/components/AdminEditorSidebar";
 import Index from "./pages/Index";
 import QuemSomosPage from "./pages/QuemSomosPage";
 import CardapioPage from "./pages/CardapioPage";
@@ -19,10 +18,13 @@ import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminLayout from "./components/AdminLayout";
 import Dashboard from "./pages/admin/Dashboard";
-import AdminHome from "./pages/admin/AdminHome";
-import AdminQuemSomos from "./pages/admin/AdminQuemSomos";
-import AdminCardapio from "./pages/admin/AdminCardapio";
 import AdminConfiguracoes from "./pages/admin/AdminConfiguracoes";
+import AdminPages from "./pages/admin/AdminPages";
+import AdminHeaderFooter from "./pages/admin/AdminHeaderFooter";
+import AdminCardapio from "./pages/admin/AdminCardapio";
+import AdminMirrorPage from "./pages/admin/AdminMirrorPage";
+import AdminPreviewPage from "./pages/admin/AdminPreviewPage";
+import { CmsConfirmDialog } from "./components/CmsConfirmDialog";
 
 const queryClient = new QueryClient();
 
@@ -32,8 +34,8 @@ const App = () => (
       <Toaster />
       <Sonner />
       <AdminEditorProvider>
-        <AdminEditorSidebar />
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <CmsConfirmDialog />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/quem-somos" element={<QuemSomosPage />} />
@@ -46,13 +48,19 @@ const App = () => (
             <Route path="/termos-de-uso" element={<TermsOfUsePage />} />
             <Route path="/login" element={<Login />} />
 
-            {/* Admin routes */}
-            <Route path="/admin" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
-              <Route path="dashboard" element={<Dashboard />} />
-              <Route path="home" element={<AdminHome />} />
-              <Route path="quem-somos" element={<AdminQuemSomos />} />
-              <Route path="cardapio" element={<AdminCardapio />} />
-              <Route path="configuracoes" element={<AdminConfiguracoes />} />
+            <Route path="/admin" element={<ProtectedRoute><Outlet /></ProtectedRoute>}>
+              <Route path="preview/:pageSlug" element={<AdminPreviewPage />} />
+              <Route element={<AdminLayout />}>
+                <Route index element={<Navigate to="dashboard" replace />} />
+                <Route path="dashboard" element={<Dashboard />} />
+                <Route path="pages" element={<AdminPages />} />
+                <Route path="mirror/:pageSlug" element={<AdminMirrorPage />} />
+                <Route path="home" element={<Navigate to="/admin/mirror/home" replace />} />
+                <Route path="quem-somos" element={<Navigate to="/admin/mirror/quem-somos" replace />} />
+                <Route path="cardapio" element={<AdminCardapio />} />
+                <Route path="header-footer" element={<AdminHeaderFooter />} />
+                <Route path="configuracoes" element={<AdminConfiguracoes />} />
+              </Route>
             </Route>
 
             <Route path="*" element={<NotFound />} />

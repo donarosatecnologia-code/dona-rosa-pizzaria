@@ -7,63 +7,25 @@ import WhatsAppButton from "@/components/WhatsAppButton";
 import EditableWrapper from "@/components/EditableWrapper";
 import { BrandAlecrim, BrandLinhaDecorativa } from "@/components/BrandAccents";
 import RichText from "@/components/RichText";
+import { CmsPlaceholder } from "@/components/CmsPlaceholder";
+import { LoadingScreen } from "@/components/LoadingScreen";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useCmsContents } from "@/hooks/useCmsContent";
 import { useCmsCarousel, useCmsGallery } from "@/hooks/useCmsMedia";
 import { supabase } from "@/integrations/supabase/client";
-import ambiente1 from "@/assets/ambiente-1.jpg";
-import evento1 from "@/assets/evento-1.jpg";
-import forno1 from "@/assets/forno-1.jpg";
-import pizza1 from "@/assets/pizza-1.jpg";
-import prato2 from "@/assets/prato-2.jpg";
-import prato3 from "@/assets/prato-3.jpg";
 
 interface VenueZigZagRow {
   id: string;
   imageKey: string;
   textKey: string;
-  imageFallback: string;
-  textFallback: string;
   imageRight: boolean;
 }
 
 const venueIntroRows: VenueZigZagRow[] = [
-  {
-    id: "venue-hero-row-1",
-    imageKey: "venue-hero-img-1",
-    textKey: "venue-hero-text-1",
-    imageFallback: ambiente1,
-    textFallback:
-      "Nosso salão foi pensado para receber você com conforto, luz acolhedora e o clima perfeito para encontros especiais.",
-    imageRight: true,
-  },
-  {
-    id: "venue-hero-row-2",
-    imageKey: "venue-hero-img-2",
-    textKey: "venue-hero-text-2",
-    imageFallback: evento1,
-    textFallback:
-      "Da mesa em família ao jantar entre amigos, cada detalhe do espaço convida a viver uma experiência completa.",
-    imageRight: false,
-  },
-  {
-    id: "venue-hero-row-3",
-    imageKey: "venue-hero-img-3",
-    textKey: "venue-hero-text-3",
-    imageFallback: forno1,
-    textFallback:
-      "A arquitetura integra tradição e modernidade, valorizando o forno, a cozinha e a energia do serviço ao vivo.",
-    imageRight: true,
-  },
-  {
-    id: "venue-hero-row-4",
-    imageKey: "venue-hero-img-4",
-    textKey: "venue-hero-text-4",
-    imageFallback: prato3,
-    textFallback:
-      "Entre o calor do forno e o cuidado em cada serviço, criamos um espaço que valoriza presença, sabor e boas histórias.",
-    imageRight: false,
-  },
+  { id: "venue-hero-row-1", imageKey: "venue-hero-img-1", textKey: "venue-hero-text-1", imageRight: true },
+  { id: "venue-hero-row-2", imageKey: "venue-hero-img-2", textKey: "venue-hero-text-2", imageRight: false },
+  { id: "venue-hero-row-3", imageKey: "venue-hero-img-3", textKey: "venue-hero-text-3", imageRight: true },
+  { id: "venue-hero-row-4", imageKey: "venue-hero-img-4", textKey: "venue-hero-text-4", imageRight: false },
 ];
 
 function VenuePage() {
@@ -77,45 +39,38 @@ function VenuePage() {
     "venue-customers-title",
   ];
 
-  const { getText, getImage } = useCmsContents(cmsKeys, "espacos");
+  const { getText, getImage, getLink, isPending, isError } = useCmsContents(cmsKeys, "espacos");
 
-  const { images: menuHighlights } = useCmsCarousel(
-    "venue-menu-highlights-carousel",
-    [
-      { src: pizza1, alt: "Destaque de pizza artesanal" },
-      { src: prato2, alt: "Destaque de prato da casa" },
-      { src: prato3, alt: "Destaque do cardápio Dona Rosa" },
-      { src: forno1, alt: "Destaque do forno e pizza" },
-    ],
-    3,
-  );
+  const menuCarousel = useCmsCarousel("venue-menu-highlights-carousel", 3);
+  const momentsGallery = useCmsGallery("venue-moments-gallery");
+  const customerMural = useCmsCarousel("venue-customers-mural", 3);
 
-  const momentsGallery = useCmsGallery("venue-moments-gallery", [
-    { src: ambiente1, alt: "Momento no salão da Dona Rosa" },
-    { src: evento1, alt: "Clientes no salão da Dona Rosa" },
-    { src: forno1, alt: "Registro de evento na Dona Rosa" },
-    { src: prato2, alt: "Encontro no ambiente da Dona Rosa" },
-    { src: prato3, alt: "Clientes em momento especial na Dona Rosa" },
-  ]);
+  const menuCtaLink = getLink("venue-menu-cta");
 
-  const customerMural = useCmsCarousel(
-    "venue-customers-mural",
-    [
-      { src: prato2, alt: "Cliente com prato autografado 1" },
-      { src: prato3, alt: "Cliente com prato autografado 2" },
-      { src: evento1, alt: "Cliente com prato autografado 3" },
-      { src: ambiente1, alt: "Cliente com prato autografado 4" },
-    ],
-    3,
-  );
+  if (isPending) {
+    return <LoadingScreen />;
+  }
 
-  const menuCta = getText("venue-menu-cta", "Ver mais");
+  if (isError) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-4">
+        <p className="text-muted-foreground text-center">Não foi possível carregar o conteúdo. Tente novamente mais tarde.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
 
       <VenueIntro getText={getText} getImage={getImage} />
-      <MenuHighlights menuHighlights={menuHighlights} getText={getText} menuCta={menuCta} isMobile={isMobile} />
+      <MenuHighlights
+        menuHighlights={menuCarousel.images}
+        columns={menuCarousel.columns}
+        getText={getText}
+        menuCtaLink={menuCtaLink}
+        isMobile={isMobile}
+      />
       <MomentsCarousel momentsGallery={momentsGallery} getText={getText} />
       <CustomerMural customerMural={customerMural.images} getText={getText} />
 
@@ -129,9 +84,11 @@ function VenueIntro({
   getText,
   getImage,
 }: {
-  getText: (sectionKey: string, fallback: string) => string;
-  getImage: (sectionKey: string, fallbackUrl: string) => string;
+  getText: (sectionKey: string) => string;
+  getImage: (sectionKey: string) => string;
 }) {
+  const introTitle = getText("venue-intro-title");
+
   return (
     <section className="section-paper relative overflow-hidden pt-28 pb-16 md:pt-36 md:pb-24">
       <BrandAlecrim className="absolute left-0 top-28 h-40 w-auto opacity-[0.18] hidden lg:block" />
@@ -139,45 +96,47 @@ function VenueIntro({
       <div className="container relative z-10 mx-auto px-4 max-w-6xl">
         <div className="text-center max-w-3xl mx-auto mb-12">
           <EditableWrapper id="venue-intro-title" type="text" label="Título Nosso Espaço">
-            <RichText
-              as="h1"
-              inline
-              content={getText("venue-intro-title", "Nosso Espaço")}
-              className="text-4xl md:text-5xl text-foreground"
-            />
+            {introTitle ? (
+              <RichText as="h1" inline content={introTitle} className="text-4xl md:text-5xl text-foreground" />
+            ) : (
+              <CmsPlaceholder label="Título da página" />
+            )}
           </EditableWrapper>
         </div>
 
         <div className="space-y-12">
-          {venueIntroRows.map((row) => (
-            <div
-              key={row.id}
-              className={`grid grid-cols-1 md:grid-cols-2 gap-8 items-center ${
-                row.imageRight ? "md:[&>*:first-child]:order-1 md:[&>*:last-child]:order-2" : "md:[&>*:first-child]:order-2 md:[&>*:last-child]:order-1"
-              }`}
-            >
-              <EditableWrapper id={row.textKey} type="textarea" label={`Texto ${row.id}`}>
-                <div className={`${row.imageRight ? "border-r-4 pr-5 md:text-right" : "border-l-4 pl-5"} border-secondary/60`}>
-                  <RichText
-                    content={getText(row.textKey, row.textFallback)}
-                    className="text-muted-foreground leading-relaxed text-sm md:text-base"
-                  />
-                </div>
-              </EditableWrapper>
+          {venueIntroRows.map((row) => {
+            const textBody = getText(row.textKey);
+            const imgSrc = getImage(row.imageKey);
+            return (
+              <div
+                key={row.id}
+                className={`grid grid-cols-1 md:grid-cols-2 gap-8 items-center ${
+                  row.imageRight ? "md:[&>*:first-child]:order-1 md:[&>*:last-child]:order-2" : "md:[&>*:first-child]:order-2 md:[&>*:last-child]:order-1"
+                }`}
+              >
+                <EditableWrapper id={row.textKey} type="textarea" label={`Texto ${row.id}`}>
+                  <div className={`${row.imageRight ? "border-r-4 pr-5 md:text-right" : "border-l-4 pl-5"} border-secondary/60`}>
+                    {textBody ? (
+                      <RichText content={textBody} className="text-muted-foreground leading-relaxed text-sm md:text-base" />
+                    ) : (
+                      <CmsPlaceholder label="Texto do bloco" />
+                    )}
+                  </div>
+                </EditableWrapper>
 
-              <EditableWrapper id={row.imageKey} type="image" label={`Imagem ${row.id}`}>
-                <div className="rounded-2xl overflow-hidden shadow-md bg-muted/10">
-                  <img
-                    src={getImage(row.imageKey, row.imageFallback)}
-                    alt={getText(row.textKey, row.textFallback)}
-                    loading="lazy"
-                    decoding="async"
-                    className="w-full h-[20rem] md:h-[22rem] object-cover"
-                  />
-                </div>
-              </EditableWrapper>
-            </div>
-          ))}
+                <EditableWrapper id={row.imageKey} type="image" label={`Imagem ${row.id}`}>
+                  <div className="rounded-2xl overflow-hidden shadow-md bg-muted/10 min-h-[12rem] flex items-center justify-center">
+                    {imgSrc ? (
+                      <img src={imgSrc} alt="" loading="lazy" decoding="async" className="w-full h-[20rem] md:h-[22rem] object-cover" />
+                    ) : (
+                      <CmsPlaceholder label="Imagem do bloco" className="w-full border-0" />
+                    )}
+                  </div>
+                </EditableWrapper>
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>
@@ -186,29 +145,29 @@ function VenueIntro({
 
 function MenuHighlights({
   menuHighlights,
+  columns,
   getText,
-  menuCta,
+  menuCtaLink,
   isMobile,
 }: {
   menuHighlights: { src: string; alt: string }[];
-  getText: (sectionKey: string, fallback: string) => string;
-  menuCta: string;
+  columns: number;
+  getText: (sectionKey: string) => string;
+  menuCtaLink: { label: string; url: string };
   isMobile: boolean;
 }) {
   const [current, setCurrent] = useState(0);
-  const visibleColumns = isMobile ? 1 : Math.min(3, menuHighlights.length);
-  const visibleImages = Array.from({ length: visibleColumns }, (_, idx) => {
-    return menuHighlights[(current + idx) % menuHighlights.length];
-  });
+  const len = menuHighlights.length;
+  const visibleColumns = len === 0 ? 0 : isMobile ? 1 : Math.min(columns, len);
+  const visibleImages =
+    len === 0 || visibleColumns === 0
+      ? []
+      : Array.from({ length: visibleColumns }, (_, idx) => menuHighlights[(current + idx) % len]);
 
   const { data: categories } = useQuery({
     queryKey: ["venue-menu-categories-anchor"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("categories")
-        .select("name, slug")
-        .eq("is_active", true)
-        .order("sort_order");
+      const { data, error } = await supabase.from("categories").select("name, slug").eq("is_active", true).order("sort_order");
       if (error) {
         throw error;
       }
@@ -217,25 +176,26 @@ function MenuHighlights({
   });
 
   useEffect(() => {
-    if (current > menuHighlights.length - 1) {
+    if (len > 0 && current > len - 1) {
       setCurrent(0);
     }
-  }, [current, menuHighlights.length]);
+  }, [current, len]);
 
-  const prev = () => setCurrent((c) => (c === 0 ? menuHighlights.length - 1 : c - 1));
-  const next = () => setCurrent((c) => (c === menuHighlights.length - 1 ? 0 : c + 1));
+  const prev = () => setCurrent((c) => (len === 0 ? 0 : c === 0 ? len - 1 : c - 1));
+  const next = () => setCurrent((c) => (len === 0 ? 0 : c === len - 1 ? 0 : c + 1));
+
+  const menuTitle = getText("venue-menu-title");
 
   return (
     <section className="py-16 md:py-24 bg-background">
       <div className="container mx-auto px-4 max-w-6xl">
         <div className="text-center mb-10">
           <EditableWrapper id="venue-menu-title" type="text" label="Título Nosso Cardápio">
-            <RichText
-              as="h2"
-              inline
-              content={getText("venue-menu-title", "Nosso Cardápio")}
-              className="text-3xl md:text-4xl text-foreground"
-            />
+            {menuTitle ? (
+              <RichText as="h2" inline content={menuTitle} className="text-3xl md:text-4xl text-foreground" />
+            ) : (
+              <CmsPlaceholder label="Título da seção cardápio" />
+            )}
           </EditableWrapper>
         </div>
 
@@ -254,60 +214,71 @@ function MenuHighlights({
         </div>
 
         <EditableWrapper id="venue-menu-highlights-carousel" type="carousel" label="Carrossel Nosso Cardápio">
-          <div className="relative max-w-4xl mx-auto">
-            <div className="flex items-center gap-4 justify-center">
-              <button
-                onClick={prev}
-                className="shrink-0 p-2 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors"
-                aria-label="Anterior"
-              >
-                <ChevronLeft className="text-primary" size={22} />
-              </button>
+          {len === 0 ? (
+            <CmsPlaceholder label="Carrossel sem imagens publicadas" className="py-12" />
+          ) : (
+            <div className="relative max-w-4xl mx-auto">
+              <div className="flex items-center gap-4 justify-center">
+                <button
+                  type="button"
+                  onClick={prev}
+                  className="shrink-0 p-2 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors"
+                  aria-label="Anterior"
+                >
+                  <ChevronLeft className="text-primary" size={22} />
+                </button>
 
-              <div
-                className="grid gap-4 w-full max-w-3xl"
-                style={{ gridTemplateColumns: `repeat(${visibleColumns}, minmax(0, 1fr))` }}
-              >
-                {visibleImages.map((image, index) => (
-                  <div key={`${image.src}-${current}-${index}`} className="rounded-xl overflow-hidden shadow-sm">
-                    <img
-                      src={image.src}
-                      alt={image.alt}
-                      loading="lazy"
-                      decoding="async"
-                      className="w-full h-40 md:h-44 object-cover"
-                    />
-                  </div>
-                ))}
+                <div
+                  className="grid gap-4 w-full max-w-3xl"
+                  style={{ gridTemplateColumns: `repeat(${visibleColumns}, minmax(0, 1fr))` }}
+                >
+                  {visibleImages.map((image, index) => (
+                    <div key={`${image.src}-${current}-${index}`} className="rounded-xl overflow-hidden shadow-sm">
+                      <img
+                        src={image.src}
+                        alt={image.alt}
+                        loading="lazy"
+                        decoding="async"
+                        className="w-full h-40 md:h-44 object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={next}
+                  className="shrink-0 p-2 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors"
+                  aria-label="Próximo"
+                >
+                  <ChevronRight className="text-primary" size={22} />
+                </button>
               </div>
 
-              <button
-                onClick={next}
-                className="shrink-0 p-2 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors"
-                aria-label="Próximo"
-              >
-                <ChevronRight className="text-primary" size={22} />
-              </button>
+              <div className="flex justify-center gap-2 mt-6">
+                {menuHighlights.map((_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setCurrent(i)}
+                    className={`w-2.5 h-2.5 rounded-full transition-colors ${i === current ? "bg-primary" : "bg-border"}`}
+                    aria-label={`Slide ${i + 1}`}
+                  />
+                ))}
+              </div>
             </div>
-
-            <div className="flex justify-center gap-2 mt-6">
-              {menuHighlights.map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setCurrent(i)}
-                  className={`w-2.5 h-2.5 rounded-full transition-colors ${i === current ? "bg-primary" : "bg-border"}`}
-                  aria-label={`Slide ${i + 1}`}
-                />
-              ))}
-            </div>
-          </div>
+          )}
         </EditableWrapper>
 
         <div className="text-center mt-8">
           <EditableWrapper id="venue-menu-cta" type="link" label="Botão Nosso Cardápio">
-            <a href="/cardapio" className="btn-secondary-dr inline-block">
-              <RichText as="span" inline content={menuCta} />
-            </a>
+            {menuCtaLink.label && menuCtaLink.url ? (
+              <a href={menuCtaLink.url} className="btn-secondary-dr inline-block">
+                <RichText as="span" inline content={menuCtaLink.label} />
+              </a>
+            ) : (
+              <CmsPlaceholder label="CTA (título e URL)" className="inline-block min-w-[10rem]" />
+            )}
           </EditableWrapper>
         </div>
       </div>
@@ -370,48 +341,44 @@ function LightboxGalleryGrid({
   return (
     <>
       <EditableWrapper id={galleryId} type="gallery" label={galleryLabel}>
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-          {visibleImages.map((image, index) => (
-            <button
-              key={`${image.src}-${index}`}
-              onClick={() => setLightboxIndex(index)}
-              className="rounded-xl overflow-hidden bg-muted/15 shadow-sm hover:shadow-md transition-shadow focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              <img
-                src={image.src}
-                alt={image.alt}
-                loading="lazy"
-                decoding="async"
-                className={`w-full h-40 md:h-44 object-cover ${imageClassName || ""}`}
-              />
-            </button>
-          ))}
-        </div>
+        {images.length === 0 ? (
+          <CmsPlaceholder label="Galeria sem imagens publicadas" className="py-12" />
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+            {visibleImages.map((image, index) => (
+              <button
+                key={`${image.src}-${index}`}
+                type="button"
+                onClick={() => setLightboxIndex(index)}
+                className="rounded-xl overflow-hidden bg-muted/15 shadow-sm hover:shadow-md transition-shadow focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <img
+                  src={image.src}
+                  alt={image.alt}
+                  loading="lazy"
+                  decoding="async"
+                  className={`w-full h-40 md:h-44 object-cover ${imageClassName || ""}`}
+                />
+              </button>
+            ))}
+          </div>
+        )}
       </EditableWrapper>
       {images.length > visibleCount && (
         <div className="text-center mt-8">
-          <button
-            onClick={() => setVisibleCount((count) => count + 12)}
-            className="btn-secondary-dr inline-block"
-          >
+          <button type="button" onClick={() => setVisibleCount((count) => count + 12)} className="btn-secondary-dr inline-block">
             Carregar mais
           </button>
         </div>
       )}
 
-      {lightboxIndex !== null && (
-        <div
-          className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center"
-          onClick={closeLightbox}
-        >
-          <button
-            onClick={closeLightbox}
-            className="absolute top-4 right-4 text-white/80 hover:text-white z-10 p-2"
-            aria-label="Fechar"
-          >
+      {lightboxIndex !== null && images.length > 0 && (
+        <div className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center" onClick={closeLightbox}>
+          <button type="button" onClick={closeLightbox} className="absolute top-4 right-4 text-white/80 hover:text-white z-10 p-2" aria-label="Fechar">
             <X size={32} />
           </button>
           <button
+            type="button"
             onClick={(e) => {
               e.stopPropagation();
               goPrev();
@@ -428,6 +395,7 @@ function LightboxGalleryGrid({
             onClick={(e) => e.stopPropagation()}
           />
           <button
+            type="button"
             onClick={(e) => {
               e.stopPropagation();
               goNext();
@@ -451,27 +419,24 @@ function MomentsCarousel({
   getText,
 }: {
   momentsGallery: { src: string; alt: string }[];
-  getText: (sectionKey: string, fallback: string) => string;
+  getText: (sectionKey: string) => string;
 }) {
+  const t = getText("venue-moments-title");
+
   return (
     <section className="section-paper py-16 md:py-24">
       <div className="container mx-auto px-4 max-w-6xl">
         <div className="text-center mb-10">
           <EditableWrapper id="venue-moments-title" type="text" label="Título Momentos">
-            <RichText
-              as="h2"
-              inline
-              content={getText("venue-moments-title", "Momentos")}
-              className="text-3xl md:text-4xl text-foreground"
-            />
+            {t ? (
+              <RichText as="h2" inline content={t} className="text-3xl md:text-4xl text-foreground" />
+            ) : (
+              <CmsPlaceholder label="Título da galeria de momentos" />
+            )}
           </EditableWrapper>
         </div>
 
-        <LightboxGalleryGrid
-          galleryId="venue-moments-gallery"
-          galleryLabel="Galeria Momentos"
-          images={momentsGallery}
-        />
+        <LightboxGalleryGrid galleryId="venue-moments-gallery" galleryLabel="Galeria Momentos" images={momentsGallery} />
       </div>
     </section>
   );
@@ -482,30 +447,27 @@ function CustomerMural({
   getText,
 }: {
   customerMural: { src: string; alt: string }[];
-  getText: (sectionKey: string, fallback: string) => string;
+  getText: (sectionKey: string) => string;
 }) {
+  const t = getText("venue-customers-title");
+
   return (
     <section className="py-16 md:py-24 bg-background">
       <div className="container mx-auto px-4 max-w-6xl">
         <div className="text-center mb-10">
           <EditableWrapper id="venue-customers-title" type="text" label="Título Nossos Clientes">
-            <RichText
-              as="h2"
-              inline
-              content={getText("venue-customers-title", "Nossos Clientes")}
-              className="text-3xl md:text-4xl text-foreground"
-            />
+            {t ? (
+              <RichText as="h2" inline content={t} className="text-3xl md:text-4xl text-foreground" />
+            ) : (
+              <CmsPlaceholder label="Título do mural" />
+            )}
           </EditableWrapper>
         </div>
 
-        <LightboxGalleryGrid
-          galleryId="venue-customers-mural"
-          galleryLabel="Mural Nossos Clientes"
-          images={customerMural}
-        />
-
+        <LightboxGalleryGrid galleryId="venue-customers-mural" galleryLabel="Mural Nossos Clientes" images={customerMural} />
       </div>
     </section>
   );
 }
+
 export default VenuePage;

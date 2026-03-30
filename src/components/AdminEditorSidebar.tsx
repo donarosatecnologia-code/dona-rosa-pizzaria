@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { X, Type, AlignLeft, Image, Save, Loader2, Upload, Trash2, Plus } from "lucide-react";
 import { useAdminEditor } from "@/contexts/AdminEditorContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,6 +6,7 @@ import { uploadImage, deleteImage } from "@/lib/storage";
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import RichTextEditor from "@/components/RichTextEditor";
+import { LoadingPizzaSpinner } from "@/components/LoadingScreen";
 
 function getPageKeyFromSectionKey(sectionKey: string) {
   if (sectionKey.startsWith("qs-")) return "quem-somos";
@@ -22,7 +23,7 @@ function getPageKeyFromSectionKey(sectionKey: string) {
 }
 
 const AdminEditorSidebar = () => {
-  const { isEditing, editingTarget, closeEditor } = useAdminEditor();
+  const { isEditing, editingTarget, closeEditor, registerSaveDraftHandler } = useAdminEditor();
   const queryClient = useQueryClient();
 
   const [textValue, setTextValue] = useState("");
@@ -53,16 +54,27 @@ const AdminEditorSidebar = () => {
 
       if (data) {
         setRecordId(data.id);
+        const titleDraft = data.title_draft ?? null;
+        const contentDraft = data.content_draft ?? null;
+        const imgDraft = data.image_url_draft ?? null;
         if (isImageType && !isMultiImage) {
-          setImagePreview(data.image_url || editingTarget.currentImageUrl || "");
+          setImagePreview(imgDraft || data.image_url || editingTarget.currentImageUrl || "");
           setTextValue("");
           setLinkUrlValue("");
         } else if (editingTarget.elementType === "link") {
-          setTextValue(data.title || editingTarget.currentContent || "");
-          setLinkUrlValue(data.content || editingTarget.currentLinkUrl || "");
+          setTextValue(titleDraft || data.title || editingTarget.currentContent || "");
+          setLinkUrlValue(contentDraft || data.content || editingTarget.currentLinkUrl || "");
           setImagePreview("");
         } else if (!isImageType) {
-          setTextValue(data.content || data.title || editingTarget.currentContent || "");
+          setTextValue(
+            contentDraft ||
+              titleDraft ||
+              data.content ||
+              data.title ||
+              data.subtitle ||
+              editingTarget.currentContent ||
+              "",
+          );
           setImagePreview("");
           setLinkUrlValue("");
         }
@@ -89,7 +101,10 @@ const AdminEditorSidebar = () => {
   }, [editingTarget]);
 
   const handleSave = async () => {
-    if (!editingTarget) return;
+    if (!editingTarget) {
+      toast.error("Abra um bloco com o lápis para editar antes de salvar o rascunho.");
+      return;
+    }
     setSaving(true);
 
     try {
@@ -101,13 +116,13 @@ const AdminEditorSidebar = () => {
 
       const payload: Record<string, string> = {};
       if (isImageType && !isMultiImage) {
-        payload.image_url = imageUrl;
+        payload.image_url_draft = imageUrl;
       } else if (editingTarget.elementType === "link") {
-        payload.title = textValue;
-        payload.content = linkUrlValue;
+        payload.title_draft = textValue;
+        payload.content_draft = linkUrlValue;
       } else if (!isImageType) {
-        payload.content = textValue;
-        payload.title = textValue;
+        payload.content_draft = textValue;
+        payload.title_draft = textValue;
       }
 
       if (recordId) {
@@ -124,7 +139,7 @@ const AdminEditorSidebar = () => {
       queryClient.invalidateQueries({ queryKey: ["page-contents-batch"] });
       queryClient.invalidateQueries({ queryKey: ["page-contents", editingTarget.elementId] });
       queryClient.invalidateQueries({ queryKey: ["page-contents", editingTarget.elementId, "carousel-columns"] });
-      toast.success("Conteúdo salvo com sucesso!");
+      toast.success("Rascunho salvo. Use Publicar na barra superior para atualizar o site público.");
       closeEditor();
     } catch (error) {
       console.error("Erro ao salvar conteúdo:", error);
@@ -133,6 +148,15 @@ const AdminEditorSidebar = () => {
       setSaving(false);
     }
   };
+
+  const handleSaveRef = useRef(handleSave);
+  handleSaveRef.current = handleSave;
+  useEffect(() => {
+    registerSaveDraftHandler(async () => {
+      await handleSaveRef.current();
+    });
+    return () => registerSaveDraftHandler(null);
+  }, [registerSaveDraftHandler]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -152,13 +176,26 @@ const AdminEditorSidebar = () => {
 
   return (
     <>
-      {isEditing && <div className="fixed inset-0 bg-black/30 z-[60] transition-opacity" onClick={closeEditor} />}
+      {isEditing && (
+        <div
+          className="admin-editor-backdrop fixed inset-0 z-[180] bg-black/30 transition-opacity"
+          onClick={closeEditor}
+          aria-hidden
+        />
+      )}
 
-      <div className={`fixed top-0 left-0 h-full w-[380px] max-w-[90vw] bg-background border-r border-border shadow-2xl z-[70] transform transition-transform duration-300 ${isEditing ? "translate-x-0" : "-translate-x-full"} flex flex-col`}>
+      <div
+        className={`editor-sidebar-container fixed right-0 top-0 z-[190] flex h-full max-h-screen w-[min(380px,90vw)] min-h-0 flex-col border-l border-border bg-background shadow-2xl transition-transform duration-300 ease-out ${
+          isEditing ? "translate-x-0" : "pointer-events-none translate-x-full"
+        }`}
+        {...(isEditing
+          ? { role: "dialog" as const, "aria-modal": true }
+          : { "aria-hidden": true as const })}
+      >
         {editingTarget && (
           <>
             {/* Header */}
-            <div className="p-4 border-b border-border flex items-center justify-between bg-muted/30 shrink-0">
+            <div className="flex shrink-0 items-center justify-between border-b border-border bg-muted/30 p-4">
               <div className="flex items-center gap-2">
                 <span className="text-primary">{typeIcon[editingTarget.elementType]}</span>
                 <div>
@@ -169,11 +206,14 @@ const AdminEditorSidebar = () => {
               <button onClick={closeEditor} className="text-muted-foreground hover:text-foreground p-1"><X size={18} /></button>
             </div>
 
-            {/* Content */}
-            <div className="flex-1 overflow-auto p-4 space-y-4">
+            {/* Content — scroll interno sem cortar o painel */}
+            <div className="editor-sidebar-body min-h-0 flex-1 space-y-4 overflow-y-auto overflow-x-hidden overscroll-contain p-4">
               {loading ? (
-                <div className="flex items-center gap-2 text-muted-foreground text-sm py-8 justify-center">
-                  <Loader2 size={16} className="animate-spin" /> Carregando...
+                <div className="flex flex-col items-center gap-3 text-muted-foreground text-sm py-10 justify-center">
+                  <div className="animate-[spin_2.2s_linear_infinite]">
+                    <LoadingPizzaSpinner className="h-14 w-14" />
+                  </div>
+                  <span>Carregando…</span>
                 </div>
               ) : isMultiImage ? (
                 <GalleryManager
@@ -216,10 +256,29 @@ const AdminEditorSidebar = () => {
 
             {/* Footer - hide save for multi-image (they save inline) */}
             {!isMultiImage && (
-              <div className="p-4 border-t border-border flex gap-2 shrink-0">
-                <button onClick={closeEditor} className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-foreground hover:bg-muted transition-colors">Cancelar</button>
-                <button onClick={handleSave} disabled={saving} className="flex-1 btn-primary-dr flex items-center justify-center gap-2">
-                  {saving ? (<><Loader2 size={14} className="animate-spin" /> Salvando...</>) : (<><Save size={14} /> Salvar</>)}
+              <div className="editor-sidebar-footer flex shrink-0 gap-2 border-t border-border bg-background p-4">
+                <button
+                  type="button"
+                  onClick={closeEditor}
+                  className="flex-1 rounded-lg border border-border px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleSave()}
+                  disabled={saving}
+                  className="btn-primary-dr flex flex-1 items-center justify-center gap-2"
+                >
+                  {saving ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" /> Salvando...
+                    </>
+                  ) : (
+                    <>
+                      <Save size={14} /> Salvar
+                    </>
+                  )}
                 </button>
               </div>
             )}
@@ -348,7 +407,11 @@ function GalleryManager({
   const toggleSelect = (id: number) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
       return next;
     });
   };

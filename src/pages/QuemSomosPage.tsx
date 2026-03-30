@@ -5,50 +5,68 @@ import Footer from "@/components/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
 import EditableWrapper from "@/components/EditableWrapper";
 import { BrandAlecrim, BrandTomilho, BrandTrigo } from "@/components/BrandAccents";
-import forno1 from "@/assets/forno-1.jpg";
-import pizza1 from "@/assets/pizza-1.jpg";
-import ambiente1 from "@/assets/ambiente-1.jpg";
-import evento1 from "@/assets/evento-1.jpg";
-import curso1 from "@/assets/curso-1.jpg";
-import saude1 from "@/assets/saude-1.jpg";
-import prato2 from "@/assets/prato-2.jpg";
-import prato3 from "@/assets/prato-3.jpg";
+import { CmsPlaceholder } from "@/components/CmsPlaceholder";
+import { LoadingScreen } from "@/components/LoadingScreen";
 import { useCmsContents } from "@/hooks/useCmsContent";
 import { useCmsCarousel } from "@/hooks/useCmsMedia";
 import RichText from "@/components/RichText";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-const sections = [
+type RowType = "text-image" | "image-text";
+
+function SectionImageBlock({
+  imgKey,
+  imgSrc,
+  labelIndex,
+}: {
+  imgKey: string;
+  imgSrc: string;
+  labelIndex: number;
+}) {
+  return (
+    <EditableWrapper id={imgKey} type="image" label={`Imagem ${labelIndex + 1}`}>
+      <div className="flex w-full justify-center">
+        <div className="inline-block max-w-full">
+          {imgSrc ? (
+            <div className="overflow-hidden rounded-2xl shadow-[0_10px_40px_-12px_rgba(0,0,0,0.22)] ring-1 ring-border/25">
+              <img
+                src={imgSrc}
+                alt=""
+                loading="lazy"
+                className="block h-auto max-h-[min(32rem,85vh)] w-auto max-w-full object-contain"
+              />
+            </div>
+          ) : (
+            <div className="overflow-hidden rounded-2xl shadow-md ring-1 ring-border/40">
+              <CmsPlaceholder label="Imagem" className="min-h-[10rem] w-full max-w-lg border-0" />
+            </div>
+          )}
+        </div>
+      </div>
+    </EditableWrapper>
+  );
+}
+
+const sections: { id: string; label: string; rows: { type: RowType }[] }[] = [
   {
     id: "tradicao-familiar",
-    title: "Tradição Familiar",
-    description: "A história da Dona Rosa é marcada por afeto, receita de família e o costume de reunir pessoas ao redor da mesa.",
-    rows: [
-      { type: "text-image" as const, image: evento1, text: "A Dona Rosa, matriarca da família Fasanaro, herdou da nonna italiana o saber do preparo artesanal. Esse legado foi passado com carinho entre gerações e segue vivo em cada detalhe do nosso trabalho." },
-      { type: "image-text" as const, image: prato2, text: "Mais do que receitas, carregamos histórias. Nossa cozinha é um espaço de memórias, técnica e amor pela tradição italiana." },
-      { type: "text-image" as const, image: ambiente1, text: "Cada pizza que sai do forno representa esse encontro entre origem, família e acolhimento." },
-    ],
+    label: "Tradição Familiar",
+    rows: [{ type: "text-image" }, { type: "image-text" }, { type: "text-image" }],
   },
   {
     id: "segredos-das-nossas-pizzas",
-    title: "Segredos das Nossas Pizzas",
-    description: "Do preparo da massa ao forno, cada etapa foi pensada para valorizar textura, sabor e autenticidade.",
-    rows: [
-      { type: "image-text" as const, image: saude1, text: "Nossa massa passa por fermentação lenta, com equilíbrio de hidratação e tempo, para chegar leve e saborosa à mesa." },
-      { type: "text-image" as const, image: prato3, text: "Selecionamos ingredientes frescos e combinações que respeitam o protagonismo de cada sabor." },
-      { type: "image-text" as const, image: forno1, text: "No forno, o ponto certo garante bordas aeradas, centro macio e a assinatura artesanal da Dona Rosa." },
-    ],
+    label: "Segredos das Nossas Pizzas",
+    rows: [{ type: "image-text" }, { type: "text-image" }, { type: "image-text" }],
   },
   {
     id: "criacoes-exclusivas",
-    title: "Criações Exclusivas",
-    description: "Um cardápio que celebra a tradição italiana com toques contemporâneos e ingredientes selecionados.",
+    label: "Criações Exclusivas",
     rows: [
-      { type: "text-image" as const, image: pizza1, text: "Nossas criações exclusivas nascem da combinação entre técnica italiana e criatividade da casa." },
-      { type: "image-text" as const, image: prato2, text: "Montamos sabores que equilibram tradição, sazonalidade e personalidade em cada receita." },
-      { type: "text-image" as const, image: prato3, text: "Cada pizza é pensada para criar experiência: textura perfeita, aroma marcante e identidade própria." },
-      { type: "image-text" as const, image: evento1, text: "As combinações exclusivas valorizam ingredientes de qualidade e o cuidado artesanal do preparo." },
-      { type: "text-image" as const, image: curso1, text: "Nosso cardápio evolui sem perder essência: acolhimento, sabor e autenticidade." },
+      { type: "text-image" },
+      { type: "image-text" },
+      { type: "text-image" },
+      { type: "image-text" },
+      { type: "text-image" },
     ],
   },
 ];
@@ -65,45 +83,53 @@ const QuemSomosPage = () => {
     "qs-brindar-cta",
     ...sections.flatMap((section) => {
       const sectionBase = [`qs-${section.id}-title`, `qs-${section.id}-desc`];
-      const rowTextKeys = section.rows
-        .map((row, rIdx) => (row.type === "image-text" || row.type === "text-image" ? `qs-${section.id}-text-${rIdx}` : null))
-        .filter((value): value is string => value !== null);
-      const rowImageKeys = section.rows
-        .map((_, rIdx) => `qs-${section.id}-img-${rIdx}`);
+      const rowTextKeys = section.rows.map((_, rIdx) => `qs-${section.id}-text-${rIdx}`);
+      const rowImageKeys = section.rows.map((_, rIdx) => `qs-${section.id}-img-${rIdx}`);
       return [...sectionBase, ...rowTextKeys, ...rowImageKeys];
     }),
   ];
 
-  const { getText, getImage, getLink } = useCmsContents(cmsKeys, "quem-somos");
-  const { images: brindarImages } = useCmsCarousel("qs-brindar-carousel", [forno1, ambiente1, pizza1, evento1].map((src, i) => ({
-    src,
-    alt: `Brindar ${i + 1}`,
-  })), 2);
-  const brindarCta = getLink("qs-brindar-cta", "Ver Cardápio", "/cardapio");
+  const { getText, getImage, getLink, isPending, isError } = useCmsContents(cmsKeys, "quem-somos");
+  const { images: brindarImages, columns: brindarColumns } = useCmsCarousel("qs-brindar-carousel", 2);
+  const brindarCta = getLink("qs-brindar-cta");
+
+  const brindarLen = brindarImages.length;
+  const visibleBrindarCols = brindarLen === 0 ? 0 : isMobile ? 1 : Math.min(brindarColumns, brindarLen);
+  const visibleBrindarImages =
+    brindarLen === 0 || visibleBrindarCols === 0
+      ? []
+      : Array.from({ length: visibleBrindarCols }, (_, idx) => brindarImages[(brindarCurrent + idx) % brindarLen]);
 
   useEffect(() => {
-    if (brindarCurrent > brindarImages.length - 1) {
+    if (brindarLen > 0 && brindarCurrent > brindarLen - 1) {
       setBrindarCurrent(0);
     }
-  }, [brindarCurrent, brindarImages.length]);
+  }, [brindarCurrent, brindarLen]);
 
   const nextBrindar = () => {
-    setBrindarCurrent((prev) => (prev === brindarImages.length - 1 ? 0 : prev + 1));
+    setBrindarCurrent((prev) => (brindarLen === 0 ? 0 : prev === brindarLen - 1 ? 0 : prev + 1));
   };
 
   const prevBrindar = () => {
-    setBrindarCurrent((prev) => (prev === 0 ? brindarImages.length - 1 : prev - 1));
+    setBrindarCurrent((prev) => (brindarLen === 0 ? 0 : prev === 0 ? brindarLen - 1 : prev - 1));
   };
 
-  const visibleBrindarImages = Array.from({ length: isMobile ? 1 : Math.min(2, brindarImages.length) }, (_, idx) => {
-    return brindarImages[(brindarCurrent + idx) % brindarImages.length];
-  });
+  if (isPending) {
+    return <LoadingScreen />;
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-4">
+        <p className="text-muted-foreground text-center">Não foi possível carregar o conteúdo. Tente novamente mais tarde.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
 
-      {/* Hero */}
       <section className="section-paper relative pt-28 pb-16 md:pt-36 md:pb-24 overflow-hidden">
         <BrandAlecrim className="absolute top-16 left-2 w-20 md:w-28 opacity-25" />
         <BrandTrigo className="absolute top-10 right-2 w-16 md:w-24 opacity-20" />
@@ -111,109 +137,163 @@ const QuemSomosPage = () => {
 
         <div className="container mx-auto px-4 max-w-3xl text-center relative z-10">
           <EditableWrapper id="qs-hero-subtitle" type="text" label="Subtítulo Hero">
-            <RichText as="span" inline content={getText("qs-hero-subtitle", "Quem Somos")} className="inline-block text-sm font-semibold text-secondary tracking-wider uppercase mb-4" />
+            {getText("qs-hero-subtitle") ? (
+              <RichText
+                as="span"
+                inline
+                content={getText("qs-hero-subtitle")}
+                className="inline-block text-sm font-semibold text-secondary tracking-wider uppercase mb-4"
+              />
+            ) : (
+              <CmsPlaceholder label="Subtítulo" className="mb-4" />
+            )}
           </EditableWrapper>
           <EditableWrapper id="qs-hero-title" type="text" label="Título Hero">
-            <RichText as="h1" inline content={getText("qs-hero-title", "Nossa História")} className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-6 leading-tight" />
+            {getText("qs-hero-title") ? (
+              <RichText as="h1" inline content={getText("qs-hero-title")} className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-6 leading-tight" />
+            ) : (
+              <CmsPlaceholder label="Título principal" className="mb-6" />
+            )}
           </EditableWrapper>
           <EditableWrapper id="qs-hero-description" type="textarea" label="Descrição Hero">
-            <RichText content={getText("qs-hero-description", "Somos a Dona Rosa Pizzaria, um espaço que nasceu do amor pela tradição italiana e pelo prazer de reunir pessoas ao redor de uma boa mesa.")} className="text-muted-foreground leading-relaxed max-w-2xl mx-auto text-base md:text-lg space-y-3" />
+            {getText("qs-hero-description") ? (
+              <RichText content={getText("qs-hero-description")} className="text-muted-foreground leading-relaxed max-w-2xl mx-auto text-base md:text-lg space-y-3" />
+            ) : (
+              <CmsPlaceholder label="Descrição" />
+            )}
           </EditableWrapper>
         </div>
       </section>
 
-      {/* Content Sections */}
       {sections.map((section, sIdx) => (
         <section key={section.id} id={section.id} className={`py-16 md:py-24 ${sIdx % 2 === 0 ? "bg-background" : "section-paper"}`}>
           <div className="container mx-auto px-4 max-w-6xl">
             <div className="text-center mb-14">
-              <EditableWrapper id={`qs-${section.id}-title`} type="text" label={`Título: ${section.title}`}>
-                <RichText as="h2" inline content={getText(`qs-${section.id}-title`, section.title)} className="text-3xl md:text-4xl font-bold text-foreground mb-3" />
+              <EditableWrapper id={`qs-${section.id}-title`} type="text" label={`Título: ${section.label}`}>
+                {getText(`qs-${section.id}-title`) ? (
+                  <RichText as="h2" inline content={getText(`qs-${section.id}-title`)} className="text-3xl md:text-4xl font-bold text-foreground mb-3" />
+                ) : (
+                  <CmsPlaceholder label="Título da seção" className="mb-3" />
+                )}
               </EditableWrapper>
-              <EditableWrapper id={`qs-${section.id}-desc`} type="textarea" label={`Descrição: ${section.title}`}>
-                <RichText content={getText(`qs-${section.id}-desc`, section.description)} className="text-muted-foreground max-w-2xl mx-auto leading-relaxed space-y-3" />
+              <EditableWrapper id={`qs-${section.id}-desc`} type="textarea" label={`Descrição: ${section.label}`}>
+                {getText(`qs-${section.id}-desc`) ? (
+                  <RichText content={getText(`qs-${section.id}-desc`)} className="text-muted-foreground max-w-2xl mx-auto leading-relaxed space-y-3" />
+                ) : (
+                  <CmsPlaceholder label="Descrição da seção" />
+                )}
               </EditableWrapper>
             </div>
 
             <div className="space-y-10">
               {section.rows.map((row, rIdx) => {
+                const textKey = `qs-${section.id}-text-${rIdx}`;
+                const imgKey = `qs-${section.id}-img-${rIdx}`;
+                const textBody = getText(textKey);
+                const imgSrc = getImage(imgKey);
+
                 if (row.type === "image-text") {
                   return (
-                    <div key={rIdx} className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                      <EditableWrapper id={`qs-${section.id}-img-${rIdx}`} type="image" label={`Imagem ${rIdx + 1}`}>
-                        <div className="flex justify-center">
-                          <div className="inline-flex max-w-full overflow-hidden rounded-2xl shadow-md bg-muted/10">
-                            <img src={getImage(`qs-${section.id}-img-${rIdx}`, row.image)} alt={section.title} loading="lazy" className="block w-auto max-w-full h-auto max-h-[32rem] object-contain transition-transform duration-700" />
-                          </div>
-                        </div>
-                      </EditableWrapper>
-                      <EditableWrapper id={`qs-${section.id}-text-${rIdx}`} type="textarea" label={`Texto ${rIdx + 1}`}>
+                    <div key={rIdx} className="grid grid-cols-1 items-start gap-8 md:grid-cols-2 md:items-center">
+                      <SectionImageBlock imgKey={imgKey} imgSrc={imgSrc} labelIndex={rIdx} />
+                      <EditableWrapper id={textKey} type="textarea" label={`Texto ${rIdx + 1}`}>
                         <div className="border-l-4 border-secondary/60 pl-6">
-                          <RichText content={getText(`qs-${section.id}-text-${rIdx}`, row.text)} className="text-muted-foreground leading-relaxed text-sm md:text-base space-y-2" />
+                          {textBody ? (
+                            <RichText content={textBody} className="space-y-2 text-sm leading-relaxed text-muted-foreground md:text-base" />
+                          ) : (
+                            <CmsPlaceholder label="Texto" />
+                          )}
                         </div>
                       </EditableWrapper>
                     </div>
                   );
                 }
-                if (row.type === "text-image") {
-                  return (
-                    <div key={rIdx} className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                      <EditableWrapper id={`qs-${section.id}-text-${rIdx}`} type="textarea" label={`Texto ${rIdx + 1}`}>
-                        <div className="border-r-4 border-secondary/60 pr-6 md:text-right order-2 md:order-1">
-                          <RichText content={getText(`qs-${section.id}-text-${rIdx}`, row.text)} className="text-muted-foreground leading-relaxed text-sm md:text-base space-y-2" />
-                        </div>
-                      </EditableWrapper>
-                      <EditableWrapper id={`qs-${section.id}-img-${rIdx}`} type="image" label={`Imagem ${rIdx + 1}`}>
-                        <div className="flex justify-center order-1 md:order-2">
-                          <div className="inline-flex max-w-full overflow-hidden rounded-2xl shadow-md bg-muted/10">
-                            <img src={getImage(`qs-${section.id}-img-${rIdx}`, row.image)} alt={section.title} loading="lazy" className="block w-auto max-w-full h-auto max-h-[32rem] object-contain transition-transform duration-700" />
-                          </div>
-                        </div>
-                      </EditableWrapper>
+                return (
+                  <div key={rIdx} className="grid grid-cols-1 items-start gap-8 md:grid-cols-2 md:items-center">
+                    <EditableWrapper id={textKey} type="textarea" label={`Texto ${rIdx + 1}`}>
+                      <div className="order-2 border-r-4 border-secondary/60 pr-6 md:order-1 md:text-right">
+                        {textBody ? (
+                          <RichText content={textBody} className="space-y-2 text-sm leading-relaxed text-muted-foreground md:text-base" />
+                        ) : (
+                          <CmsPlaceholder label="Texto" />
+                        )}
+                      </div>
+                    </EditableWrapper>
+                    <div className="order-1 md:order-2">
+                      <SectionImageBlock imgKey={imgKey} imgSrc={imgSrc} labelIndex={rIdx} />
                     </div>
-                  );
-                }
-                return null;
+                  </div>
+                );
               })}
             </div>
           </div>
         </section>
       ))}
 
-      {/* Para Começar e Brindar */}
       <section className="section-paper py-16 md:py-24">
         <div className="container mx-auto px-4 max-w-5xl">
           <div className="text-center mb-10">
             <EditableWrapper id="qs-brindar-title" type="text" label="Título Para Começar e Brindar">
-              <RichText as="h2" inline content={getText("qs-brindar-title", "Para Começar e Brindar")} className="text-3xl md:text-4xl font-bold text-foreground mb-4" />
+              {getText("qs-brindar-title") ? (
+                <RichText as="h2" inline content={getText("qs-brindar-title")} className="text-3xl md:text-4xl font-bold text-foreground mb-4" />
+              ) : (
+                <CmsPlaceholder label="Título" className="mb-4" />
+              )}
             </EditableWrapper>
             <EditableWrapper id="qs-brindar-description" type="textarea" label="Descrição Para Começar e Brindar">
-              <RichText content={getText("qs-brindar-description", "Conheça nossos antepastos, saladas frescas e uma carta de vinhos cuidadosamente selecionada para harmonizar com nossas pizzas.")} className="text-muted-foreground leading-relaxed max-w-2xl mx-auto space-y-3" />
+              {getText("qs-brindar-description") ? (
+                <RichText content={getText("qs-brindar-description")} className="text-muted-foreground leading-relaxed max-w-2xl mx-auto space-y-3" />
+              ) : (
+                <CmsPlaceholder label="Descrição" />
+              )}
             </EditableWrapper>
           </div>
 
           <div className="relative max-w-5xl mx-auto">
-            <button onClick={prevBrindar} className="absolute left-0 md:-left-4 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors" aria-label="Anterior">
+            <button
+              type="button"
+              onClick={prevBrindar}
+              disabled={brindarLen === 0}
+              className="absolute left-0 md:-left-4 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors disabled:opacity-40"
+              aria-label="Anterior"
+            >
               <ChevronLeft className="text-primary" size={20} />
             </button>
             <EditableWrapper id="qs-brindar-carousel" type="carousel" label="Carrossel Para Começar e Brindar">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full px-10 md:px-12">
-                {visibleBrindarImages.map((image, index) => (
-                  <div key={`${image.src}-${brindarCurrent}-${index}`} className="rounded-2xl overflow-hidden shadow-md bg-muted/20 h-[18rem] md:h-[22rem]">
-                    <img src={image.src} alt={image.alt} loading="lazy" className="w-full h-full object-cover" />
-                  </div>
-                ))}
-              </div>
+              {brindarLen === 0 ? (
+                <CmsPlaceholder label="Carrossel sem imagens publicadas" className="min-h-[14rem] mx-10 md:mx-12" />
+              ) : (
+                <div
+                  className="grid gap-4 w-full px-10 md:px-12"
+                  style={{ gridTemplateColumns: `repeat(${visibleBrindarCols}, minmax(0, 1fr))` }}
+                >
+                  {visibleBrindarImages.map((image, index) => (
+                    <div key={`${image.src}-${brindarCurrent}-${index}`} className="rounded-2xl overflow-hidden shadow-md bg-muted/20 h-[18rem] md:h-[22rem]">
+                      <img src={image.src} alt={image.alt} loading="lazy" className="w-full h-full object-cover" />
+                    </div>
+                  ))}
+                </div>
+              )}
             </EditableWrapper>
-            <button onClick={nextBrindar} className="absolute right-0 md:-right-4 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors" aria-label="Próximo">
+            <button
+              type="button"
+              onClick={nextBrindar}
+              disabled={brindarLen === 0}
+              className="absolute right-0 md:-right-4 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors disabled:opacity-40"
+              aria-label="Próximo"
+            >
               <ChevronRight className="text-primary" size={20} />
             </button>
           </div>
           <div className="text-center mt-8">
             <EditableWrapper id="qs-brindar-cta" type="link" label="Botão Para Começar e Brindar">
-              <a href={brindarCta.url} className="btn-secondary-dr inline-block">
-                <RichText as="span" inline content={brindarCta.label} />
-              </a>
+              {brindarCta.label && brindarCta.url ? (
+                <a href={brindarCta.url} className="btn-secondary-dr inline-block">
+                  <RichText as="span" inline content={brindarCta.label} />
+                </a>
+              ) : (
+                <CmsPlaceholder label="Botão (título e URL)" className="inline-block min-w-[10rem]" />
+              )}
             </EditableWrapper>
           </div>
         </div>

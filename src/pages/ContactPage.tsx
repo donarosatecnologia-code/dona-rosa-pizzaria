@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useCmsContents } from "@/hooks/useCmsContent";
+import { LoadingScreen } from "@/components/LoadingScreen";
 import { BrandAlecrim, BrandLinhaDecorativa, BrandTomilho, BrandTomilhoB, BrandTrigo } from "@/components/BrandAccents";
 
 const CONTACT_WHATSAPP_PHONE = "5511930617116";
@@ -176,7 +177,7 @@ function ContactPage() {
     "contact-s3-title",
   ];
 
-  const { getText } = useCmsContents(cmsKeys, "contato");
+  const { getText, isPending, isError } = useCmsContents(cmsKeys, "contato");
 
   const { data: socialLinks } = useQuery({
     queryKey: ["social-links"],
@@ -194,6 +195,18 @@ function ContactPage() {
   );
   const reservationWhatsAppUrl = `https://wa.me/${CONTACT_WHATSAPP_PHONE}?text=${reservationMessage}`;
 
+  if (isPending) {
+    return <LoadingScreen message="Carregando conteúdo…" />;
+  }
+
+  if (isError) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <p className="text-center text-muted-foreground">Não foi possível carregar o conteúdo. Tente novamente mais tarde.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -209,7 +222,7 @@ function ContactPage() {
               <RichText
                 as="h1"
                 inline
-                content={getText("contact-s1-title", "Entre em contato!")}
+                content={getText("contact-s1-title")}
                 className="text-4xl md:text-5xl text-foreground"
               />
             </EditableWrapper>
@@ -218,10 +231,7 @@ function ContactPage() {
             </div>
             <EditableWrapper id="contact-s1-desc" type="textarea" label="Texto introdutório — Contato">
               <RichText
-                content={getText(
-                  "contact-s1-desc",
-                  "Delivery com atendimento pessoal. Por aqui nada de robôs! Ligue e fale com algum de nossos atendentes para pedir a sua pizza:",
-                )}
+                content={getText("contact-s1-desc")}
                 className="mt-4 text-muted-foreground mx-auto max-w-2xl leading-relaxed"
               />
             </EditableWrapper>
@@ -231,36 +241,30 @@ function ContactPage() {
             <div className="flex gap-3">
               <Phone className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
               <EditableWrapper id="contact-phone-1" type="text" label="Telefone 1">
-                <RichText as="p" inline content={getText("contact-phone-1", "(11) 2389-0220")} className="text-foreground" />
+                <RichText as="p" inline content={getText("contact-phone-1")} className="text-foreground" />
               </EditableWrapper>
             </div>
             <div className="flex gap-3">
               <Phone className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
               <EditableWrapper id="contact-phone-2" type="text" label="Telefone 2">
-                <RichText as="p" inline content={getText("contact-phone-2", "(11) 3021-7878")} className="text-foreground" />
+                <RichText as="p" inline content={getText("contact-phone-2")} className="text-foreground" />
               </EditableWrapper>
             </div>
             <div className="flex gap-3">
               <Mail className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
               <EditableWrapper id="contact-email" type="text" label="E-mail">
                 <a
-                  href={`mailto:${stripMailtoPrefix(getText("contact-email", "donarosapizzaria@gmail.com"))}`}
+                  href={`mailto:${stripMailtoPrefix(getText("contact-email"))}`}
                   className="text-primary underline-offset-2 hover:underline"
                 >
-                  <RichText as="span" inline content={getText("contact-email", "donarosapizzaria@gmail.com")} />
+                  <RichText as="span" inline content={getText("contact-email")} />
                 </a>
               </EditableWrapper>
             </div>
             <div className="flex gap-3">
               <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
               <EditableWrapper id="contact-address" type="textarea" label="Endereço">
-                <RichText
-                  content={getText(
-                    "contact-address",
-                    "Rua Caminho de Amorim, 242 – Alto de Pinheiros (Vila Jataí), São Paulo – SP, 05451-020",
-                  )}
-                  className="text-muted-foreground leading-relaxed"
-                />
+                <RichText content={getText("contact-address")} className="text-muted-foreground leading-relaxed" />
               </EditableWrapper>
             </div>
           </div>
@@ -297,16 +301,13 @@ function ContactPage() {
             <RichText
               as="h2"
               inline
-              content={getText("contact-s2-title", "Reserve sua mesa")}
+              content={getText("contact-s2-title")}
               className="text-3xl md:text-4xl text-foreground"
             />
           </EditableWrapper>
           <EditableWrapper id="contact-s2-desc" type="textarea" label="Texto — Reserva">
             <RichText
-              content={getText(
-                "contact-s2-desc",
-                "Reserve sua mesa por mensagem. Clique no ícone abaixo para falar com a gente pelo WhatsApp.",
-              )}
+              content={getText("contact-s2-desc")}
               className="mt-4 text-muted-foreground mx-auto max-w-2xl leading-relaxed"
             />
           </EditableWrapper>
@@ -328,10 +329,7 @@ function ContactPage() {
           <div className="mx-auto mt-12 max-w-md">
             <EditableWrapper id="contact-s2-hours" type="textarea" label="Horário de funcionamento (reserva)">
               <RichText
-                content={getText(
-                  "contact-s2-hours",
-                  "Terça – Quinta: 18:30 – 23:30\nSexta – Sábado: 18:30 – 00:30\nDomingo: 18:30 – 23:30",
-                )}
+                content={getText("contact-s2-hours")}
                 className="text-center text-sm text-muted-foreground leading-relaxed whitespace-pre-line"
               />
             </EditableWrapper>
@@ -352,7 +350,7 @@ function ContactPage() {
               <RichText
                 as="h2"
                 inline
-                content={getText("contact-s3-title", "Fale conosco")}
+                content={getText("contact-s3-title")}
                 className="text-3xl md:text-4xl text-foreground"
               />
             </EditableWrapper>

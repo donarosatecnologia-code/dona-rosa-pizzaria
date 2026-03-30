@@ -167,38 +167,50 @@ export type Database = {
       page_contents: {
         Row: {
           content: string | null
+          content_draft: string | null
+          content_published_at: string | null
           created_at: string
           id: number
           image_url: string | null
+          image_url_draft: string | null
           is_active: boolean
           page_key: string
           section_key: string
           subtitle: string | null
           title: string | null
+          title_draft: string | null
           updated_at: string
         }
         Insert: {
           content?: string | null
+          content_draft?: string | null
+          content_published_at?: string | null
           created_at?: string
           id?: never
           image_url?: string | null
+          image_url_draft?: string | null
           is_active?: boolean
           page_key: string
           section_key: string
           subtitle?: string | null
           title?: string | null
+          title_draft?: string | null
           updated_at?: string
         }
         Update: {
           content?: string | null
+          content_draft?: string | null
+          content_published_at?: string | null
           created_at?: string
           id?: never
           image_url?: string | null
+          image_url_draft?: string | null
           is_active?: boolean
           page_key?: string
           section_key?: string
           subtitle?: string | null
           title?: string | null
+          title_draft?: string | null
           updated_at?: string
         }
         Relationships: []

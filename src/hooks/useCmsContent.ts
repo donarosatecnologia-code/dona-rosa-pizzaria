@@ -1,29 +1,41 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useCmsDisplayMode } from "@/contexts/CmsDisplayModeContext";
 
 interface CmsContentRecord {
   section_key: string;
   title: string | null;
   content: string | null;
+  subtitle: string | null;
   image_url: string | null;
+  title_draft: string | null;
+  content_draft: string | null;
+  image_url_draft: string | null;
 }
 
+/**
+ * Conteúdo CMS. Modo `published` (padrão): site público.
+ * Modo `preview`: admin / visualização de rascunho — prioriza *_draft quando preenchido.
+ */
 export function useCmsContents(sectionKeys: string[], pageKey?: string) {
+  const displayMode = useCmsDisplayMode();
   const safeKeys = useMemo(() => Array.from(new Set(sectionKeys)), [sectionKeys]);
 
-  const { data } = useQuery({
-    queryKey: ["page-contents-batch", pageKey || "all", safeKeys.join("|")],
+  const { data, isPending, isError } = useQuery({
+    queryKey: ["page-contents-batch", pageKey || "all", safeKeys.join("|"), displayMode],
     queryFn: async () => {
       let query = supabase
         .from("page_contents")
-        .select("section_key, title, content, image_url")
+        .select("section_key, title, content, subtitle, image_url, title_draft, content_draft, image_url_draft")
         .in("section_key", safeKeys);
       if (pageKey) {
         query = query.eq("page_key", pageKey);
       }
       const { data, error } = await query;
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
       return data as CmsContentRecord[];
     },
     enabled: safeKeys.length > 0,
@@ -35,27 +47,81 @@ export function useCmsContents(sectionKeys: string[], pageKey?: string) {
     return map;
   }, [data]);
 
-  function getText(sectionKey: string, fallback: string) {
+  function getText(sectionKey: string): string {
     const item = contentMap.get(sectionKey);
-    return item?.content || item?.title || fallback;
+    if (!item) {
+      return "";
+    }
+
+    const published =
+      item.content?.trim() || item.title?.trim() || item.subtitle?.trim() || "";
+    const drafts = item.content_draft?.trim() || item.title_draft?.trim() || "";
+
+    if (displayMode === "preview") {
+      if (drafts) {
+        return drafts;
+      }
+      return published;
+    }
+
+    if (published) {
+      return published;
+    }
+    if (drafts) {
+      return drafts;
+    }
+    return "";
   }
 
-  function getLink(sectionKey: string, fallbackLabel: string, fallbackUrl: string) {
-    const item = contentMap.get(sectionKey);
-    return {
-      label: item?.title || fallbackLabel,
-      url: item?.content || fallbackUrl,
-    };
+  function hasText(sectionKey: string): boolean {
+    return getText(sectionKey).length > 0;
   }
 
-  function getImage(sectionKey: string, fallbackUrl: string) {
+  function getLink(sectionKey: string) {
     const item = contentMap.get(sectionKey);
-    return item?.image_url || fallbackUrl;
+    if (!item) {
+      return { label: "", url: "" };
+    }
+
+    if (displayMode === "preview") {
+      const label = (item.title_draft ?? item.title ?? "").trim();
+      const url = (item.content_draft ?? item.content ?? "").trim();
+      return { label, url };
+    }
+
+    const label = (item.title?.trim() || item.title_draft?.trim() || "");
+    const url = (item.content?.trim() || item.content_draft?.trim() || "");
+    return { label, url };
+  }
+
+  function getImage(sectionKey: string): string {
+    const item = contentMap.get(sectionKey);
+    if (!item) {
+      return "";
+    }
+
+    if (displayMode === "preview") {
+      const d = (item.image_url_draft ?? "").trim();
+      if (d) {
+        return d;
+      }
+    } else {
+      const pub = (item.image_url ?? "").trim();
+      if (pub) {
+        return pub;
+      }
+      return (item.image_url_draft ?? "").trim();
+    }
+
+    return (item.image_url ?? "").trim();
   }
 
   return {
     getText,
+    hasText,
     getLink,
     getImage,
+    isPending,
+    isError,
   };
 }
