@@ -16,6 +16,7 @@ export default {
       fontFamily: {
         sans: ["Lato", "sans-serif"],
         display: ["ARCENA", "Lato", "sans-serif"],
+        montserrat: ["Montserrat", "Lato", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",

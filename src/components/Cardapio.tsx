@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import EditableWrapper from "@/components/EditableWrapper";
+import { BrandAlecrim, BrandTrigo } from "@/components/BrandAccents";
 import pizza1 from "@/assets/pizza-1.jpg";
 import prato2 from "@/assets/prato-2.jpg";
 import prato3 from "@/assets/prato-3.jpg";
-import trigo from "@/assets/trigo.png";
 import { useCmsCarousel } from "@/hooks/useCmsMedia";
 import { useCmsContents } from "@/hooks/useCmsContent";
 import RichText from "@/components/RichText";
@@ -55,9 +55,10 @@ const Cardapio = ({ data = defaultData }: { data?: CardapioData }) => {
   const next = () => setCurrent((c) => (c === carouselImages.length - 1 ? 0 : c + 1));
 
   return (
-    <section id="cardapio" className="section-paper py-16 md:py-24 relative overflow-hidden">
-      <img src={trigo} alt="" className="absolute right-0 top-0 h-40 opacity-30 hidden lg:block pointer-events-none" />
-      <div className="container mx-auto px-4 text-center">
+    <section id="cardapio" className="section-paper relative overflow-hidden py-16 md:py-24">
+      <BrandTrigo className="absolute right-0 top-0 h-40 opacity-30 hidden lg:block" />
+      <BrandAlecrim className="absolute bottom-6 left-0 h-32 w-auto opacity-[0.2] hidden md:block" />
+      <div className="container relative z-10 mx-auto px-4 text-center">
         <EditableWrapper id="home-cardapio-title" type="text" label="Título Cardápio">
           <RichText as="h2" inline content={cardapioTitle} className="text-3xl md:text-4xl font-bold text-foreground mb-4" />
         </EditableWrapper>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { BrandTomilho } from "@/components/BrandAccents";
 import logoSmall from "@/assets/logo-small.png";
 
 const Login = () => {
@@ -25,8 +26,9 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4">
-      <div className="w-full max-w-sm">
+    <div className="relative min-h-screen overflow-hidden bg-background flex items-center justify-center px-4">
+      <BrandTomilho className="absolute right-6 top-24 h-20 w-auto opacity-[0.12] hidden md:block" />
+      <div className="relative z-10 w-full max-w-sm">
         <div className="text-center mb-8">
           <img src={logoSmall} alt="Dona Rosa" className="h-16 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-foreground">Painel Administrativo</h1>

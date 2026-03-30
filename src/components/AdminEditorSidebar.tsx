@@ -11,6 +11,11 @@ function getPageKeyFromSectionKey(sectionKey: string) {
   if (sectionKey.startsWith("qs-")) return "quem-somos";
   if (sectionKey.startsWith("card-")) return "cardapio";
   if (sectionKey.startsWith("venue-")) return "espacos";
+  if (sectionKey.startsWith("courses-")) return "cursos-e-eventos";
+  if (sectionKey.startsWith("sustain-")) return "saude-e-sustentabilidade";
+  if (sectionKey.startsWith("contact-")) return "contato";
+  if (sectionKey.startsWith("privacy-")) return "politica-privacidade";
+  if (sectionKey.startsWith("terms-")) return "termos-de-uso";
   if (sectionKey.startsWith("footer-")) return "footer";
   if (sectionKey.startsWith("header-")) return "header";
   return "home";

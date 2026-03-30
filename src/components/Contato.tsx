@@ -1,5 +1,6 @@
 import { Phone, Mail } from "lucide-react";
 import EditableWrapper from "@/components/EditableWrapper";
+import { BrandLinhaDecorativa, BrandTrigo } from "@/components/BrandAccents";
 import ambiente from "@/assets/ambiente-1.jpg";
 import { useCmsImage } from "@/hooks/useCmsMedia";
 import { useCmsContents } from "@/hooks/useCmsContent";
@@ -36,11 +37,13 @@ const Contato = ({ data = defaultData }: { data?: ContatoData }) => {
   const contatoSubtitle = getText("home-contato-subtitle", data.subtitle);
   const contatoDescription = getText("home-contato-desc", data.description);
   const deliveryCta = getLink("home-contato-cta-delivery", data.ctaDelivery, "tel:+551100000000");
-  const reservaCta = getLink("home-contato-cta-reserva", data.ctaReserva, "#");
+  const reservaCta = getLink("home-contato-cta-reserva", data.ctaReserva, "/contato");
 
   return (
-    <section id="contato" className="bg-background py-16 md:py-24 relative">
-      <div className="container mx-auto px-4">
+    <section id="contato" className="relative overflow-hidden bg-background py-16 md:py-24">
+      <BrandTrigo className="absolute right-0 top-1/4 h-36 w-auto opacity-[0.18] hidden xl:block" />
+      <BrandLinhaDecorativa className="absolute bottom-8 left-4 h-10 w-auto opacity-20 hidden lg:block" />
+      <div className="container relative z-10 mx-auto px-4">
         <div className="grid md:grid-cols-2 gap-10 items-center max-w-5xl mx-auto">
           <div>
             <EditableWrapper id="home-contato-title" type="text" label="Título Contato">

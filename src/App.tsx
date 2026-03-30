@@ -9,6 +9,11 @@ import Index from "./pages/Index";
 import QuemSomosPage from "./pages/QuemSomosPage";
 import CardapioPage from "./pages/CardapioPage";
 import VenuePage from "./pages/VenuePage";
+import CoursesPage from "./pages/CoursesPage";
+import SustainabilityPage from "./pages/SustainabilityPage";
+import ContactPage from "./pages/ContactPage";
+import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
+import TermsOfUsePage from "./pages/TermsOfUsePage";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -34,6 +39,11 @@ const App = () => (
             <Route path="/quem-somos" element={<QuemSomosPage />} />
             <Route path="/cardapio" element={<CardapioPage />} />
             <Route path="/espacos" element={<VenuePage />} />
+            <Route path="/cursos-e-eventos" element={<CoursesPage />} />
+            <Route path="/saude-e-sustentabilidade" element={<SustainabilityPage />} />
+            <Route path="/contato" element={<ContactPage />} />
+            <Route path="/politica-de-privacidade" element={<PrivacyPolicyPage />} />
+            <Route path="/termos-de-uso" element={<TermsOfUsePage />} />
             <Route path="/login" element={<Login />} />
 
             {/* Admin routes */}

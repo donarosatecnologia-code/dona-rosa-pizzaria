@@ -1,14 +1,18 @@
-import { useState } from "react";
-import { Instagram, Facebook, Youtube, Twitter, Linkedin, Globe, Plus, Pencil, Trash2, Check, X } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Instagram, Facebook, Youtube, Twitter, Linkedin, Globe, Plus, Pencil, Trash2, Check, X, ChevronUp, ChevronDown } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminEditor } from "@/contexts/AdminEditorContext";
 import EditableWrapper from "@/components/EditableWrapper";
+import { BrandFooterAccent } from "@/components/BrandAccents";
 import { toast } from "sonner";
 import logoBranco from "@/assets/logo-branco.png";
 import { useCmsImage } from "@/hooks/useCmsMedia";
 import { useCmsContents } from "@/hooks/useCmsContent";
 import RichText from "@/components/RichText";
+import type { Database } from "@/integrations/supabase/types";
+
+type NavLinkRow = Database["public"]["Tables"]["nav_links"]["Row"];
 
 const iconMap: Record<string, React.ReactNode> = {
   instagram: <Instagram size={20} />,
@@ -55,12 +59,22 @@ const Footer = () => {
     },
   });
 
-  const navegacaoLinks = (navLinks ?? []).filter((l) => l.column_key === "navegacao");
+  const navegacaoLinks = (navLinks ?? [])
+    .filter((l) => l.column_key === "navegacao")
+    .slice()
+    .sort((a, b) => a.sort_order - b.sort_order);
+
+  const showNavColumn = navegacaoLinks.length > 0 || isAdmin;
 
   return (
     <footer className="bg-foreground text-primary-foreground py-12">
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
+        <BrandFooterAccent />
+        <div
+          className={`grid gap-8 mb-10 grid-cols-1 sm:grid-cols-2 ${
+            showNavColumn ? "lg:grid-cols-4" : "lg:grid-cols-3"
+          }`}
+        >
           {/* Col 1 - Logo & Social */}
           <div>
             <EditableWrapper id="footer-logo" type="image" label="Logo Footer">
@@ -82,22 +96,35 @@ const Footer = () => {
             </EditableWrapper>
           </div>
 
-          {/* Col 2 - Navegação */}
-          <div>
-            <h4 className="font-semibold mb-4 text-sm">Navegação</h4>
-            <ul className="space-y-2 text-xs opacity-70">
-              <li>
-                <a href="/espacos" className="hover:opacity-100 transition-opacity">Espaços</a>
-              </li>
-              {navegacaoLinks.map((link) => (
-                <li key={link.id} className="flex items-center gap-1 group">
-                  <a href={link.url} className="hover:opacity-100 transition-opacity">{link.label}</a>
-                  {isAdmin && <NavLinkActions linkId={link.id} label={link.label} url={link.url} columnKey="navegacao" />}
-                </li>
-              ))}
-            </ul>
-            {isAdmin && <AddNavLinkButton columnKey="navegacao" />}
-          </div>
+          {/* Col 2 - Navegação (100% via nav_links; ordem = sort_order) */}
+          {showNavColumn && (
+            <div>
+              <h4 className="font-semibold mb-4 text-sm">Navegação</h4>
+              <ul className="space-y-2 text-xs opacity-70">
+                {navegacaoLinks.map((link, index) => (
+                  <li key={link.id} className="flex flex-wrap items-center gap-1 group">
+                    <a href={link.url} className="hover:opacity-100 transition-opacity">
+                      {link.label}
+                    </a>
+                    {isAdmin && (
+                      <NavLinkActions
+                        linkId={link.id}
+                        label={link.label}
+                        url={link.url}
+                        canMoveUp={index > 0}
+                        canMoveDown={index < navegacaoLinks.length - 1}
+                        allLinks={navegacaoLinks}
+                      />
+                    )}
+                  </li>
+                ))}
+              </ul>
+              {isAdmin && navegacaoLinks.length === 0 && (
+                <p className="text-xs opacity-50 mb-2">Nenhum item no menu. Adicione links abaixo.</p>
+              )}
+              {isAdmin && <AddNavLinkButton columnKey="navegacao" existingLinks={navegacaoLinks} />}
+            </div>
+          )}
 
           {/* Col 3 - Cardápio */}
           <div>
@@ -125,7 +152,7 @@ const Footer = () => {
         <div className="border-t border-primary-foreground/20 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs opacity-50">
           <p>© 2026 Dona Rosa Pizzaria - Desenvolvido por <a href="https://janaina-guiotti.vercel.app/" target="_blank" rel="noopener noreferrer" className="hover:opacity-100 transition-opacity underline">Janaina Guiotti</a></p>
           <div className="flex gap-4">
-            <a href="/politica-de-privacidade" className="hover:opacity-100 transition-opacity">Políticas de Privacidade</a>
+            <a href="/politica-de-privacidade" className="hover:opacity-100 transition-opacity">Política de Privacidade</a>
             <a href="/termos-de-uso" className="hover:opacity-100 transition-opacity">Termos de Uso</a>
           </div>
         </div>
@@ -243,17 +270,53 @@ function SocialAddForm({ onAdd }: { onAdd: (data: { platform: string; url: strin
   );
 }
 
-// Nav link admin actions
-function NavLinkActions({ linkId, label, url, columnKey }: { linkId: number; label: string; url: string; columnKey: string }) {
+async function swapNavLinkSortOrder(a: NavLinkRow, b: NavLinkRow): Promise<void> {
+  const ao = a.sort_order;
+  const bo = b.sort_order;
+  const { error: e1 } = await supabase.from("nav_links").update({ sort_order: bo }).eq("id", a.id);
+  if (e1) {
+    throw e1;
+  }
+  const { error: e2 } = await supabase.from("nav_links").update({ sort_order: ao }).eq("id", b.id);
+  if (e2) {
+    throw e2;
+  }
+}
+
+// Nav link admin actions: editar, excluir, subir/descer ordem
+function NavLinkActions({
+  linkId,
+  label,
+  url,
+  allLinks,
+  canMoveUp,
+  canMoveDown,
+}: {
+  linkId: number;
+  label: string;
+  url: string;
+  allLinks: NavLinkRow[];
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+}) {
   const [editing, setEditing] = useState(false);
   const [editLabel, setEditLabel] = useState(label);
   const [editUrl, setEditUrl] = useState(url);
   const queryClient = useQueryClient();
 
+  useEffect(() => {
+    if (!editing) {
+      setEditLabel(label);
+      setEditUrl(url);
+    }
+  }, [label, url, editing]);
+
   const updateMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("nav_links").update({ label: editLabel, url: editUrl }).eq("id", linkId);
-      if (error) throw error;
+      const { error } = await supabase.from("nav_links").update({ label: editLabel.trim(), url: editUrl.trim() }).eq("id", linkId);
+      if (error) {
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["nav-links"] });
@@ -265,7 +328,9 @@ function NavLinkActions({ linkId, label, url, columnKey }: { linkId: number; lab
   const deleteMutation = useMutation({
     mutationFn: async () => {
       const { error } = await supabase.from("nav_links").delete().eq("id", linkId);
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["nav-links"] });
@@ -273,26 +338,97 @@ function NavLinkActions({ linkId, label, url, columnKey }: { linkId: number; lab
     },
   });
 
+  const reorderMutation = useMutation({
+    mutationFn: async (direction: "up" | "down") => {
+      const sorted = [...allLinks].sort((x, y) => {
+        if (x.sort_order !== y.sort_order) {
+          return x.sort_order - y.sort_order;
+        }
+        return x.id - y.id;
+      });
+      const idx = sorted.findIndex((l) => l.id === linkId);
+      if (idx < 0) {
+        return;
+      }
+      const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+      if (swapIdx < 0 || swapIdx >= sorted.length) {
+        return;
+      }
+      await swapNavLinkSortOrder(sorted[idx], sorted[swapIdx]);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["nav-links"] });
+      toast.success("Ordem atualizada!");
+    },
+  });
+
   if (editing) {
     return (
-      <span className="flex items-center gap-1 ml-1">
-        <input value={editLabel} onChange={(e) => setEditLabel(e.target.value)} className="border border-input rounded px-1 py-0.5 text-xs w-16 bg-background text-foreground" />
-        <input value={editUrl} onChange={(e) => setEditUrl(e.target.value)} className="border border-input rounded px-1 py-0.5 text-xs w-20 bg-background text-foreground" />
-        <button onClick={() => updateMutation.mutate()} className="text-primary"><Check size={10} /></button>
-        <button onClick={() => setEditing(false)} className="text-muted-foreground"><X size={10} /></button>
+      <span className="flex flex-col gap-1 ml-1 mt-1 w-full max-w-[min(100%,18rem)]">
+        <input
+          value={editLabel}
+          onChange={(e) => setEditLabel(e.target.value)}
+          className="border border-input rounded px-2 py-1 text-xs w-full bg-background text-foreground"
+          placeholder="Texto do link"
+        />
+        <input
+          value={editUrl}
+          onChange={(e) => setEditUrl(e.target.value)}
+          className="border border-input rounded px-2 py-1 text-xs w-full bg-background text-foreground"
+          placeholder="/rota ou https://..."
+        />
+        <span className="flex items-center gap-2">
+          <button type="button" onClick={() => updateMutation.mutate()} className="text-primary" title="Salvar">
+            <Check size={14} />
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setEditing(false);
+              setEditLabel(label);
+              setEditUrl(url);
+            }}
+            className="text-muted-foreground"
+            title="Cancelar"
+          >
+            <X size={14} />
+          </button>
+        </span>
       </span>
     );
   }
 
   return (
-    <span className="hidden group-hover:flex items-center gap-1 ml-1">
-      <button onClick={() => setEditing(true)} className="opacity-60 hover:opacity-100"><Pencil size={10} /></button>
-      <button onClick={() => deleteMutation.mutate()} className="opacity-60 hover:opacity-100 text-red-400"><Trash2 size={10} /></button>
+    <span className="flex flex-wrap items-center gap-0.5 ml-1">
+      <button
+        type="button"
+        title="Subir"
+        disabled={!canMoveUp || reorderMutation.isPending}
+        onClick={() => reorderMutation.mutate("up")}
+        className="opacity-70 hover:opacity-100 disabled:opacity-25 p-0.5"
+      >
+        <ChevronUp size={14} />
+      </button>
+      <button
+        type="button"
+        title="Descer"
+        disabled={!canMoveDown || reorderMutation.isPending}
+        onClick={() => reorderMutation.mutate("down")}
+        className="opacity-70 hover:opacity-100 disabled:opacity-25 p-0.5"
+      >
+        <ChevronDown size={14} />
+      </button>
+      <button type="button" onClick={() => setEditing(true)} className="opacity-70 hover:opacity-100 p-0.5" title="Editar">
+        <Pencil size={12} />
+      </button>
+      <button type="button" onClick={() => deleteMutation.mutate()} className="opacity-70 hover:opacity-100 text-red-400 p-0.5" title="Excluir">
+        <Trash2 size={12} />
+      </button>
     </span>
   );
 }
 
-function AddNavLinkButton({ columnKey }: { columnKey: string }) {
+function AddNavLinkButton({ columnKey, existingLinks }: { columnKey: string; existingLinks: NavLinkRow[] }) {
   const [show, setShow] = useState(false);
   const [label, setLabel] = useState("");
   const [url, setUrl] = useState("");
@@ -300,8 +436,14 @@ function AddNavLinkButton({ columnKey }: { columnKey: string }) {
 
   const mutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("nav_links").insert({ label, url, column_key: columnKey });
-      if (error) throw error;
+      const maxOrder =
+        existingLinks.length === 0 ? -1 : Math.max(...existingLinks.map((l) => l.sort_order));
+      const { error } = await supabase
+        .from("nav_links")
+        .insert({ label: label.trim(), url: url.trim(), column_key: columnKey, sort_order: maxOrder + 1 });
+      if (error) {
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["nav-links"] });
@@ -314,19 +456,43 @@ function AddNavLinkButton({ columnKey }: { columnKey: string }) {
 
   if (!show) {
     return (
-      <button onClick={() => setShow(true)} className="mt-2 text-xs opacity-50 hover:opacity-100 flex items-center gap-1">
-        <Plus size={12} /> Adicionar menu
+      <button type="button" onClick={() => setShow(true)} className="mt-2 text-xs opacity-50 hover:opacity-100 flex items-center gap-1">
+        <Plus size={12} /> Adicionar link
       </button>
     );
   }
 
   return (
     <div className="mt-2 space-y-1">
-      <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Texto" className="w-full border border-input/30 bg-primary-foreground/10 rounded px-2 py-1 text-xs" />
-      <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="URL" className="w-full border border-input/30 bg-primary-foreground/10 rounded px-2 py-1 text-xs" />
+      <input
+        value={label}
+        onChange={(e) => setLabel(e.target.value)}
+        placeholder="Texto (ex: Contato)"
+        className="w-full border border-input/30 bg-primary-foreground/10 rounded px-2 py-1 text-xs"
+      />
+      <input
+        value={url}
+        onChange={(e) => setUrl(e.target.value)}
+        placeholder="URL (ex: /contato)"
+        className="w-full border border-input/30 bg-primary-foreground/10 rounded px-2 py-1 text-xs"
+      />
       <div className="flex gap-1">
-        <button onClick={() => mutation.mutate()} className="text-xs bg-primary text-primary-foreground rounded px-2 py-1">Salvar</button>
-        <button onClick={() => setShow(false)} className="text-xs opacity-60">Cancelar</button>
+        <button
+          type="button"
+          onClick={() => {
+            if (!label.trim() || !url.trim()) {
+              toast.error("Preencha texto e URL.");
+              return;
+            }
+            mutation.mutate();
+          }}
+          className="text-xs bg-primary text-primary-foreground rounded px-2 py-1"
+        >
+          Salvar
+        </button>
+        <button type="button" onClick={() => setShow(false)} className="text-xs opacity-60">
+          Cancelar
+        </button>
       </div>
     </div>
   );

@@ -16,7 +16,7 @@ const WhatsAppButton = () => {
     const text = encodeURIComponent(
       `Olá! Meu nome é ${name.trim()}.\nTelefone: ${phone.trim()}\n\n${message.trim()}`
     );
-    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${text}`, "_blank");
+    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${text}`, "_blank", "noopener,noreferrer");
     setOpen(false);
     setName("");
     setPhone("");
@@ -24,7 +24,7 @@ const WhatsAppButton = () => {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <div className="fixed bottom-20 right-6 z-50 sm:bottom-24 sm:right-8">
       {/* Popup */}
       {open && (
         <div className="absolute bottom-16 right-0 w-80 bg-background rounded-2xl shadow-2xl border border-border overflow-hidden animate-in slide-in-from-bottom-4 fade-in duration-300">

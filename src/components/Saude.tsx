@@ -1,4 +1,5 @@
 import EditableWrapper from "@/components/EditableWrapper";
+import { BrandAlecrim, BrandTomilho } from "@/components/BrandAccents";
 import saude1 from "@/assets/saude-1.jpg";
 import { useCmsImage } from "@/hooks/useCmsMedia";
 import { useCmsContents } from "@/hooks/useCmsContent";
@@ -27,11 +28,13 @@ const Saude = ({ data = defaultData }: { data?: SaudeData }) => {
   const saudeImage = useCmsImage("home-saude-img", data.image);
   const saudeTitle = getText("home-saude-title", data.title);
   const saudeDescription = getText("home-saude-desc", data.description);
-  const saudeCta = getLink("home-saude-cta", data.ctaLabel, "#");
+  const saudeCta = getLink("home-saude-cta", data.ctaLabel, "/saude-e-sustentabilidade");
 
   return (
-    <section id="saude" className="bg-background py-16 md:py-24">
-      <div className="container mx-auto px-4 max-w-5xl">
+    <section id="saude" className="relative overflow-hidden bg-background py-16 md:py-24">
+      <BrandAlecrim className="absolute -left-2 top-20 h-32 w-auto opacity-[0.16] hidden lg:block" />
+      <BrandTomilho className="absolute right-0 bottom-10 h-16 w-auto opacity-[0.18] hidden md:block" />
+      <div className="container relative z-10 mx-auto px-4 max-w-5xl">
         <div className="grid md:grid-cols-2 gap-10 items-center">
           <EditableWrapper id="home-saude-img" type="image" label="Imagem Saúde">
             <div className="rounded-2xl overflow-hidden shadow-lg order-2 md:order-1">
