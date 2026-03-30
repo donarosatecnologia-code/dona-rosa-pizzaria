@@ -10,6 +10,7 @@ import RichTextEditor from "@/components/RichTextEditor";
 function getPageKeyFromSectionKey(sectionKey: string) {
   if (sectionKey.startsWith("qs-")) return "quem-somos";
   if (sectionKey.startsWith("card-")) return "cardapio";
+  if (sectionKey.startsWith("venue-")) return "espacos";
   if (sectionKey.startsWith("footer-")) return "footer";
   if (sectionKey.startsWith("header-")) return "header";
   return "home";

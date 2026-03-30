@@ -7,7 +7,7 @@ import { useCmsImage } from "@/hooks/useCmsMedia";
 const navItems = [
   { label: "Quem Somos", href: "/quem-somos" },
   { label: "Cardápio", href: "/cardapio" },
-  { label: "Espaços", href: "/#contato" },
+  { label: "Espaços", href: "/espacos" },
   { label: "Cursos e Eventos", href: "/#cursos" },
   { label: "Saúde e Sustentabilidade", href: "/#saude" },
 ];

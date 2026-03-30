@@ -8,6 +8,7 @@ import trigo from "@/assets/trigo.png";
 import { useCmsCarousel } from "@/hooks/useCmsMedia";
 import { useCmsContents } from "@/hooks/useCmsContent";
 import RichText from "@/components/RichText";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface CardapioData {
   title: string;
@@ -28,6 +29,7 @@ const defaultData: CardapioData = {
 };
 
 const Cardapio = ({ data = defaultData }: { data?: CardapioData }) => {
+  const isMobile = useIsMobile();
   const { getText, getLink } = useCmsContents([
     "home-cardapio-title",
     "home-cardapio-desc",
@@ -35,7 +37,7 @@ const Cardapio = ({ data = defaultData }: { data?: CardapioData }) => {
   ], "home");
   const { images: carouselImages, columns } = useCmsCarousel("home-cardapio-carousel", data.images, 3);
   const [current, setCurrent] = useState(0);
-  const visibleColumns = Math.min(columns, carouselImages.length);
+  const visibleColumns = isMobile ? 1 : Math.min(columns, carouselImages.length);
   const visibleImages = Array.from({ length: visibleColumns }, (_, idx) => {
     return carouselImages[(current + idx) % carouselImages.length];
   });

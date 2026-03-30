@@ -8,6 +8,7 @@ import AdminEditorSidebar from "@/components/AdminEditorSidebar";
 import Index from "./pages/Index";
 import QuemSomosPage from "./pages/QuemSomosPage";
 import CardapioPage from "./pages/CardapioPage";
+import VenuePage from "./pages/VenuePage";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/quem-somos" element={<QuemSomosPage />} />
             <Route path="/cardapio" element={<CardapioPage />} />
+            <Route path="/espacos" element={<VenuePage />} />
             <Route path="/login" element={<Login />} />
 
             {/* Admin routes */}

@@ -18,6 +18,7 @@ import prato3 from "@/assets/prato-3.jpg";
 import { useCmsContents } from "@/hooks/useCmsContent";
 import { useCmsCarousel } from "@/hooks/useCmsMedia";
 import RichText from "@/components/RichText";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const sections = [
   {
@@ -55,6 +56,7 @@ const sections = [
 ];
 
 const QuemSomosPage = () => {
+  const isMobile = useIsMobile();
   const [brindarCurrent, setBrindarCurrent] = useState(0);
   const cmsKeys = [
     "qs-hero-subtitle",
@@ -95,7 +97,7 @@ const QuemSomosPage = () => {
     setBrindarCurrent((prev) => (prev === 0 ? brindarImages.length - 1 : prev - 1));
   };
 
-  const visibleBrindarImages = Array.from({ length: Math.min(2, brindarImages.length) }, (_, idx) => {
+  const visibleBrindarImages = Array.from({ length: isMobile ? 1 : Math.min(2, brindarImages.length) }, (_, idx) => {
     return brindarImages[(brindarCurrent + idx) % brindarImages.length];
   });
 
@@ -181,7 +183,7 @@ const QuemSomosPage = () => {
       ))}
 
       {/* Para Começar e Brindar */}
-      <section className="bg-background py-16 md:py-24">
+      <section className="section-paper py-16 md:py-24">
         <div className="container mx-auto px-4 max-w-5xl">
           <div className="text-center mb-10">
             <EditableWrapper id="qs-brindar-title" type="text" label="Título Para Começar e Brindar">
