@@ -1,43 +1,22 @@
 import { Phone, Mail } from "lucide-react";
 import EditableWrapper from "@/components/EditableWrapper";
 import { BrandLinhaDecorativa, BrandTrigo } from "@/components/BrandAccents";
-import ambiente from "@/assets/ambiente-1.jpg";
+import { CmsPlaceholder } from "@/components/CmsPlaceholder";
 import { useCmsImage } from "@/hooks/useCmsMedia";
 import { useCmsContents } from "@/hooks/useCmsContent";
 import RichText from "@/components/RichText";
 
-interface ContatoData {
-  title: string;
-  subtitle: string;
-  description: string;
-  ctaDelivery: string;
-  ctaReserva: string;
-  image: string;
-}
-
-const defaultData: ContatoData = {
-  title: "Contato & Reserva de mesa",
-  subtitle: "Delivery com atendimento pessoal. Por aqui nada de robôs!",
-  description: "Ligue e fale com um dos nossos atendentes para pedir o seu delivery ou reservar uma mesa!",
-  ctaDelivery: "Delivery",
-  ctaReserva: "Reservar uma mesa",
-  image: ambiente,
-};
-
-const Contato = ({ data = defaultData }: { data?: ContatoData }) => {
-  const { getText, getLink } = useCmsContents([
-    "home-contato-title",
-    "home-contato-subtitle",
-    "home-contato-desc",
-    "home-contato-cta-delivery",
-    "home-contato-cta-reserva",
-  ], "home");
-  const contatoImage = useCmsImage("home-contato-img", data.image);
-  const contatoTitle = getText("home-contato-title", data.title);
-  const contatoSubtitle = getText("home-contato-subtitle", data.subtitle);
-  const contatoDescription = getText("home-contato-desc", data.description);
-  const deliveryCta = getLink("home-contato-cta-delivery", data.ctaDelivery, "tel:+551100000000");
-  const reservaCta = getLink("home-contato-cta-reserva", data.ctaReserva, "/contato");
+const Contato = () => {
+  const { getText, getLink } = useCmsContents(
+    ["home-contato-title", "home-contato-subtitle", "home-contato-desc", "home-contato-cta-delivery", "home-contato-cta-reserva"],
+    "home",
+  );
+  const contatoImage = useCmsImage("home-contato-img");
+  const contatoTitle = getText("home-contato-title");
+  const contatoSubtitle = getText("home-contato-subtitle");
+  const contatoDescription = getText("home-contato-desc");
+  const deliveryCta = getLink("home-contato-cta-delivery");
+  const reservaCta = getLink("home-contato-cta-reserva");
 
   return (
     <section id="contato" className="relative overflow-hidden bg-background py-16 md:py-24">
@@ -47,32 +26,56 @@ const Contato = ({ data = defaultData }: { data?: ContatoData }) => {
         <div className="grid md:grid-cols-2 gap-10 items-center max-w-5xl mx-auto">
           <div>
             <EditableWrapper id="home-contato-title" type="text" label="Título Contato">
-              <RichText as="h2" inline content={contatoTitle} className="text-3xl md:text-4xl font-bold text-foreground mb-4" />
+              {contatoTitle ? (
+                <RichText as="h2" inline content={contatoTitle} className="text-3xl md:text-4xl font-bold text-foreground mb-4" />
+              ) : (
+                <CmsPlaceholder label="Título do bloco contato" />
+              )}
             </EditableWrapper>
             <EditableWrapper id="home-contato-subtitle" type="text" label="Subtítulo Contato">
-              <RichText as="p" inline content={contatoSubtitle} className="text-accent font-semibold mb-2" />
+              {contatoSubtitle ? (
+                <RichText as="p" inline content={contatoSubtitle} className="text-accent font-semibold mb-2" />
+              ) : (
+                <CmsPlaceholder label="Subtítulo" className="my-2" />
+              )}
             </EditableWrapper>
             <EditableWrapper id="home-contato-desc" type="textarea" label="Descrição Contato">
-              <RichText content={contatoDescription} className="text-muted-foreground mb-8 leading-relaxed space-y-3" />
+              {contatoDescription ? (
+                <RichText content={contatoDescription} className="text-muted-foreground mb-8 leading-relaxed space-y-3" />
+              ) : (
+                <CmsPlaceholder label="Descrição" className="mb-8" />
+              )}
             </EditableWrapper>
 
             <div className="flex flex-wrap gap-4">
               <EditableWrapper id="home-contato-cta-delivery" type="link" label="Botão Delivery">
-                <a href={deliveryCta.url} className="btn-secondary-dr inline-flex items-center gap-2">
-                  <Phone size={16} /> <RichText as="span" inline content={deliveryCta.label} />
-                </a>
+                {deliveryCta.label && deliveryCta.url ? (
+                  <a href={deliveryCta.url} className="btn-secondary-dr inline-flex items-center gap-2">
+                    <Phone size={16} /> <RichText as="span" inline content={deliveryCta.label} />
+                  </a>
+                ) : (
+                  <CmsPlaceholder label="CTA delivery (título e URL)" className="inline-block min-w-[10rem]" />
+                )}
               </EditableWrapper>
               <EditableWrapper id="home-contato-cta-reserva" type="link" label="Botão Reservar Mesa">
-                <a href={reservaCta.url} className="btn-outline-dr inline-flex items-center gap-2">
-                  <Mail size={16} /> <RichText as="span" inline content={reservaCta.label} />
-                </a>
+                {reservaCta.label && reservaCta.url ? (
+                  <a href={reservaCta.url} className="btn-outline-dr inline-flex items-center gap-2">
+                    <Mail size={16} /> <RichText as="span" inline content={reservaCta.label} />
+                  </a>
+                ) : (
+                  <CmsPlaceholder label="CTA reserva (título e URL)" className="inline-block min-w-[10rem]" />
+                )}
               </EditableWrapper>
             </div>
           </div>
 
           <EditableWrapper id="home-contato-img" type="image" label="Imagem Contato">
-            <div className="rounded-2xl overflow-hidden shadow-lg">
-              <img src={contatoImage} alt="Ambiente da pizzaria" loading="lazy" className="w-full h-64 md:h-80 object-cover" />
+            <div className="rounded-2xl overflow-hidden shadow-lg min-h-[16rem] flex items-center justify-center bg-muted/20">
+              {contatoImage ? (
+                <img src={contatoImage} alt="" loading="lazy" className="w-full h-64 md:h-80 object-cover" />
+              ) : (
+                <CmsPlaceholder label="Imagem do bloco contato" className="w-full border-0" />
+              )}
             </div>
           </EditableWrapper>
         </div>

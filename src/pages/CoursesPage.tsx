@@ -10,14 +10,10 @@ import RichText from "@/components/RichText";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CmsPlaceholder } from "@/components/CmsPlaceholder";
+import { LoadingScreen } from "@/components/LoadingScreen";
 import { useCmsContents } from "@/hooks/useCmsContent";
 import { useCmsCarousel } from "@/hooks/useCmsMedia";
-import evento1 from "@/assets/evento-1.jpg";
-import forno1 from "@/assets/forno-1.jpg";
-import curso1 from "@/assets/curso-1.jpg";
-import ambiente1 from "@/assets/ambiente-1.jpg";
-import pizza1 from "@/assets/pizza-1.jpg";
-import prato2 from "@/assets/prato-2.jpg";
 
 const WHATSAPP_REGISTRATION_PHONE = "5511930617116";
 
@@ -126,14 +122,13 @@ function SingleImageCarousel({
   const prev = () => setCurrent((c) => (c === 0 ? images.length - 1 : c - 1));
   const next = () => setCurrent((c) => (c === images.length - 1 ? 0 : c + 1));
 
-  if (images.length === 0) {
-    return null;
-  }
-
-  const active = images[current] ?? images[0];
+  const active = images.length > 0 ? (images[current] ?? images[0]) : null;
 
   return (
     <EditableWrapper id={carouselId} type="carousel" label={carouselLabel}>
+      {images.length === 0 || !active ? (
+        <CmsPlaceholder label="Carrossel sem imagens publicadas" className="py-10" />
+      ) : (
       <div className="relative max-w-xl mx-auto w-full">
         <div className="flex items-center gap-3 justify-center">
           <button
@@ -174,6 +169,7 @@ function SingleImageCarousel({
           ))}
         </div>
       </div>
+      )}
     </EditableWrapper>
   );
 }
@@ -195,42 +191,17 @@ function CoursesPage() {
     "courses-form-title",
   ];
 
-  const { getText, getLink } = useCmsContents(cmsKeys, "cursos-e-eventos");
+  const { getText, getLink, isPending, isError } = useCmsContents(cmsKeys, "cursos-e-eventos");
 
-  const eventsCarousel = useCmsCarousel(
-    "courses-events-carousel",
-    [
-      { src: evento1, alt: "Espaço de eventos na Dona Rosa" },
-      { src: forno1, alt: "Ambiente e forno na Dona Rosa" },
-      { src: ambiente1, alt: "Salão para eventos Dona Rosa" },
-      { src: pizza1, alt: "Evento gastronômico Dona Rosa" },
-    ],
-    1,
-  );
+  const eventsCarousel = useCmsCarousel("courses-events-carousel", 1);
 
-  const pizzaCarousel = useCmsCarousel(
-    "courses-pizza-carousel",
-    [
-      { src: curso1, alt: "Curso de pizza na Dona Rosa" },
-      { src: pizza1, alt: "Preparo de massa no curso" },
-      { src: prato2, alt: "Oficina de pizza Dona Rosa" },
-    ],
-    1,
-  );
+  const pizzaCarousel = useCmsCarousel("courses-pizza-carousel", 1);
 
-  const homeCarousel = useCmsCarousel(
-    "courses-home-carousel",
-    [
-      { src: forno1, alt: "Forno portátil Dona Rosa em casa" },
-      { src: evento1, alt: "Evento Dona Rosa em casa" },
-      { src: ambiente1, alt: "Experiência Dona Rosa em casa" },
-    ],
-    1,
-  );
+  const homeCarousel = useCmsCarousel("courses-home-carousel", 1);
 
-  const s1Cta = getLink("courses-s1-cta", "Contate Agora!", "#inscricao");
-  const s2Cta = getLink("courses-s2-cta", "Inscreva-se!", "#inscricao");
-  const s3Cta = getLink("courses-s3-cta", "Contate Agora!", "#inscricao");
+  const s1Cta = getLink("courses-s1-cta");
+  const s2Cta = getLink("courses-s2-cta");
+  const s3Cta = getLink("courses-s3-cta");
 
   useEffect(() => {
     const hash = window.location.hash.replace("#", "");
@@ -239,6 +210,18 @@ function CoursesPage() {
       return () => window.clearTimeout(t);
     }
   }, []);
+
+  if (isPending) {
+    return <LoadingScreen />;
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-4">
+        <p className="text-muted-foreground text-center">Não foi possível carregar o conteúdo. Tente novamente mais tarde.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -255,7 +238,7 @@ function CoursesPage() {
                 <RichText
                   as="h1"
                   inline
-                  content={getText("courses-s1-title", "Espaço de Eventos")}
+                  content={getText("courses-s1-title")}
                   className="text-4xl md:text-5xl text-foreground"
                 />
               </EditableWrapper>
@@ -263,16 +246,13 @@ function CoursesPage() {
                 <RichText
                   as="p"
                   inline
-                  content={getText("courses-s1-subtitle", "Faça seu evento na Dona Rosa!")}
+                  content={getText("courses-s1-subtitle")}
                   className="text-lg text-secondary font-medium"
                 />
               </EditableWrapper>
               <EditableWrapper id="courses-s1-body" type="textarea" label="Texto — Espaço de Eventos">
                 <RichText
-                  content={getText(
-                    "courses-s1-body",
-                    "Reserve nosso salão para confraternizações, aniversários e encontros especiais. Nossa equipe cuida de cada detalhe para que você só aproveite o momento.",
-                  )}
+                  content={getText("courses-s1-body")}
                   className="text-muted-foreground leading-relaxed text-sm md:text-base"
                 />
               </EditableWrapper>
@@ -314,7 +294,7 @@ function CoursesPage() {
                 <RichText
                   as="h2"
                   inline
-                  content={getText("courses-s2-title", "Curso de Pizza")}
+                  content={getText("courses-s2-title")}
                   className="text-3xl md:text-4xl text-foreground"
                 />
               </EditableWrapper>
@@ -322,16 +302,13 @@ function CoursesPage() {
                 <RichText
                   as="p"
                   inline
-                  content={getText("courses-s2-subtitle", "Aprenda a fazer a pizza da Dona Rosa!")}
+                  content={getText("courses-s2-subtitle")}
                   className="text-lg text-secondary font-medium"
                 />
               </EditableWrapper>
               <EditableWrapper id="courses-s2-body" type="textarea" label="Texto — Curso de Pizza">
                 <RichText
-                  content={getText(
-                    "courses-s2-body",
-                    "Turmas em dias selecionados, com horários flexíveis e grupos reduzidos para você dominar massa, molho e o ponto perfeito no forno.",
-                  )}
+                  content={getText("courses-s2-body")}
                   className="text-muted-foreground leading-relaxed text-sm md:text-base"
                 />
               </EditableWrapper>
@@ -361,7 +338,7 @@ function CoursesPage() {
                 <RichText
                   as="h2"
                   inline
-                  content={getText("courses-s3-title", "Dona Rosa em casa")}
+                  content={getText("courses-s3-title")}
                   className="text-3xl md:text-4xl text-foreground"
                 />
               </EditableWrapper>
@@ -369,16 +346,13 @@ function CoursesPage() {
                 <RichText
                   as="p"
                   inline
-                  content={getText("courses-s3-subtitle", "Leve a pizzaria Dona Rosa para seu evento!")}
+                  content={getText("courses-s3-subtitle")}
                   className="text-lg text-secondary font-medium"
                 />
               </EditableWrapper>
               <EditableWrapper id="courses-s3-body" type="textarea" label="Texto — Dona Rosa em Casa">
                 <RichText
-                  content={getText(
-                    "courses-s3-body",
-                    "Oferecemos experiência completa com forno e equipe no local — ideal para festas, celebrações e encontros com sabor de verdade.",
-                  )}
+                  content={getText("courses-s3-body")}
                   className="text-muted-foreground leading-relaxed text-sm md:text-base"
                 />
               </EditableWrapper>
@@ -410,7 +384,7 @@ function CoursesPage() {
         className="bg-background py-16 md:py-24 scroll-mt-[120px]"
       >
         <div className="container mx-auto px-4 max-w-lg">
-          <RegistrationFormCard formTitle={getText("courses-form-title", "Inscreva-se!")} />
+          <RegistrationFormCard formTitle={getText("courses-form-title")} />
         </div>
       </section>
 

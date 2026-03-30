@@ -5,12 +5,10 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
 import { BrandAlecrim, BrandTomilho, BrandTrigo } from "@/components/BrandAccents";
-
-const DEFAULT_PIZZA_NOTES = {
-  extra: "Cobertura extra R$ 21,00",
-  slices: "Nossa pizza 8 pedaços",
-  flour: "Todas as pizzas são feitas com farinha integral.",
-};
+import { useAdminMirrorEmbed } from "@/contexts/AdminMirrorEmbedContext";
+import { useCmsContents } from "@/hooks/useCmsContent";
+import { LoadingScreen } from "@/components/LoadingScreen";
+import { cn } from "@/lib/utils";
 
 function formatCurrency(value: number) {
   return `R$ ${value.toFixed(2)}`;
@@ -20,18 +18,19 @@ function isWineCategory(category: { name: string; slug: string }) {
   return /vinho/i.test(`${category.name} ${category.slug}`);
 }
 
-function isPizzaCategory(category: { name: string; slug: string; has_pizza_size_pricing?: boolean }) {
-  if (category.has_pizza_size_pricing) {
-    return true;
-  }
-  return /pizza/i.test(`${category.name} ${category.slug}`) && /(tradicional|vegana|pizza)/i.test(`${category.name} ${category.slug}`);
+function isPizzaCategory(category: { has_pizza_size_pricing?: boolean | null }) {
+  return !!category.has_pizza_size_pricing;
 }
 
 const CardapioPage = () => {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const categoryRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const isEmbed = useAdminMirrorEmbed();
+  const { getText } = useCmsContents(["cardapio-hero-title", "cardapio-hero-subtitle"], "cardapio");
+  const heroTitle = getText("cardapio-hero-title");
+  const heroSubtitle = getText("cardapio-hero-subtitle");
 
-  const { data: categories } = useQuery({
+  const { data: categories, isPending: categoriesPending } = useQuery({
     queryKey: ["public-categories"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -44,7 +43,7 @@ const CardapioPage = () => {
     },
   });
 
-  const { data: products } = useQuery({
+  const { data: products, isPending: productsPending } = useQuery({
     queryKey: ["public-products"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -56,6 +55,8 @@ const CardapioPage = () => {
       return data;
     },
   });
+
+  const showLoader = categoriesPending || productsPending;
 
   const groupedProducts = (categories ?? []).map((cat) => ({
     category: cat,
@@ -100,21 +101,31 @@ const CardapioPage = () => {
     return () => observer.disconnect();
   }, [groupedProducts]);
 
+  if (showLoader) {
+    return <LoadingScreen message="Carregando cardápio…" />;
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
 
-      {/* Hero banner */}
-      <div className="pt-16 section-paper">
-        <div className="container mx-auto px-4 py-12 md:py-16 text-center relative overflow-hidden">
-          <BrandAlecrim className="absolute left-0 top-0 h-32 opacity-20 hidden lg:block" />
-          <BrandTomilho className="absolute right-0 bottom-0 h-28 opacity-20 hidden lg:block" />
-          <BrandTrigo className="absolute right-8 top-1/2 h-24 w-auto -translate-y-1/2 opacity-[0.14] hidden xl:block" />
+      {/* Hero banner — textos em page_contents (page_key cardápio) */}
+      <div className={cn("section-paper", isEmbed ? "pt-0" : "pt-16")}>
+        <div className="container relative mx-auto overflow-hidden px-4 py-12 text-center md:py-16">
+          <BrandAlecrim className="absolute left-0 top-0 hidden h-32 opacity-20 lg:block" />
+          <BrandTomilho className="absolute bottom-0 right-0 hidden h-28 opacity-20 lg:block" />
+          <BrandTrigo className="absolute right-8 top-1/2 hidden h-24 w-auto -translate-y-1/2 opacity-[0.14] xl:block" />
           <div className="relative z-10">
-          <h1 className="text-4xl md:text-5xl font-bold text-secondary mb-3">Nosso Cardápio</h1>
-          <p className="text-muted-foreground max-w-xl mx-auto">
-            Pratos preparados com ingredientes selecionados e muito carinho artesanal.
-          </p>
+            {heroTitle ? (
+              <h1 className="mb-3 text-4xl font-bold text-secondary md:text-5xl">{heroTitle}</h1>
+            ) : (
+              <h1 className="mb-3 min-h-[2.5rem] text-4xl font-bold text-secondary md:text-5xl">&nbsp;</h1>
+            )}
+            {heroSubtitle ? (
+              <p className="mx-auto max-w-xl text-muted-foreground">{heroSubtitle}</p>
+            ) : (
+              <p className="mx-auto min-h-[1.25rem] max-w-xl text-muted-foreground">&nbsp;</p>
+            )}
           </div>
         </div>
       </div>
@@ -224,16 +235,18 @@ function PizzaCategoryFooter({
     footer_note_flour?: string | null;
   };
 }) {
-  const lines = [
-    category.footer_note_extra || DEFAULT_PIZZA_NOTES.extra,
-    category.footer_note_slices || DEFAULT_PIZZA_NOTES.slices,
-    category.footer_note_flour || DEFAULT_PIZZA_NOTES.flour,
-  ].filter(Boolean);
+  const lines = [category.footer_note_extra, category.footer_note_slices, category.footer_note_flour].filter(
+    (line): line is string => !!line?.trim(),
+  );
+
+  if (lines.length === 0) {
+    return null;
+  }
 
   return (
-    <div className="max-w-2xl mx-auto mt-6 pt-4 border-t border-border/60">
+    <div className="mx-auto mt-6 max-w-2xl border-t border-border/60 pt-4">
       {lines.map((line) => (
-        <p key={line} className="text-xs text-muted-foreground text-center leading-relaxed">
+        <p key={line} className="text-center text-xs leading-relaxed text-muted-foreground">
           {line}
         </p>
       ))}

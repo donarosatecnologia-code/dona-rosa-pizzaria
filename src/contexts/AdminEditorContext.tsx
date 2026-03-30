@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useRef, ReactNode } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,6 +18,8 @@ interface AdminEditorContextType {
   editingTarget: EditingTarget | null;
   openEditor: (target: EditingTarget) => void;
   closeEditor: () => void;
+  registerSaveDraftHandler: (fn: (() => Promise<void>) | null) => void;
+  requestSaveDraft: () => Promise<void>;
 }
 
 const AdminEditorContext = createContext<AdminEditorContextType>({
@@ -26,6 +28,8 @@ const AdminEditorContext = createContext<AdminEditorContextType>({
   editingTarget: null,
   openEditor: () => {},
   closeEditor: () => {},
+  registerSaveDraftHandler: () => {},
+  requestSaveDraft: async () => {},
 });
 
 export const useAdminEditor = () => useContext(AdminEditorContext);
@@ -33,6 +37,15 @@ export const useAdminEditor = () => useContext(AdminEditorContext);
 export function AdminEditorProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [editingTarget, setEditingTarget] = useState<EditingTarget | null>(null);
+  const saveDraftHandlerRef = useRef<(() => Promise<void>) | null>(null);
+
+  const registerSaveDraftHandler = useCallback((fn: (() => Promise<void>) | null) => {
+    saveDraftHandlerRef.current = fn;
+  }, []);
+
+  const requestSaveDraft = useCallback(async () => {
+    await saveDraftHandlerRef.current?.();
+  }, []);
 
   const { data: isAdmin } = useQuery({
     queryKey: ["is-admin", user?.id],
@@ -61,6 +74,8 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
         editingTarget,
         openEditor,
         closeEditor,
+        registerSaveDraftHandler,
+        requestSaveDraft,
       }}
     >
       {children}

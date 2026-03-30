@@ -1,6 +1,7 @@
 import { useRef, useCallback } from "react";
 import { Pencil } from "lucide-react";
 import { useAdminEditor, EditingTarget } from "@/contexts/AdminEditorContext";
+import { useAdminMirrorSurface } from "@/hooks/useAdminMirrorSurface";
 
 interface EditableWrapperProps {
   id: string;
@@ -11,11 +12,11 @@ interface EditableWrapperProps {
 }
 
 /**
- * Wraps any element on the public site. When admin is logged in,
- * shows a pencil icon on hover. Clicking opens the editor sidebar.
+ * No site público: apenas children. No admin (espelho): lápis abre o painel lateral.
  */
 const EditableWrapper = ({ id, type, label, children, className }: EditableWrapperProps) => {
-  const { isAdmin, openEditor } = useAdminEditor();
+  const { openEditor } = useAdminEditor();
+  const mirrorSurface = useAdminMirrorSurface();
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   const handleClick = useCallback(
@@ -55,7 +56,7 @@ const EditableWrapper = ({ id, type, label, children, className }: EditableWrapp
     [id, type, label, openEditor]
   );
 
-  if (!isAdmin) {
+  if (!mirrorSurface) {
     return <>{children}</>;
   }
 

@@ -264,6 +264,7 @@ const AdminCardapio = () => {
                           <ProductRow
                             key={p.id}
                             product={p}
+                            category={cat}
                             isWineCategory={isWineCategory(cat)}
                             onDelete={() => deleteProductMutation.mutate(p.id)}
                             onUpdate={(data) => updateProductMutation.mutate({ id: p.id, ...data })}
@@ -602,10 +603,12 @@ function NewProductInlineForm({
 
 function ProductRow({
   product,
+  category,
   isWineCategory,
   onDelete,
   onUpdate,
 }: {
+  category: { has_pizza_size_pricing?: boolean | null };
   product: {
     id: number;
     name: string;
@@ -762,7 +765,14 @@ function ProductRow({
             {product.price_carafe !== null && product.price_carafe !== undefined && <div>Jarra: R$ {product.price_carafe.toFixed(2)}</div>}
           </div>
         ) : (
-          <span className="text-sm">R$ {product.price.toFixed(2)}</span>
+          <div>
+            <span className="text-sm">R$ {product.price.toFixed(2)}</span>
+            {category.has_pizza_size_pricing && !product.is_house_wine && (
+              <p className="mt-1 text-[10px] text-muted-foreground">
+                Broto 80%: R$ {(product.price * 0.8).toFixed(2)} · Mini 65%: R$ {(product.price * 0.65).toFixed(2)}
+              </p>
+            )}
+          </div>
         )}
       </td>
       <td className="px-4 py-2 text-right space-x-1">
