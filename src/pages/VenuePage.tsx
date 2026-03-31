@@ -5,7 +5,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
 import EditableWrapper from "@/components/EditableWrapper";
-import { BrandAlecrim, BrandLinhaDecorativa } from "@/components/BrandAccents";
+import { BrandAlecrim, BrandLinhaDecorativa, BrandTomilho, BrandTomilhoB, BrandTrigo } from "@/components/BrandAccents";
 import RichText from "@/components/RichText";
 import { CmsPlaceholder } from "@/components/CmsPlaceholder";
 import { LoadingScreen } from "@/components/LoadingScreen";
@@ -192,7 +192,9 @@ function MenuHighlights({
   const menuTitle = getText("venue-menu-title");
 
   return (
-    <section className="py-16 md:py-24 bg-background">
+    <section className="relative overflow-hidden py-16 md:py-24 bg-background">
+      <BrandTrigo className="absolute left-2 top-8 hidden h-28 w-auto opacity-[0.16] lg:block" />
+      <BrandTomilhoB className="absolute right-4 bottom-6 hidden h-20 w-auto md:block" />
       <div className="container mx-auto px-4 max-w-6xl">
         <div className="text-center mb-10">
           <EditableWrapper id="venue-menu-title" type="text" label="Título Nosso Cardápio">
@@ -429,7 +431,9 @@ function MomentsCarousel({
   const t = getText("venue-moments-title");
 
   return (
-    <section className="section-paper py-16 md:py-24">
+    <section className="section-paper relative overflow-hidden py-16 md:py-24">
+      <BrandTomilho className="absolute right-2 top-8 hidden h-20 w-auto opacity-[0.16] lg:block" />
+      <BrandLinhaDecorativa className="absolute left-8 bottom-8 hidden h-9 w-auto opacity-[0.2] md:block" />
       <div className="container mx-auto px-4 max-w-6xl">
         <div className="text-center mb-10">
           <EditableWrapper id="venue-moments-title" type="text" label="Título Momentos">
@@ -457,7 +461,9 @@ function CustomerMural({
   const t = getText("venue-customers-title");
 
   return (
-    <section className="py-16 md:py-24 bg-background">
+    <section className="relative overflow-hidden py-16 md:py-24 bg-background">
+      <BrandAlecrim className="absolute left-0 bottom-10 hidden h-24 w-auto opacity-[0.2] lg:block" />
+      <BrandTomilhoB className="absolute right-8 top-10 hidden h-16 w-auto md:block" />
       <div className="container mx-auto px-4 max-w-6xl">
         <div className="text-center mb-10">
           <EditableWrapper id="venue-customers-title" type="text" label="Título Nossos Clientes">

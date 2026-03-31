@@ -81,7 +81,7 @@ const Fotos = () => {
             {galleryImages.length === 0 ? (
               <CmsPlaceholder label="Galeria sem imagens publicadas" className="max-w-5xl mx-auto" />
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-5xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-5xl mx-auto">
                 {visibleImages.map((img, i) => (
                   <button
                     key={`${img.src}-${i}`}

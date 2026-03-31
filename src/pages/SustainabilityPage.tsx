@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { BrandAlecrim, BrandTrigo } from "@/components/BrandAccents";
+import { BrandAlecrim, BrandLinhaDecorativa, BrandTomilho, BrandTomilhoB, BrandTrigo } from "@/components/BrandAccents";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
@@ -183,7 +183,10 @@ function SustainabilityGrid({
   const s2Title = getText("sustain-s2-title");
 
   return (
-    <section className="bg-background py-16 md:py-24">
+    <section className="relative overflow-hidden bg-background py-16 md:py-24">
+      <BrandTomilho className="absolute left-2 top-10 hidden h-24 w-auto opacity-[0.16] lg:block" />
+      <BrandTomilhoB className="absolute right-6 bottom-10 hidden h-16 w-auto md:block" />
+      <BrandLinhaDecorativa className="absolute right-10 top-8 hidden h-9 w-auto opacity-[0.18] md:block" />
       <div className="container mx-auto px-4 max-w-6xl">
         <div className="text-center max-w-3xl mx-auto mb-12">
           <EditableWrapper id="sustain-s2-title" type="text" label="Título — Sustentabilidade">

@@ -29,6 +29,44 @@ function isWineCategory(category: { name: string; slug: string }) {
   return /vinho/i.test(`${category.name} ${category.slug}`);
 }
 
+type PizzaPricingMode = "percentage" | "fixed";
+
+function parseOptionalNumber(value: string) {
+  if (!value.trim()) {
+    return null;
+  }
+  const parsed = Number.parseFloat(value);
+  if (Number.isNaN(parsed)) {
+    return Number.NaN;
+  }
+  return parsed;
+}
+
+function resolvePizzaSizePrice({
+  basePrice,
+  isEnabled,
+  mode,
+  percentage,
+  fixedPrice,
+  fallbackPercentage,
+}: {
+  basePrice: number;
+  isEnabled: boolean;
+  mode: PizzaPricingMode;
+  percentage: number | null;
+  fixedPrice: number | null;
+  fallbackPercentage: number;
+}) {
+  if (!isEnabled) {
+    return null;
+  }
+  if (mode === "fixed") {
+    return fixedPrice ?? null;
+  }
+  const pct = percentage ?? fallbackPercentage;
+  return basePrice * (pct / 100);
+}
+
 const AdminCardapio = () => {
   const queryClient = useQueryClient();
   const [showCategoryForm, setShowCategoryForm] = useState(false);
@@ -137,6 +175,14 @@ const AdminCardapio = () => {
       price_glass?: number | null;
       price_half_carafe?: number | null;
       price_carafe?: number | null;
+      pizza_has_broto?: boolean;
+      pizza_broto_pricing_mode?: PizzaPricingMode;
+      pizza_broto_percentage?: number | null;
+      pizza_broto_fixed_price?: number | null;
+      pizza_has_mini?: boolean;
+      pizza_mini_pricing_mode?: PizzaPricingMode;
+      pizza_mini_percentage?: number | null;
+      pizza_mini_fixed_price?: number | null;
     }) => {
       const catProducts = (products ?? []).filter((p) => p.category_id === product.category_id);
       const maxOrder = catProducts.reduce((max, p) => Math.max(max, p.sort_order), 0);
@@ -145,9 +191,16 @@ const AdminCardapio = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      queryClient.invalidateQueries({ queryKey: ["public-products"] });
       toast.success("Produto adicionado!");
     },
-    onError: () => toast.error("Erro ao criar produto"),
+    onError: (error: Error) => {
+      if (error.message.includes("Could not find the")) {
+        toast.error(`Erro de schema no Supabase: ${error.message}`);
+        return;
+      }
+      toast.error(error.message || "Erro ao criar produto");
+    },
   });
 
   const updateProductMutation = useMutation({
@@ -164,13 +217,29 @@ const AdminCardapio = () => {
       price_glass?: number | null;
       price_half_carafe?: number | null;
       price_carafe?: number | null;
+      pizza_has_broto?: boolean;
+      pizza_broto_pricing_mode?: PizzaPricingMode;
+      pizza_broto_percentage?: number | null;
+      pizza_broto_fixed_price?: number | null;
+      pizza_has_mini?: boolean;
+      pizza_mini_pricing_mode?: PizzaPricingMode;
+      pizza_mini_percentage?: number | null;
+      pizza_mini_fixed_price?: number | null;
     }) => {
       const { error } = await supabase.from("products").update(data).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      queryClient.invalidateQueries({ queryKey: ["public-products"] });
       toast.success("Produto atualizado!");
+    },
+    onError: (error: Error) => {
+      if (error.message.includes("Could not find the")) {
+        toast.error(`Erro de schema no Supabase: ${error.message}`);
+        return;
+      }
+      toast.error(error.message || "Erro ao atualizar produto");
     },
   });
 
@@ -181,8 +250,10 @@ const AdminCardapio = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      queryClient.invalidateQueries({ queryKey: ["public-products"] });
       toast.success("Produto removido!");
     },
+    onError: (error: Error) => toast.error(error.message || "Erro ao remover produto"),
   });
 
   return (
@@ -267,7 +338,7 @@ const AdminCardapio = () => {
                             category={cat}
                             isWineCategory={isWineCategory(cat)}
                             onDelete={() => deleteProductMutation.mutate(p.id)}
-                            onUpdate={(data) => updateProductMutation.mutate({ id: p.id, ...data })}
+                            onUpdate={(data) => updateProductMutation.mutateAsync({ id: p.id, ...data })}
                           />
                         ))}
                       </tbody>
@@ -331,7 +402,7 @@ function NewCategoryForm({
           onChange={(e) => setHasPizzaSizePricing(e.target.checked)}
           className="rounded border-input"
         />
-        Ativar cálculo automático de Pizza Broto (80%) e Mini (65%)
+        Categoria de pizzas com tamanhos configuráveis por item (Grande/Broto/Mini)
       </label>
       {hasPizzaSizePricing && (
         <div className="grid grid-cols-1 gap-2">
@@ -420,7 +491,7 @@ function CategoryEditRow({
           onChange={(e) => setHasPizzaSizePricing(e.target.checked)}
           className="rounded border-input"
         />
-        Ativar cálculo de tamanhos de pizza
+        Categoria de pizzas com tamanhos configuráveis por item
       </label>
       {hasPizzaSizePricing && (
         <div className="mt-2 grid grid-cols-1 gap-2">
@@ -458,7 +529,7 @@ function NewProductInlineForm({
   category,
   onSubmit,
 }: {
-  category: { id: number; name: string; slug: string };
+  category: { id: number; name: string; slug: string; has_pizza_size_pricing?: boolean | null };
   onSubmit: (p: {
     name: string;
     price: number;
@@ -470,6 +541,14 @@ function NewProductInlineForm({
     price_glass?: number | null;
     price_half_carafe?: number | null;
     price_carafe?: number | null;
+    pizza_has_broto?: boolean;
+    pizza_broto_pricing_mode?: PizzaPricingMode;
+    pizza_broto_percentage?: number | null;
+    pizza_broto_fixed_price?: number | null;
+    pizza_has_mini?: boolean;
+    pizza_mini_pricing_mode?: PizzaPricingMode;
+    pizza_mini_percentage?: number | null;
+    pizza_mini_fixed_price?: number | null;
   }) => void;
 }) {
   const [show, setShow] = useState(false);
@@ -481,8 +560,17 @@ function NewProductInlineForm({
   const [priceGlass, setPriceGlass] = useState("");
   const [priceHalfCarafe, setPriceHalfCarafe] = useState("");
   const [priceCarafe, setPriceCarafe] = useState("");
+  const [pizzaHasBroto, setPizzaHasBroto] = useState(true);
+  const [pizzaBrotoMode, setPizzaBrotoMode] = useState<PizzaPricingMode>("percentage");
+  const [pizzaBrotoPercentage, setPizzaBrotoPercentage] = useState("80");
+  const [pizzaBrotoFixedPrice, setPizzaBrotoFixedPrice] = useState("");
+  const [pizzaHasMini, setPizzaHasMini] = useState(true);
+  const [pizzaMiniMode, setPizzaMiniMode] = useState<PizzaPricingMode>("percentage");
+  const [pizzaMiniPercentage, setPizzaMiniPercentage] = useState("65");
+  const [pizzaMiniFixedPrice, setPizzaMiniFixedPrice] = useState("");
 
   const isWine = isWineCategory(category);
+  const isPizza = !!category.has_pizza_size_pricing;
 
   if (!show) {
     return (
@@ -508,6 +596,10 @@ function NewProductInlineForm({
               const parsedGlass = priceGlass ? parseFloat(priceGlass) : null;
               const parsedHalf = priceHalfCarafe ? parseFloat(priceHalfCarafe) : null;
               const parsedCarafe = priceCarafe ? parseFloat(priceCarafe) : null;
+              const parsedBrotoPercentage = parseOptionalNumber(pizzaBrotoPercentage);
+              const parsedBrotoFixedPrice = parseOptionalNumber(pizzaBrotoFixedPrice);
+              const parsedMiniPercentage = parseOptionalNumber(pizzaMiniPercentage);
+              const parsedMiniFixedPrice = parseOptionalNumber(pizzaMiniFixedPrice);
               if (isWine && isHouseWine && parsedGlass === null && parsedHalf === null && parsedCarafe === null) {
                 toast.error("Para vinho da casa, preencha ao menos Taça, Meia Jarra ou Jarra.");
                 return;
@@ -518,6 +610,30 @@ function NewProductInlineForm({
                   return;
                 }
               }
+              if (isPizza) {
+                if (pizzaHasBroto) {
+                  if (pizzaBrotoMode === "percentage") {
+                    if (parsedBrotoPercentage === null || Number.isNaN(parsedBrotoPercentage) || parsedBrotoPercentage < 0) {
+                      toast.error("Preencha uma porcentagem válida para Pizza Broto.");
+                      return;
+                    }
+                  } else if (parsedBrotoFixedPrice === null || Number.isNaN(parsedBrotoFixedPrice) || parsedBrotoFixedPrice < 0) {
+                    toast.error("Preencha um valor fixo válido para Pizza Broto.");
+                    return;
+                  }
+                }
+                if (pizzaHasMini) {
+                  if (pizzaMiniMode === "percentage") {
+                    if (parsedMiniPercentage === null || Number.isNaN(parsedMiniPercentage) || parsedMiniPercentage < 0) {
+                      toast.error("Preencha uma porcentagem válida para Mini Pizza.");
+                      return;
+                    }
+                  } else if (parsedMiniFixedPrice === null || Number.isNaN(parsedMiniFixedPrice) || parsedMiniFixedPrice < 0) {
+                    toast.error("Preencha um valor fixo válido para Mini Pizza.");
+                    return;
+                  }
+                }
+              }
               const basePrice = isWine && isHouseWine
                 ? (parsedCarafe ?? parsedHalf ?? parsedGlass ?? (Number.isNaN(parsedPrice) ? null : parsedPrice))
                 : parsedPrice;
@@ -525,7 +641,7 @@ function NewProductInlineForm({
                 toast.error("Não foi possível calcular o preço base do item.");
                 return;
               }
-              onSubmit({
+              const productPayload = {
                 name,
                 price: basePrice,
                 category_id: category.id,
@@ -536,7 +652,28 @@ function NewProductInlineForm({
                 price_glass: isWine && isHouseWine ? parsedGlass : null,
                 price_half_carafe: isWine && isHouseWine ? parsedHalf : null,
                 price_carafe: isWine && isHouseWine ? parsedCarafe : null,
-              });
+                ...(isPizza
+                  ? {
+                      pizza_has_broto: pizzaHasBroto,
+                      pizza_broto_pricing_mode: pizzaBrotoMode,
+                      pizza_has_mini: pizzaHasMini,
+                      pizza_mini_pricing_mode: pizzaMiniMode,
+                      ...(pizzaHasBroto && pizzaBrotoMode === "percentage"
+                        ? { pizza_broto_percentage: parsedBrotoPercentage }
+                        : {}),
+                      ...(pizzaHasBroto && pizzaBrotoMode === "fixed"
+                        ? { pizza_broto_fixed_price: parsedBrotoFixedPrice }
+                        : {}),
+                      ...(pizzaHasMini && pizzaMiniMode === "percentage"
+                        ? { pizza_mini_percentage: parsedMiniPercentage }
+                        : {}),
+                      ...(pizzaHasMini && pizzaMiniMode === "fixed"
+                        ? { pizza_mini_fixed_price: parsedMiniFixedPrice }
+                        : {}),
+                    }
+                  : {}),
+              };
+              onSubmit(productPayload);
               setName("");
               setPrice("");
               setDesc("");
@@ -545,6 +682,14 @@ function NewProductInlineForm({
               setPriceGlass("");
               setPriceHalfCarafe("");
               setPriceCarafe("");
+              setPizzaHasBroto(true);
+              setPizzaBrotoMode("percentage");
+              setPizzaBrotoPercentage("80");
+              setPizzaBrotoFixedPrice("");
+              setPizzaHasMini(true);
+              setPizzaMiniMode("percentage");
+              setPizzaMiniPercentage("65");
+              setPizzaMiniFixedPrice("");
             }}
             className="btn-primary-dr text-xs px-3"
           >
@@ -597,6 +742,99 @@ function NewProductInlineForm({
           )}
         </div>
       )}
+      {isPizza && (
+        <div className="mt-2 rounded-md border border-border bg-background p-3">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-primary">
+            Configuração por tamanho (item)
+          </p>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="rounded-md border border-border p-2">
+              <label className="flex items-center gap-2 text-xs font-medium text-foreground">
+                <input
+                  type="checkbox"
+                  checked={pizzaHasBroto}
+                  onChange={(e) => setPizzaHasBroto(e.target.checked)}
+                  className="rounded border-input"
+                />
+                Tem Pizza Broto?
+              </label>
+              {pizzaHasBroto && (
+                <div className="mt-2 space-y-2">
+                  <select
+                    value={pizzaBrotoMode}
+                    onChange={(e) => setPizzaBrotoMode(e.target.value as PizzaPricingMode)}
+                    className="w-full rounded border border-input px-2 py-1 text-xs"
+                  >
+                    <option value="percentage">Cálculo por porcentagem</option>
+                    <option value="fixed">Valor fixo</option>
+                  </select>
+                  {pizzaBrotoMode === "percentage" ? (
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={pizzaBrotoPercentage}
+                      onChange={(e) => setPizzaBrotoPercentage(e.target.value)}
+                      placeholder="% da Pizza Grande"
+                      className="w-full rounded border border-input px-2 py-1 text-xs"
+                    />
+                  ) : (
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={pizzaBrotoFixedPrice}
+                      onChange={(e) => setPizzaBrotoFixedPrice(e.target.value)}
+                      placeholder="Valor fixo da Broto"
+                      className="w-full rounded border border-input px-2 py-1 text-xs"
+                    />
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="rounded-md border border-border p-2">
+              <label className="flex items-center gap-2 text-xs font-medium text-foreground">
+                <input
+                  type="checkbox"
+                  checked={pizzaHasMini}
+                  onChange={(e) => setPizzaHasMini(e.target.checked)}
+                  className="rounded border-input"
+                />
+                Tem Mini Pizza?
+              </label>
+              {pizzaHasMini && (
+                <div className="mt-2 space-y-2">
+                  <select
+                    value={pizzaMiniMode}
+                    onChange={(e) => setPizzaMiniMode(e.target.value as PizzaPricingMode)}
+                    className="w-full rounded border border-input px-2 py-1 text-xs"
+                  >
+                    <option value="percentage">Cálculo por porcentagem</option>
+                    <option value="fixed">Valor fixo</option>
+                  </select>
+                  {pizzaMiniMode === "percentage" ? (
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={pizzaMiniPercentage}
+                      onChange={(e) => setPizzaMiniPercentage(e.target.value)}
+                      placeholder="% da Pizza Grande"
+                      className="w-full rounded border border-input px-2 py-1 text-xs"
+                    />
+                  ) : (
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={pizzaMiniFixedPrice}
+                      onChange={(e) => setPizzaMiniFixedPrice(e.target.value)}
+                      placeholder="Valor fixo da Mini"
+                      className="w-full rounded border border-input px-2 py-1 text-xs"
+                    />
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -619,6 +857,14 @@ function ProductRow({
     price_glass?: number | null;
     price_half_carafe?: number | null;
     price_carafe?: number | null;
+    pizza_has_broto?: boolean;
+    pizza_broto_pricing_mode?: PizzaPricingMode;
+    pizza_broto_percentage?: number | null;
+    pizza_broto_fixed_price?: number | null;
+    pizza_has_mini?: boolean;
+    pizza_mini_pricing_mode?: PizzaPricingMode;
+    pizza_mini_percentage?: number | null;
+    pizza_mini_fixed_price?: number | null;
     categories: { name: string } | null;
   };
   isWineCategory: boolean;
@@ -632,7 +878,15 @@ function ProductRow({
     price_glass?: number | null;
     price_half_carafe?: number | null;
     price_carafe?: number | null;
-  }) => void;
+    pizza_has_broto?: boolean;
+    pizza_broto_pricing_mode?: PizzaPricingMode;
+    pizza_broto_percentage?: number | null;
+    pizza_broto_fixed_price?: number | null;
+    pizza_has_mini?: boolean;
+    pizza_mini_pricing_mode?: PizzaPricingMode;
+    pizza_mini_percentage?: number | null;
+    pizza_mini_fixed_price?: number | null;
+  }) => Promise<unknown>;
 }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(product.name);
@@ -643,6 +897,16 @@ function ProductRow({
   const [priceGlass, setPriceGlass] = useState(product.price_glass?.toString() || "");
   const [priceHalfCarafe, setPriceHalfCarafe] = useState(product.price_half_carafe?.toString() || "");
   const [priceCarafe, setPriceCarafe] = useState(product.price_carafe?.toString() || "");
+  const [pizzaHasBroto, setPizzaHasBroto] = useState(product.pizza_has_broto ?? true);
+  const [pizzaBrotoMode, setPizzaBrotoMode] = useState<PizzaPricingMode>(product.pizza_broto_pricing_mode ?? "percentage");
+  const [pizzaBrotoPercentage, setPizzaBrotoPercentage] = useState(product.pizza_broto_percentage?.toString() || "80");
+  const [pizzaBrotoFixedPrice, setPizzaBrotoFixedPrice] = useState(product.pizza_broto_fixed_price?.toString() || "");
+  const [pizzaHasMini, setPizzaHasMini] = useState(product.pizza_has_mini ?? true);
+  const [pizzaMiniMode, setPizzaMiniMode] = useState<PizzaPricingMode>(product.pizza_mini_pricing_mode ?? "percentage");
+  const [pizzaMiniPercentage, setPizzaMiniPercentage] = useState(product.pizza_mini_percentage?.toString() || "65");
+  const [pizzaMiniFixedPrice, setPizzaMiniFixedPrice] = useState(product.pizza_mini_fixed_price?.toString() || "");
+
+  const isPizzaCategory = !!category.has_pizza_size_pricing;
 
   if (editing) {
     return (
@@ -694,6 +958,51 @@ function ProductRow({
               )}
             </div>
           )}
+          {isPizzaCategory && (
+            <div className="mt-2 space-y-2 rounded-md border border-border p-2">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-primary">Tamanhos deste item</p>
+              <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                <div className="rounded border border-border p-2">
+                  <label className="flex items-center gap-2 text-xs font-medium">
+                    <input type="checkbox" checked={pizzaHasBroto} onChange={(e) => setPizzaHasBroto(e.target.checked)} className="rounded border-input" />
+                    Tem Broto?
+                  </label>
+                  {pizzaHasBroto && (
+                    <div className="mt-2 space-y-2">
+                      <select value={pizzaBrotoMode} onChange={(e) => setPizzaBrotoMode(e.target.value as PizzaPricingMode)} className="w-full rounded border border-input px-2 py-1 text-xs">
+                        <option value="percentage">Porcentagem</option>
+                        <option value="fixed">Valor fixo</option>
+                      </select>
+                      {pizzaBrotoMode === "percentage" ? (
+                        <input value={pizzaBrotoPercentage} onChange={(e) => setPizzaBrotoPercentage(e.target.value)} type="number" step="0.01" className="w-full rounded border border-input px-2 py-1 text-xs" placeholder="% da grande" />
+                      ) : (
+                        <input value={pizzaBrotoFixedPrice} onChange={(e) => setPizzaBrotoFixedPrice(e.target.value)} type="number" step="0.01" className="w-full rounded border border-input px-2 py-1 text-xs" placeholder="Valor fixo" />
+                      )}
+                    </div>
+                  )}
+                </div>
+                <div className="rounded border border-border p-2">
+                  <label className="flex items-center gap-2 text-xs font-medium">
+                    <input type="checkbox" checked={pizzaHasMini} onChange={(e) => setPizzaHasMini(e.target.checked)} className="rounded border-input" />
+                    Tem Mini?
+                  </label>
+                  {pizzaHasMini && (
+                    <div className="mt-2 space-y-2">
+                      <select value={pizzaMiniMode} onChange={(e) => setPizzaMiniMode(e.target.value as PizzaPricingMode)} className="w-full rounded border border-input px-2 py-1 text-xs">
+                        <option value="percentage">Porcentagem</option>
+                        <option value="fixed">Valor fixo</option>
+                      </select>
+                      {pizzaMiniMode === "percentage" ? (
+                        <input value={pizzaMiniPercentage} onChange={(e) => setPizzaMiniPercentage(e.target.value)} type="number" step="0.01" className="w-full rounded border border-input px-2 py-1 text-xs" placeholder="% da grande" />
+                      ) : (
+                        <input value={pizzaMiniFixedPrice} onChange={(e) => setPizzaMiniFixedPrice(e.target.value)} type="number" step="0.01" className="w-full rounded border border-input px-2 py-1 text-xs" placeholder="Valor fixo" />
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </td>
         <td className="px-4 py-2">
           {isWineCategory && isHouseWine ? (
@@ -704,11 +1013,15 @@ function ProductRow({
         </td>
         <td className="px-4 py-2 text-right space-x-1">
           <button
-            onClick={() => {
+            onClick={async () => {
               const parsedPrice = price ? parseFloat(price) : Number.NaN;
               const parsedGlass = priceGlass ? parseFloat(priceGlass) : null;
               const parsedHalf = priceHalfCarafe ? parseFloat(priceHalfCarafe) : null;
               const parsedCarafe = priceCarafe ? parseFloat(priceCarafe) : null;
+              const parsedBrotoPercentage = parseOptionalNumber(pizzaBrotoPercentage);
+              const parsedBrotoFixedPrice = parseOptionalNumber(pizzaBrotoFixedPrice);
+              const parsedMiniPercentage = parseOptionalNumber(pizzaMiniPercentage);
+              const parsedMiniFixedPrice = parseOptionalNumber(pizzaMiniFixedPrice);
               if (isWineCategory && isHouseWine && parsedGlass === null && parsedHalf === null && parsedCarafe === null) {
                 toast.error("Para vinho da casa, preencha ao menos Taça, Meia Jarra ou Jarra.");
                 return;
@@ -719,6 +1032,30 @@ function ProductRow({
                   return;
                 }
               }
+              if (isPizzaCategory) {
+                if (pizzaHasBroto) {
+                  if (pizzaBrotoMode === "percentage") {
+                    if (parsedBrotoPercentage === null || Number.isNaN(parsedBrotoPercentage) || parsedBrotoPercentage < 0) {
+                      toast.error("Preencha uma porcentagem válida para Pizza Broto.");
+                      return;
+                    }
+                  } else if (parsedBrotoFixedPrice === null || Number.isNaN(parsedBrotoFixedPrice) || parsedBrotoFixedPrice < 0) {
+                    toast.error("Preencha um valor fixo válido para Pizza Broto.");
+                    return;
+                  }
+                }
+                if (pizzaHasMini) {
+                  if (pizzaMiniMode === "percentage") {
+                    if (parsedMiniPercentage === null || Number.isNaN(parsedMiniPercentage) || parsedMiniPercentage < 0) {
+                      toast.error("Preencha uma porcentagem válida para Mini Pizza.");
+                      return;
+                    }
+                  } else if (parsedMiniFixedPrice === null || Number.isNaN(parsedMiniFixedPrice) || parsedMiniFixedPrice < 0) {
+                    toast.error("Preencha um valor fixo válido para Mini Pizza.");
+                    return;
+                  }
+                }
+              }
               const basePrice = isWineCategory && isHouseWine
                 ? (parsedCarafe ?? parsedHalf ?? parsedGlass ?? (Number.isNaN(parsedPrice) ? null : parsedPrice))
                 : parsedPrice;
@@ -726,17 +1063,42 @@ function ProductRow({
                 toast.error("Não foi possível calcular o preço base do item.");
                 return;
               }
-              onUpdate({
-                name,
-                price: basePrice,
-                short_description: desc,
-                country_origin: isWineCategory && !isHouseWine ? (countryOrigin || null) : null,
-                is_house_wine: isWineCategory ? isHouseWine : false,
-                price_glass: isWineCategory && isHouseWine ? parsedGlass : null,
-                price_half_carafe: isWineCategory && isHouseWine ? parsedHalf : null,
-                price_carafe: isWineCategory && isHouseWine ? parsedCarafe : null,
-              });
-              setEditing(false);
+              try {
+                const updatePayload = {
+                  name,
+                  price: basePrice,
+                  short_description: desc,
+                  country_origin: isWineCategory && !isHouseWine ? (countryOrigin || null) : null,
+                  is_house_wine: isWineCategory ? isHouseWine : false,
+                  price_glass: isWineCategory && isHouseWine ? parsedGlass : null,
+                  price_half_carafe: isWineCategory && isHouseWine ? parsedHalf : null,
+                  price_carafe: isWineCategory && isHouseWine ? parsedCarafe : null,
+                  ...(isPizzaCategory
+                    ? {
+                        pizza_has_broto: pizzaHasBroto,
+                        pizza_broto_pricing_mode: pizzaBrotoMode,
+                        pizza_has_mini: pizzaHasMini,
+                        pizza_mini_pricing_mode: pizzaMiniMode,
+                        ...(pizzaHasBroto && pizzaBrotoMode === "percentage"
+                          ? { pizza_broto_percentage: parsedBrotoPercentage }
+                          : {}),
+                        ...(pizzaHasBroto && pizzaBrotoMode === "fixed"
+                          ? { pizza_broto_fixed_price: parsedBrotoFixedPrice }
+                          : {}),
+                        ...(pizzaHasMini && pizzaMiniMode === "percentage"
+                          ? { pizza_mini_percentage: parsedMiniPercentage }
+                          : {}),
+                        ...(pizzaHasMini && pizzaMiniMode === "fixed"
+                          ? { pizza_mini_fixed_price: parsedMiniFixedPrice }
+                          : {}),
+                      }
+                    : {}),
+                };
+                await onUpdate(updatePayload);
+                setEditing(false);
+              } catch {
+                // erro tratado pela mutation com toast
+              }
             }}
             className="text-primary p-1"
           >
@@ -768,9 +1130,36 @@ function ProductRow({
           <div>
             <span className="text-sm">R$ {product.price.toFixed(2)}</span>
             {category.has_pizza_size_pricing && !product.is_house_wine && (
-              <p className="mt-1 text-[10px] text-muted-foreground">
-                Broto 80%: R$ {(product.price * 0.8).toFixed(2)} · Mini 65%: R$ {(product.price * 0.65).toFixed(2)}
-              </p>
+              <div className="mt-1 space-y-1 text-[10px] text-muted-foreground">
+                {(() => {
+                  const brotoPrice = resolvePizzaSizePrice({
+                    basePrice: product.price,
+                    isEnabled: product.pizza_has_broto ?? true,
+                    mode: product.pizza_broto_pricing_mode ?? "percentage",
+                    percentage: product.pizza_broto_percentage ?? null,
+                    fixedPrice: product.pizza_broto_fixed_price ?? null,
+                    fallbackPercentage: 80,
+                  });
+                  const miniPrice = resolvePizzaSizePrice({
+                    basePrice: product.price,
+                    isEnabled: product.pizza_has_mini ?? true,
+                    mode: product.pizza_mini_pricing_mode ?? "percentage",
+                    percentage: product.pizza_mini_percentage ?? null,
+                    fixedPrice: product.pizza_mini_fixed_price ?? null,
+                    fallbackPercentage: 65,
+                  });
+                  if (brotoPrice === null && miniPrice === null) {
+                    return <p>Sem tamanhos adicionais neste item.</p>;
+                  }
+                  return (
+                    <p>
+                      {brotoPrice !== null ? `Broto: R$ ${brotoPrice.toFixed(2)}` : "Broto desativada"}
+                      {" · "}
+                      {miniPrice !== null ? `Mini: R$ ${miniPrice.toFixed(2)}` : "Mini desativada"}
+                    </p>
+                  );
+                })()}
+              </div>
             )}
           </div>
         )}
