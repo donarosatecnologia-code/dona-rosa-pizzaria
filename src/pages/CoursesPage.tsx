@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
-import { BrandAlecrim, BrandTomilhoB } from "@/components/BrandAccents";
+import { BrandAlecrim, BrandLinhaDecorativa, BrandTomilho, BrandTomilhoB, BrandTrigo } from "@/components/BrandAccents";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
@@ -284,7 +284,9 @@ function CoursesPage() {
       </section>
 
       {/* Seção 2 — liso */}
-      <section id="curso-pizza" className="bg-background py-16 md:py-24">
+      <section id="curso-pizza" className="relative overflow-hidden bg-background py-16 md:py-24">
+        <BrandTrigo className="absolute left-0 top-10 hidden h-28 w-auto opacity-[0.16] lg:block" />
+        <BrandTomilho className="absolute right-2 bottom-8 hidden h-20 w-auto opacity-[0.18] lg:block" />
         <div className="container mx-auto px-4 max-w-6xl">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
             <div className="md:order-1">
@@ -335,7 +337,9 @@ function CoursesPage() {
       </section>
 
       {/* Seção 3 — papel */}
-      <section id="dona-rosa-em-casa" className="section-paper py-16 md:py-24">
+      <section id="dona-rosa-em-casa" className="section-paper relative overflow-hidden py-16 md:py-24">
+        <BrandLinhaDecorativa className="absolute right-6 top-8 hidden h-10 w-auto opacity-[0.2] md:block" />
+        <BrandAlecrim className="absolute left-2 bottom-8 hidden h-24 w-auto opacity-[0.2] lg:block" />
         <div className="container mx-auto px-4 max-w-6xl">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
             <div className="space-y-4">
@@ -386,8 +390,10 @@ function CoursesPage() {
       {/* Seção 4 — formulário (liso) */}
       <section
         id="inscricao"
-        className="bg-background py-16 md:py-24 scroll-mt-[120px]"
+        className="relative overflow-hidden bg-background py-16 md:py-24 scroll-mt-[120px]"
       >
+        <BrandTomilhoB className="absolute right-8 top-8 hidden h-20 w-auto md:block" />
+        <BrandLinhaDecorativa className="absolute left-8 bottom-10 hidden h-9 w-auto opacity-[0.22] md:block" />
         <div className="container mx-auto px-4 max-w-lg">
           <RegistrationFormCard formTitle={getText("courses-form-title")} />
         </div>

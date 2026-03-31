@@ -72,7 +72,7 @@ const Footer = () => {
     .sort((a, b) => a.sort_order - b.sort_order);
 
   return (
-    <footer className="bg-foreground text-primary-foreground py-12">
+    <footer className="bg-foreground py-12 text-primary-foreground">
       <div className="container mx-auto px-4">
         <BrandFooterAccent />
         <div className="mb-10 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">

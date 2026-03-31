@@ -4,7 +4,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
 import EditableWrapper from "@/components/EditableWrapper";
-import { BrandAlecrim, BrandTomilho, BrandTrigo } from "@/components/BrandAccents";
+import { BrandAlecrim, BrandTomilhoB, BrandTrigo } from "@/components/BrandAccents";
 import { CmsPlaceholder } from "@/components/CmsPlaceholder";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { useSiteShellReady } from "@/hooks/useSiteShellReady";
@@ -138,7 +138,6 @@ const QuemSomosPage = () => {
       <section className="section-paper relative pt-28 pb-16 md:pt-36 md:pb-24 overflow-hidden">
         <BrandAlecrim className="absolute top-16 left-2 w-20 md:w-28 opacity-25" />
         <BrandTrigo className="absolute top-10 right-2 w-16 md:w-24 opacity-20" />
-        <BrandTomilho className="absolute bottom-6 left-1/3 w-14 md:w-20 opacity-15" />
 
         <div className="container mx-auto px-4 max-w-3xl text-center relative z-10">
           <EditableWrapper id="qs-hero-subtitle" type="text" label="Subtítulo Hero">
@@ -235,7 +234,8 @@ const QuemSomosPage = () => {
         </section>
       ))}
 
-      <section className="section-paper py-16 md:py-24">
+      <section className="section-paper relative overflow-hidden py-16 md:py-24">
+        <BrandTomilhoB className="absolute right-4 top-6 h-24 w-auto hidden md:block" />
         <div className="container mx-auto px-4 max-w-5xl">
           <div className="text-center mb-10">
             <EditableWrapper id="qs-brindar-title" type="text" label="Título Para Começar e Brindar">

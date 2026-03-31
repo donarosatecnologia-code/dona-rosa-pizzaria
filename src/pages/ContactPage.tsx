@@ -293,11 +293,7 @@ function ContactPage() {
         </div>
       </section>
 
-      <section className="relative overflow-hidden bg-background py-16 md:py-24">
-        <BrandTomilhoB className="absolute left-0 top-1/2 h-32 w-auto -translate-y-1/2 opacity-[0.14] hidden lg:block xl:h-40" />
-        <BrandTrigo className="absolute right-2 top-1/2 h-36 w-auto -translate-y-1/2 opacity-[0.14] hidden lg:block xl:right-6 xl:h-44" />
-        <BrandAlecrim className="absolute left-1/3 bottom-4 h-28 w-auto opacity-[0.1] hidden xl:block" />
-        <BrandLinhaDecorativa className="absolute right-10 top-8 h-8 w-auto max-w-[9rem] opacity-[0.18] rotate-3 hidden xl:block" />
+      <section className="bg-background py-16 md:py-24">
         <div className="container relative z-10 mx-auto max-w-3xl px-4 text-center">
           <EditableWrapper id="contact-s2-title" type="text" label="Título — Reserve sua mesa">
             <RichText

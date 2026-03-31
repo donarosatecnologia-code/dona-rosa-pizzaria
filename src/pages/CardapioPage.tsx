@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
-import { BrandAlecrim, BrandTomilho, BrandTrigo } from "@/components/BrandAccents";
+import { BrandAlecrim, BrandLinhaDecorativa, BrandTomilho, BrandTrigo } from "@/components/BrandAccents";
 import { useAdminMirrorEmbed } from "@/contexts/AdminMirrorEmbedContext";
 import { useCmsContents } from "@/hooks/useCmsContent";
 import { useSiteShellReady } from "@/hooks/useSiteShellReady";
@@ -21,6 +21,31 @@ function isWineCategory(category: { name: string; slug: string }) {
 
 function isPizzaCategory(category: { has_pizza_size_pricing?: boolean | null }) {
   return !!category.has_pizza_size_pricing;
+}
+
+function resolvePizzaSizePrice({
+  basePrice,
+  isEnabled,
+  mode,
+  percentage,
+  fixedPrice,
+  fallbackPercentage,
+}: {
+  basePrice: number;
+  isEnabled: boolean;
+  mode?: string | null;
+  percentage?: number | null;
+  fixedPrice?: number | null;
+  fallbackPercentage: number;
+}) {
+  if (!isEnabled) {
+    return null;
+  }
+  if (mode === "fixed") {
+    return fixedPrice ?? null;
+  }
+  const pct = percentage ?? fallbackPercentage;
+  return basePrice * (pct / 100);
 }
 
 const CardapioPage = () => {
@@ -168,6 +193,11 @@ const CardapioPage = () => {
               ref={(el: HTMLDivElement | null) => { categoryRefs.current[group.category.slug] = el; }}
               className={`py-12 md:py-16 ${usePaper ? "section-paper" : "bg-background"} relative overflow-hidden`}
             >
+              {usePaper ? (
+                <BrandTomilho className="pointer-events-none absolute -right-3 top-8 hidden h-20 w-auto opacity-[0.16] lg:block" />
+              ) : (
+                <BrandAlecrim className="pointer-events-none absolute left-0 bottom-8 hidden h-24 w-auto opacity-[0.92] lg:block" />
+              )}
               <div className="container mx-auto px-4">
                 {/* Category title */}
                 <div className="text-center mb-10">
@@ -199,7 +229,9 @@ const CardapioPage = () => {
                         ))}
                       </div>
                     </div>
-                    <div className="hidden lg:block absolute left-1/2 top-0 bottom-0 w-px bg-border/60" />
+                    <div className="pointer-events-none absolute inset-y-0 left-1/2 hidden -translate-x-1/2 lg:flex items-center justify-center">
+                      <BrandLinhaDecorativa className="h-[78%] w-auto" />
+                    </div>
                   </div>
                 ) : (
                   <div className="max-w-2xl mx-auto">
@@ -328,11 +360,37 @@ function MenuItem({
     price_glass?: number | null;
     price_half_carafe?: number | null;
     price_carafe?: number | null;
+    pizza_has_broto?: boolean;
+    pizza_broto_pricing_mode?: string | null;
+    pizza_broto_percentage?: number | null;
+    pizza_broto_fixed_price?: number | null;
+    pizza_has_mini?: boolean;
+    pizza_mini_pricing_mode?: string | null;
+    pizza_mini_percentage?: number | null;
+    pizza_mini_fixed_price?: number | null;
   };
   showPizzaSizes: boolean;
 }) {
-  const brotoPrice = item.price * 0.8;
-  const miniPrice = item.price * 0.65;
+  const brotoPrice = resolvePizzaSizePrice({
+    basePrice: item.price,
+    isEnabled: item.pizza_has_broto ?? true,
+    mode: item.pizza_broto_pricing_mode,
+    percentage: item.pizza_broto_percentage,
+    fixedPrice: item.pizza_broto_fixed_price,
+    fallbackPercentage: 80,
+  });
+  const miniPrice = resolvePizzaSizePrice({
+    basePrice: item.price,
+    isEnabled: item.pizza_has_mini ?? true,
+    mode: item.pizza_mini_pricing_mode,
+    percentage: item.pizza_mini_percentage,
+    fixedPrice: item.pizza_mini_fixed_price,
+    fallbackPercentage: 65,
+  });
+  const pizzaSizeLines = [
+    brotoPrice !== null ? `Broto (6 pedaços): ${formatCurrency(brotoPrice)}` : null,
+    miniPrice !== null ? `Mini (4 pedaços): ${formatCurrency(miniPrice)}` : null,
+  ].filter((line): line is string => !!line);
   const hasHouseWinePrices = !!item.is_house_wine && (
     item.price_glass != null ||
     item.price_half_carafe != null ||
@@ -358,9 +416,9 @@ function MenuItem({
           </span>
         )}
       </div>
-      {showPizzaSizes && !hasHouseWinePrices && (
+      {showPizzaSizes && !hasHouseWinePrices && pizzaSizeLines.length > 0 && (
         <p className="text-xs text-muted-foreground mt-1">
-          Broto (6 pedaços): {formatCurrency(brotoPrice)} | Mini (4 pedaços): {formatCurrency(miniPrice)}
+          {pizzaSizeLines.join(" | ")}
         </p>
       )}
       {hasHouseWinePrices && (

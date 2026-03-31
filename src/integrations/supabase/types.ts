@@ -229,6 +229,14 @@ export type Database = {
           country_origin: string | null
           origin_country: string | null
           price: number
+          pizza_broto_fixed_price: number | null
+          pizza_broto_percentage: number | null
+          pizza_broto_pricing_mode: string
+          pizza_has_broto: boolean
+          pizza_has_mini: boolean
+          pizza_mini_fixed_price: number | null
+          pizza_mini_percentage: number | null
+          pizza_mini_pricing_mode: string
           price_glass: number | null
           price_half_carafe: number | null
           price_carafe: number | null
@@ -252,6 +260,14 @@ export type Database = {
           country_origin?: string | null
           origin_country?: string | null
           price: number
+          pizza_broto_fixed_price?: number | null
+          pizza_broto_percentage?: number | null
+          pizza_broto_pricing_mode?: string
+          pizza_has_broto?: boolean
+          pizza_has_mini?: boolean
+          pizza_mini_fixed_price?: number | null
+          pizza_mini_percentage?: number | null
+          pizza_mini_pricing_mode?: string
           price_glass?: number | null
           price_half_carafe?: number | null
           price_carafe?: number | null
@@ -275,6 +291,14 @@ export type Database = {
           country_origin?: string | null
           origin_country?: string | null
           price?: number
+          pizza_broto_fixed_price?: number | null
+          pizza_broto_percentage?: number | null
+          pizza_broto_pricing_mode?: string
+          pizza_has_broto?: boolean
+          pizza_has_mini?: boolean
+          pizza_mini_fixed_price?: number | null
+          pizza_mini_percentage?: number | null
+          pizza_mini_pricing_mode?: string
           price_glass?: number | null
           price_half_carafe?: number | null
           price_carafe?: number | null

@@ -34,7 +34,7 @@ const Cursos = () => {
 
   return (
     <section id="cursos" className="section-paper relative overflow-hidden py-16 md:py-24">
-      <BrandTomilhoB className="absolute left-2 top-8 h-24 w-auto opacity-[0.22] hidden lg:block" />
+      <BrandTomilhoB className="absolute left-2 top-8 h-24 w-auto hidden lg:block" />
       <BrandLinhaDecorativa className="absolute bottom-6 right-6 h-9 w-auto opacity-[0.2] rotate-12 hidden md:block" />
       <div className="container relative z-10 mx-auto px-4 max-w-5xl">
         <div className="grid md:grid-cols-2 gap-10 items-center">
