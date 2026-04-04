@@ -234,6 +234,7 @@ function CoursesPage() {
 
       {/* Seção 1 — papel */}
       <section id="espaco-gourmet" className="section-paper relative overflow-hidden pt-28 pb-16 md:pt-36 md:pb-24">
+        <BrandTomilho className="pointer-events-none absolute right-3 top-28 z-[1] h-32 w-auto max-w-[40%] object-contain drop-shadow-md lg:hidden" />
         <BrandAlecrim className="absolute left-0 top-32 h-32 w-auto opacity-[0.2] hidden lg:block" />
         <BrandTomilhoB className="absolute bottom-6 right-0 h-28 w-auto opacity-[0.18] hidden md:block" />
         <div className="container relative z-10 mx-auto px-4 max-w-6xl">

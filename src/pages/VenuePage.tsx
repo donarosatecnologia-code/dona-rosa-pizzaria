@@ -96,6 +96,7 @@ function VenueIntro({
 
   return (
     <section className="section-paper relative overflow-hidden pt-28 pb-16 md:pt-36 md:pb-24">
+      <BrandTomilhoB className="pointer-events-none absolute right-3 top-24 z-[1] h-28 w-auto max-w-[42%] object-contain drop-shadow-md lg:hidden" />
       <BrandAlecrim className="absolute left-0 top-28 h-40 w-auto opacity-[0.18] hidden lg:block" />
       <BrandLinhaDecorativa className="absolute right-4 top-1/3 h-11 w-auto opacity-15 hidden xl:block rotate-6" />
       <div className="container relative z-10 mx-auto px-4 max-w-6xl">

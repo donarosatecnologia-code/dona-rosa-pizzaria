@@ -26,6 +26,7 @@ import AdminMirrorPage from "./pages/admin/AdminMirrorPage";
 import AdminPreviewPage from "./pages/admin/AdminPreviewPage";
 import { CmsConfirmDialog } from "./components/CmsConfirmDialog";
 import { SeoShell } from "./components/SeoShell";
+import { SitePublicChrome } from "./components/SitePublicChrome";
 
 const queryClient = new QueryClient();
 
@@ -36,9 +37,11 @@ const App = () => (
       <Sonner />
       <AdminEditorProvider>
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <SitePublicChrome />
           <SeoShell />
           <CmsConfirmDialog />
-          <Routes>
+          <div className="relative z-10">
+            <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/quem-somos" element={<QuemSomosPage />} />
             <Route path="/cardapio" element={<CardapioPage />} />
@@ -66,7 +69,8 @@ const App = () => (
             </Route>
 
             <Route path="*" element={<NotFound />} />
-          </Routes>
+            </Routes>
+          </div>
         </BrowserRouter>
       </AdminEditorProvider>
     </TooltipProvider>

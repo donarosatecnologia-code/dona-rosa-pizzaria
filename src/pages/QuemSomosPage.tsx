@@ -136,8 +136,8 @@ const QuemSomosPage = () => {
       <Header />
 
       <section className="section-paper relative pt-28 pb-16 md:pt-36 md:pb-24 overflow-hidden">
-        <BrandAlecrim className="absolute top-16 left-2 w-20 md:w-28 opacity-25" />
-        <BrandTrigo className="absolute top-10 right-2 w-16 md:w-24 opacity-20" />
+        <BrandAlecrim className="pointer-events-none absolute top-16 left-2 hidden h-auto w-28 opacity-25 lg:block" />
+        <BrandTrigo className="pointer-events-none absolute right-2 top-10 z-[1] h-auto w-20 max-w-[42%] object-contain drop-shadow-md md:w-24 lg:opacity-20" />
 
         <div className="container mx-auto px-4 max-w-3xl text-center relative z-10">
           <EditableWrapper id="qs-hero-subtitle" type="text" label="Subtítulo Hero">

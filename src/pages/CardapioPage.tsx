@@ -15,6 +15,43 @@ function formatCurrency(value: number) {
   return `R$ ${value.toFixed(2)}`;
 }
 
+/** Linha decorativa à esquerda da lista — visível só no mobile (< lg). */
+function CardapioMobileLinhaAside({ tall }: { tall?: boolean }) {
+  return (
+    <div className="pointer-events-none shrink-0 self-start pt-1 lg:hidden">
+      <BrandLinhaDecorativa
+        className={
+          tall
+            ? "h-[min(420px,52vh)] w-auto max-w-[3rem] object-contain object-top drop-shadow-sm"
+            : "h-[min(380px,48vh)] w-auto max-w-[3rem] object-contain object-top drop-shadow-sm"
+        }
+      />
+    </div>
+  );
+}
+
+/** Linha decorativa à esquerda — apenas desktop (lg+). Caixa fixa para mesma largura/altura em todas as seções. */
+function CardapioDesktopLinhaAside() {
+  return (
+    <div
+      className="pointer-events-none hidden h-[28rem] w-12 shrink-0 flex-col pt-1 lg:flex"
+      aria-hidden
+    >
+      <BrandLinhaDecorativa className="h-full w-full object-contain object-top drop-shadow-sm" />
+    </div>
+  );
+}
+
+/** Divisor vertical tracejado entre as duas colunas — apenas desktop. */
+function CardapioDesktopColumnDivider() {
+  return (
+    <div
+      className="pointer-events-none absolute inset-y-0 left-1/2 hidden w-0 -translate-x-1/2 border-l border-dashed border-muted-foreground/40 lg:block"
+      aria-hidden
+    />
+  );
+}
+
 function isWineCategory(category: { name: string; slug: string }) {
   return /vinho/i.test(`${category.name} ${category.slug}`);
 }
@@ -138,9 +175,8 @@ const CardapioPage = () => {
 
       {/* Hero banner — textos em page_contents (page_key cardápio) */}
       <div className={cn("section-paper", isEmbed ? "pt-0" : "pt-16")}>
-        <div className="container relative mx-auto overflow-hidden px-4 py-12 text-center md:py-16">
+        <div className="container relative mx-auto overflow-hidden px-4 py-12 text-left md:py-16 md:text-center">
           <BrandAlecrim className="absolute left-0 top-0 hidden h-32 opacity-20 lg:block" />
-          <BrandTomilho className="absolute bottom-0 right-0 hidden h-28 opacity-20 lg:block" />
           <BrandTrigo className="absolute right-8 top-1/2 hidden h-24 w-auto -translate-y-1/2 opacity-[0.14] xl:block" />
           <div className="relative z-10">
             {heroTitle ? (
@@ -149,9 +185,9 @@ const CardapioPage = () => {
               <h1 className="mb-3 min-h-[2.5rem] text-4xl font-bold text-secondary md:text-5xl">&nbsp;</h1>
             )}
             {heroSubtitle ? (
-              <p className="mx-auto max-w-xl text-muted-foreground">{heroSubtitle}</p>
+              <p className="max-w-xl text-muted-foreground md:mx-auto">{heroSubtitle}</p>
             ) : (
-              <p className="mx-auto min-h-[1.25rem] max-w-xl text-muted-foreground">&nbsp;</p>
+              <p className="min-h-[1.25rem] max-w-xl text-muted-foreground md:mx-auto">&nbsp;</p>
             )}
           </div>
         </div>
@@ -194,13 +230,15 @@ const CardapioPage = () => {
               className={`py-12 md:py-16 ${usePaper ? "section-paper" : "bg-background"} relative overflow-hidden`}
             >
               {usePaper ? (
-                <BrandTomilho className="pointer-events-none absolute -right-3 top-8 hidden h-20 w-auto opacity-[0.16] lg:block" />
+                !hasPizzaRules ? (
+                  <BrandTomilho className="pointer-events-none absolute -right-3 top-8 hidden h-20 w-auto opacity-[0.16] lg:block" />
+                ) : null
               ) : (
                 <BrandAlecrim className="pointer-events-none absolute left-0 bottom-8 hidden h-24 w-auto opacity-[0.92] lg:block" />
               )}
               <div className="container mx-auto px-4">
                 {/* Category title */}
-                <div className="text-center mb-10">
+                <div className="cardapio-section-heading text-center mb-10">
                   <h2 className="text-3xl md:text-4xl font-bold text-secondary inline-block relative">
                     {group.category.name}
                     <span className="block w-16 h-0.5 bg-primary mx-auto mt-3" />
@@ -212,32 +250,74 @@ const CardapioPage = () => {
                   )}
                 </div>
 
-                {/* Items grid */}
+                {/* Items grid — linha à esquerda (mobile + desktop lg+); no desktop, colunas grandes usam divisor tracejado central */}
                 {hasWineGrouping ? (
-                  <WineGroupedItems items={items} />
-                ) : isLargeSection ? (
-                  <div className="relative max-w-5xl mx-auto">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-0">
-                      <div>
-                        {items.slice(0, midpoint).map((item) => (
-                          <MenuItem key={item.id} item={item} showPizzaSizes={hasPizzaRules} />
-                        ))}
-                      </div>
-                      <div>
-                        {items.slice(midpoint).map((item) => (
-                          <MenuItem key={item.id} item={item} showPizzaSizes={hasPizzaRules} />
-                        ))}
-                      </div>
+                  <div className="mx-auto flex w-full max-w-3xl flex-row items-start gap-3 sm:gap-4 lg:gap-3">
+                    <CardapioMobileLinhaAside />
+                    <CardapioDesktopLinhaAside />
+                    <div className="min-w-0 flex-1">
+                      <WineGroupedItems items={items} />
                     </div>
-                    <div className="pointer-events-none absolute inset-y-0 left-1/2 hidden -translate-x-1/2 lg:flex items-center justify-center">
-                      <BrandLinhaDecorativa className="h-[78%] w-auto" />
+                  </div>
+                ) : hasPizzaRules && isLargeSection ? (
+                  <div className="mx-auto flex w-full max-w-5xl flex-row items-start gap-3 sm:gap-4 lg:gap-3">
+                    <CardapioMobileLinhaAside tall />
+                    <CardapioDesktopLinhaAside />
+                    <div className="relative min-w-0 w-full flex-1">
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-0">
+                        <div>
+                          {items.slice(0, midpoint).map((item) => (
+                            <MenuItem key={item.id} item={item} showPizzaSizes />
+                          ))}
+                        </div>
+                        <div>
+                          {items.slice(midpoint).map((item) => (
+                            <MenuItem key={item.id} item={item} showPizzaSizes />
+                          ))}
+                        </div>
+                      </div>
+                      <CardapioDesktopColumnDivider />
+                    </div>
+                  </div>
+                ) : hasPizzaRules ? (
+                  <div className="mx-auto flex w-full max-w-2xl flex-row items-start gap-3 sm:gap-4 lg:gap-3">
+                    <CardapioMobileLinhaAside />
+                    <CardapioDesktopLinhaAside />
+                    <div className="min-w-0 w-full flex-1">
+                      {items.map((item) => (
+                        <MenuItem key={item.id} item={item} showPizzaSizes />
+                      ))}
+                    </div>
+                  </div>
+                ) : isLargeSection ? (
+                  <div className="mx-auto flex w-full max-w-5xl flex-row items-start gap-3 sm:gap-4 lg:gap-3">
+                    <CardapioMobileLinhaAside tall />
+                    <CardapioDesktopLinhaAside />
+                    <div className="relative min-w-0 w-full flex-1">
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-0">
+                        <div>
+                          {items.slice(0, midpoint).map((item) => (
+                            <MenuItem key={item.id} item={item} showPizzaSizes={hasPizzaRules} />
+                          ))}
+                        </div>
+                        <div>
+                          {items.slice(midpoint).map((item) => (
+                            <MenuItem key={item.id} item={item} showPizzaSizes={hasPizzaRules} />
+                          ))}
+                        </div>
+                      </div>
+                      <CardapioDesktopColumnDivider />
                     </div>
                   </div>
                 ) : (
-                  <div className="max-w-2xl mx-auto">
-                    {items.map((item) => (
-                      <MenuItem key={item.id} item={item} showPizzaSizes={hasPizzaRules} />
-                    ))}
+                  <div className="mx-auto flex w-full max-w-2xl flex-row items-start gap-3 sm:gap-4 lg:gap-3">
+                    <CardapioMobileLinhaAside />
+                    <CardapioDesktopLinhaAside />
+                    <div className="min-w-0 w-full flex-1">
+                      {items.map((item) => (
+                        <MenuItem key={item.id} item={item} showPizzaSizes={hasPizzaRules} />
+                      ))}
+                    </div>
                   </div>
                 )}
                 {hasPizzaRules && <PizzaCategoryFooter category={group.category} />}
@@ -278,7 +358,7 @@ function PizzaCategoryFooter({
   }
 
   return (
-    <div className="mx-auto mt-6 max-w-2xl border-t border-border/60 pt-4">
+    <div className="cardapio-section-heading mx-auto mt-6 max-w-2xl border-t border-border/60 pt-4">
       {lines.map((line) => (
         <p key={line} className="text-center text-xs leading-relaxed text-muted-foreground">
           {line}
@@ -322,7 +402,7 @@ function WineGroupedItems({
   const orderedRegularCountries = Object.keys(groupedRegular).sort((a, b) => a.localeCompare(b));
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8">
+    <div className="w-full space-y-8">
       {orderedRegularCountries.map((country) => (
         <div key={country}>
           <h3 className="text-xl md:text-2xl font-bold text-secondary mb-3">{country}</h3>
