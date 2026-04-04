@@ -103,6 +103,19 @@
     letter-spacing: 0.01em;
     font-synthesis: none;
   }
+
+  /* Site público: no mobile, textos com text-center passam à esquerda; desktop inalterado (md+) */
+  @media (max-width: 767px) {
+    body.site-public .text-center {
+      text-align: left !important;
+    }
+
+    /* Cardápio: títulos/descrições de seção e notas de rodapé da categoria voltam ao centro no mobile */
+    body.site-public .cardapio-section-heading.text-center,
+    body.site-public .cardapio-section-heading .text-center {
+      text-align: center !important;
+    }
+  }
 }
 
 @layer components {

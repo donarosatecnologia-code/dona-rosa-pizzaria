@@ -133,6 +133,7 @@ function FermentationSection({
 
   return (
     <section className="section-paper relative overflow-hidden pt-28 pb-16 md:pt-36 md:pb-24">
+      <BrandAlecrim className="pointer-events-none absolute right-3 top-28 z-[1] h-28 w-auto max-w-[42%] object-contain drop-shadow-md lg:hidden" />
       <BrandAlecrim className="absolute left-2 top-32 h-36 w-auto opacity-[0.18] hidden lg:block" />
       <BrandTrigo className="absolute right-0 top-1/4 h-28 w-auto opacity-[0.16] hidden md:block" />
       <div className="container relative z-10 mx-auto px-4 max-w-6xl">

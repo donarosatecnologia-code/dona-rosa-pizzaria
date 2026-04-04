@@ -214,6 +214,7 @@ function ContactPage() {
       <Header />
 
       <section className="section-paper relative overflow-hidden pt-28 pb-16 md:pt-36 md:pb-24">
+        <BrandTomilhoB className="pointer-events-none absolute right-3 top-28 z-[1] h-28 w-auto max-w-[42%] object-contain drop-shadow-md lg:hidden" />
         <BrandAlecrim className="absolute left-0 top-28 h-40 w-auto opacity-[0.22] hidden md:block lg:h-48" />
         <BrandTomilhoB className="absolute right-4 top-32 h-24 w-auto opacity-[0.18] hidden lg:block xl:h-28" />
         <BrandTrigo className="absolute right-0 bottom-6 h-36 w-auto opacity-[0.18] hidden lg:block xl:bottom-10 xl:h-44" />
