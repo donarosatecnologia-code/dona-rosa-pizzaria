@@ -234,9 +234,9 @@ function CoursesPage() {
 
       {/* Seção 1 — papel */}
       <section id="espaco-gourmet" className="section-paper relative overflow-hidden pt-28 pb-16 md:pt-36 md:pb-24">
-        <BrandTomilho className="pointer-events-none absolute right-3 top-28 z-[1] h-32 w-auto max-w-[40%] object-contain drop-shadow-md lg:hidden" />
-        <BrandAlecrim className="absolute left-0 top-32 h-32 w-auto opacity-[0.2] hidden lg:block" />
-        <BrandTomilhoB className="absolute bottom-6 right-0 h-28 w-auto opacity-[0.18] hidden md:block" />
+        <BrandTomilho className="pointer-events-none absolute right-2 top-24 z-[1] h-20 w-auto max-h-20 max-w-[26%] object-contain object-top-right drop-shadow-md lg:hidden" />
+        <BrandTrigo className="pointer-events-none absolute left-0 top-32 h-32 w-auto hidden lg:block lg:opacity-100 drop-shadow-sm" />
+        <BrandTomilhoB className="pointer-events-none absolute bottom-6 right-0 h-28 w-auto hidden md:block md:opacity-100" />
         <div className="container relative z-10 mx-auto px-4 max-w-6xl">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
             <div className="space-y-4">
@@ -286,7 +286,6 @@ function CoursesPage() {
 
       {/* Seção 2 — liso */}
       <section id="curso-pizza" className="relative overflow-hidden bg-background py-16 md:py-24">
-        <BrandTrigo className="absolute left-0 top-10 hidden h-28 w-auto opacity-[0.16] lg:block" />
         <BrandTomilho className="absolute right-2 bottom-8 hidden h-20 w-auto opacity-[0.18] lg:block" />
         <div className="container mx-auto px-4 max-w-6xl">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
@@ -393,7 +392,7 @@ function CoursesPage() {
         id="inscricao"
         className="relative overflow-hidden bg-background py-16 md:py-24 scroll-mt-[120px]"
       >
-        <BrandTomilhoB className="absolute right-8 top-8 hidden h-20 w-auto md:block" />
+        <BrandTomilhoB className="pointer-events-none absolute right-8 top-8 hidden h-24 w-auto md:block lg:h-32 lg:opacity-100" />
         <BrandLinhaDecorativa className="absolute left-8 bottom-10 hidden h-9 w-auto opacity-[0.22] md:block" />
         <div className="container mx-auto px-4 max-w-lg">
           <RegistrationFormCard formTitle={getText("courses-form-title")} />

@@ -30,14 +30,14 @@ function CardapioMobileLinhaAside({ tall }: { tall?: boolean }) {
   );
 }
 
-/** Linha decorativa à esquerda — apenas desktop (lg+). Caixa fixa para mesma largura/altura em todas as seções. */
+/** Linha decorativa à esquerda — apenas desktop (lg+), só em seções de duas colunas. Altura acompanha o texto; excedente é cortado. */
 function CardapioDesktopLinhaAside() {
   return (
     <div
-      className="pointer-events-none hidden h-[28rem] w-12 shrink-0 flex-col pt-1 lg:flex"
+      className="pointer-events-none relative hidden w-[4.5rem] shrink-0 self-stretch overflow-hidden pt-1 min-h-0 lg:block"
       aria-hidden
     >
-      <BrandLinhaDecorativa className="h-full w-full object-contain object-top drop-shadow-sm" />
+      <BrandLinhaDecorativa className="h-full min-h-0 w-full object-cover object-top drop-shadow-sm" />
     </div>
   );
 }
@@ -58,6 +58,16 @@ function isWineCategory(category: { name: string; slug: string }) {
 
 function isPizzaCategory(category: { has_pizza_size_pricing?: boolean | null }) {
   return !!category.has_pizza_size_pricing;
+}
+
+/** Só a seção principal "Pizzas" — não inclui Pizzas Veganas nem outras categorias com preço de tamanho. */
+function isMainPizzasCategory(category: { name: string; slug: string }) {
+  const name = category.name.trim().toLowerCase();
+  const slug = category.slug.trim().toLowerCase();
+  if (/vegan|vegana/i.test(`${name} ${slug}`)) {
+    return false;
+  }
+  return name === "pizzas" || slug === "pizzas";
 }
 
 function resolvePizzaSizePrice({
@@ -221,6 +231,7 @@ const CardapioPage = () => {
           const midpoint = Math.ceil(items.length / 2);
           const hasPizzaRules = isPizzaCategory(group.category);
           const hasWineGrouping = isWineCategory(group.category);
+          const showLinhaDecorativa = isMainPizzasCategory(group.category);
 
           return (
             <section
@@ -250,19 +261,18 @@ const CardapioPage = () => {
                   )}
                 </div>
 
-                {/* Items grid — linha à esquerda (mobile + desktop lg+); no desktop, colunas grandes usam divisor tracejado central */}
+                {/* Mobile (lg:hidden): linha decorativa em todas as seções. Desktop: linha à esquerda só na seção principal Pizzas (showLinhaDecorativa). */}
                 {hasWineGrouping ? (
                   <div className="mx-auto flex w-full max-w-3xl flex-row items-start gap-3 sm:gap-4 lg:gap-3">
                     <CardapioMobileLinhaAside />
-                    <CardapioDesktopLinhaAside />
                     <div className="min-w-0 flex-1">
                       <WineGroupedItems items={items} />
                     </div>
                   </div>
                 ) : hasPizzaRules && isLargeSection ? (
-                  <div className="mx-auto flex w-full max-w-5xl flex-row items-start gap-3 sm:gap-4 lg:gap-3">
+                  <div className="mx-auto flex w-full max-w-5xl flex-row items-start gap-3 sm:gap-4 lg:items-stretch lg:gap-3">
                     <CardapioMobileLinhaAside tall />
-                    <CardapioDesktopLinhaAside />
+                    {showLinhaDecorativa ? <CardapioDesktopLinhaAside /> : null}
                     <div className="relative min-w-0 w-full flex-1">
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-0">
                         <div>
@@ -282,7 +292,6 @@ const CardapioPage = () => {
                 ) : hasPizzaRules ? (
                   <div className="mx-auto flex w-full max-w-2xl flex-row items-start gap-3 sm:gap-4 lg:gap-3">
                     <CardapioMobileLinhaAside />
-                    <CardapioDesktopLinhaAside />
                     <div className="min-w-0 w-full flex-1">
                       {items.map((item) => (
                         <MenuItem key={item.id} item={item} showPizzaSizes />
@@ -290,9 +299,8 @@ const CardapioPage = () => {
                     </div>
                   </div>
                 ) : isLargeSection ? (
-                  <div className="mx-auto flex w-full max-w-5xl flex-row items-start gap-3 sm:gap-4 lg:gap-3">
+                  <div className="mx-auto flex w-full max-w-5xl flex-row items-start gap-3 sm:gap-4 lg:items-stretch lg:gap-3">
                     <CardapioMobileLinhaAside tall />
-                    <CardapioDesktopLinhaAside />
                     <div className="relative min-w-0 w-full flex-1">
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-0">
                         <div>
@@ -312,7 +320,6 @@ const CardapioPage = () => {
                 ) : (
                   <div className="mx-auto flex w-full max-w-2xl flex-row items-start gap-3 sm:gap-4 lg:gap-3">
                     <CardapioMobileLinhaAside />
-                    <CardapioDesktopLinhaAside />
                     <div className="min-w-0 w-full flex-1">
                       {items.map((item) => (
                         <MenuItem key={item.id} item={item} showPizzaSizes={hasPizzaRules} />

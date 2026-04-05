@@ -97,7 +97,8 @@ function VenueIntro({
   return (
     <section className="section-paper relative overflow-hidden pt-28 pb-16 md:pt-36 md:pb-24">
       <BrandTomilhoB className="pointer-events-none absolute right-3 top-24 z-[1] h-28 w-auto max-w-[42%] object-contain drop-shadow-md lg:hidden" />
-      <BrandAlecrim className="absolute left-0 top-28 h-40 w-auto opacity-[0.18] hidden lg:block" />
+      <BrandAlecrim className="pointer-events-none absolute left-4 top-24 hidden h-32 w-auto max-w-[min(40%,12rem)] object-contain object-top-left drop-shadow-md lg:block lg:opacity-100" />
+      <BrandTomilho className="pointer-events-none absolute bottom-28 right-4 hidden h-28 w-auto max-w-[42%] object-contain object-top-right drop-shadow-md lg:block lg:opacity-100" />
       <BrandLinhaDecorativa className="absolute right-4 top-1/3 h-11 w-auto opacity-15 hidden xl:block rotate-6" />
       <div className="container relative z-10 mx-auto px-4 max-w-6xl">
         <div className="text-center max-w-3xl mx-auto mb-12">
@@ -194,7 +195,6 @@ function MenuHighlights({
 
   return (
     <section className="relative overflow-hidden py-16 md:py-24 bg-background">
-      <BrandTrigo className="absolute left-2 top-8 hidden h-28 w-auto opacity-[0.16] lg:block" />
       <BrandTomilhoB className="absolute right-4 bottom-6 hidden h-20 w-auto md:block" />
       <div className="container mx-auto px-4 max-w-6xl">
         <div className="text-center mb-10">
@@ -464,7 +464,7 @@ function CustomerMural({
   return (
     <section className="relative overflow-hidden py-16 md:py-24 bg-background">
       <BrandAlecrim className="absolute left-0 bottom-10 hidden h-24 w-auto opacity-[0.2] lg:block" />
-      <BrandTomilhoB className="absolute right-8 top-10 hidden h-16 w-auto md:block" />
+      <BrandTomilhoB className="absolute right-8 top-10 hidden h-16 w-auto md:block lg:h-28 lg:w-auto lg:opacity-100" />
       <div className="container mx-auto px-4 max-w-6xl">
         <div className="text-center mb-10">
           <EditableWrapper id="venue-customers-title" type="text" label="Título Nossos Clientes">

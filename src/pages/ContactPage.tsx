@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useCmsContents } from "@/hooks/useCmsContent";
 import { useSiteShellReady } from "@/hooks/useSiteShellReady";
 import { LoadingScreen } from "@/components/LoadingScreen";
-import { BrandAlecrim, BrandLinhaDecorativa, BrandTomilho, BrandTomilhoB, BrandTrigo } from "@/components/BrandAccents";
+import { BrandAlecrim, BrandLinhaDecorativa, BrandTomilho, BrandTomilhoB } from "@/components/BrandAccents";
 
 const CONTACT_WHATSAPP_PHONE = "5511930617116";
 
@@ -215,9 +215,8 @@ function ContactPage() {
 
       <section className="section-paper relative overflow-hidden pt-28 pb-16 md:pt-36 md:pb-24">
         <BrandTomilhoB className="pointer-events-none absolute right-3 top-28 z-[1] h-28 w-auto max-w-[42%] object-contain drop-shadow-md lg:hidden" />
-        <BrandAlecrim className="absolute left-0 top-28 h-40 w-auto opacity-[0.22] hidden md:block lg:h-48" />
-        <BrandTomilhoB className="absolute right-4 top-32 h-24 w-auto opacity-[0.18] hidden lg:block xl:h-28" />
-        <BrandTrigo className="absolute right-0 bottom-6 h-36 w-auto opacity-[0.18] hidden lg:block xl:bottom-10 xl:h-44" />
+        <BrandAlecrim className="pointer-events-none absolute left-0 top-28 h-40 w-auto hidden md:block lg:h-48 lg:opacity-100" />
+        <BrandTomilhoB className="pointer-events-none absolute right-0 bottom-6 h-44 w-auto hidden lg:block xl:bottom-10 xl:h-52 lg:opacity-100 drop-shadow-md" />
         <BrandLinhaDecorativa className="absolute left-8 bottom-16 h-9 w-auto max-w-[11rem] opacity-[0.2] -rotate-6 hidden xl:block" />
         <div className="container relative z-10 mx-auto max-w-3xl px-4">
           <div className="mb-10 text-center md:mb-12">
@@ -337,9 +336,8 @@ function ContactPage() {
       </section>
 
       <section className="section-paper relative overflow-hidden py-16 md:py-24">
-        <BrandTomilhoB className="absolute left-2 top-20 h-24 w-auto opacity-[0.15] hidden md:block lg:top-24 lg:h-28" />
-        <BrandTomilho className="absolute bottom-10 right-4 h-28 w-auto opacity-[0.18] hidden lg:block xl:bottom-14 xl:h-32" />
-        <BrandTrigo className="absolute left-4 bottom-24 h-32 w-auto opacity-[0.16] hidden lg:block xl:left-8" />
+        <BrandTomilhoB className="pointer-events-none absolute left-2 top-20 h-24 w-auto opacity-[0.15] hidden md:block lg:top-24 lg:h-28 lg:opacity-100" />
+        <BrandTomilho className="pointer-events-none absolute bottom-10 right-4 h-28 w-auto opacity-[0.18] hidden lg:block xl:bottom-14 xl:h-32 lg:opacity-100" />
         <BrandAlecrim className="absolute right-0 top-1/3 h-32 w-auto opacity-[0.12] -translate-y-1/2 hidden xl:block xl:h-40" />
         <BrandLinhaDecorativa className="absolute left-6 top-28 h-10 w-auto opacity-[0.15] -rotate-6 hidden xl:block" />
         <BrandLinhaDecorativa className="absolute right-12 bottom-40 h-11 w-auto opacity-[0.14] rotate-6 hidden 2xl:block" />
