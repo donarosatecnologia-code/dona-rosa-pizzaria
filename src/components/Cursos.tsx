@@ -7,6 +7,8 @@ import { useCmsCarousel } from "@/hooks/useCmsMedia";
 import { useCmsContents } from "@/hooks/useCmsContent";
 import RichText from "@/components/RichText";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { siteContainerClass } from "@/lib/siteLayout";
+import { cn } from "@/lib/utils";
 
 const Cursos = () => {
   const isMobile = useIsMobile();
@@ -36,7 +38,7 @@ const Cursos = () => {
     <section id="cursos" className="section-paper relative overflow-hidden py-16 md:py-24">
       <BrandTomilhoB className="absolute left-2 top-8 h-24 w-auto hidden lg:block" />
       <BrandLinhaDecorativa className="absolute bottom-6 right-6 h-9 w-auto opacity-[0.2] rotate-12 hidden md:block" />
-      <div className="container relative z-10 mx-auto px-4 max-w-5xl">
+      <div className={cn(siteContainerClass, "relative z-10")}>
         <div className="grid md:grid-cols-2 gap-10 items-center">
           <div>
             <EditableWrapper id="home-cursos-title" type="text" label="Título Cursos">

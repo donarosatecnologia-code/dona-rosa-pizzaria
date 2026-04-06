@@ -9,6 +9,7 @@ import { useCmsImage } from "@/hooks/useCmsMedia";
 import { useAdminMirrorEmbed } from "@/contexts/AdminMirrorEmbedContext";
 import { useAdminMirrorSurface } from "@/hooks/useAdminMirrorSurface";
 import { AddNavLinkButton, NavLinkActions } from "@/components/Footer";
+import { siteContainerClass } from "@/lib/siteLayout";
 import { cn } from "@/lib/utils";
 
 const DEFAULT_HEADER_NAV: { label: string; href: string }[] = [
@@ -65,7 +66,7 @@ const Header = () => {
 
   return (
     <header className={headerClassName}>
-      <div className="container mx-auto flex h-16 items-center justify-between px-4">
+      <div className={cn(siteContainerClass, "flex h-16 items-center justify-between")}>
         <EditableWrapper id="header-logo" type="image" label="Logo Header">
           <a href="/" className="inline-flex min-h-[3rem] items-center">
             {headerLogoImage ? (

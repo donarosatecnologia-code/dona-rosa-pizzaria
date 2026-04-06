@@ -12,6 +12,8 @@ import { useSiteShellReady } from "@/hooks/useSiteShellReady";
 import { useCmsContents } from "@/hooks/useCmsContent";
 import { useCmsCarousel } from "@/hooks/useCmsMedia";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { siteContainerClass } from "@/lib/siteLayout";
+import { cn } from "@/lib/utils";
 
 interface SustainabilityPillarRow {
   id: string;
@@ -61,7 +63,7 @@ function FermentationCarousel({
       {images.length === 0 ? (
         <CmsPlaceholder label="Carrossel sem imagens publicadas" className="py-12" />
       ) : (
-        <div className="relative max-w-4xl mx-auto w-full">
+        <div className="relative w-full">
           <div className="flex items-center gap-4 justify-center">
             <button
               type="button"
@@ -73,7 +75,7 @@ function FermentationCarousel({
             </button>
 
             <div
-              className="grid w-full max-w-3xl gap-2 sm:gap-2.5 md:gap-3"
+              className="grid w-full gap-2 sm:gap-2.5 md:gap-3"
               style={{ gridTemplateColumns: `repeat(${visibleColumns}, minmax(0, 1fr))` }}
             >
               {visibleImages.map((image, index) => (
@@ -135,9 +137,9 @@ function FermentationSection({
     <section className="section-paper relative overflow-hidden pt-28 pb-16 md:pt-36 md:pb-24">
       <BrandAlecrim className="pointer-events-none absolute right-3 top-28 z-[1] h-28 w-auto max-w-[42%] object-contain drop-shadow-md lg:hidden" />
       <BrandTomilhoB className="pointer-events-none absolute right-4 top-28 z-[1] h-40 w-auto max-w-[min(48%,20rem)] object-contain drop-shadow-md hidden lg:block lg:opacity-100" />
-      <div className="container relative z-10 mx-auto px-4 max-w-6xl">
-        <header className="mb-10 md:mb-12 text-center">
-          <div className="inline-block max-w-4xl">
+      <div className={cn(siteContainerClass, "relative z-10")}>
+        <header className="mb-10 text-left md:mb-12">
+          <div className="w-full max-w-4xl">
             <EditableWrapper id="sustain-fermentation-title" type="text" label="Título — Fermentação">
               {title ? (
                 <RichText as="h1" inline content={title} className="text-4xl md:text-5xl lg:text-[3.25rem] text-foreground tracking-tight" />
@@ -145,7 +147,7 @@ function FermentationSection({
                 <CmsPlaceholder label="Título da seção" className="py-6" />
               )}
             </EditableWrapper>
-            <div className="mt-5 mx-auto h-1 w-16 rounded-full bg-secondary/80" aria-hidden />
+            <div className="mt-5 h-1 w-16 rounded-full bg-secondary/80" aria-hidden />
           </div>
         </header>
 
@@ -158,11 +160,11 @@ function FermentationSection({
           />
         </div>
 
-        <div className="max-w-2xl mx-auto">
-          <div className="h-px w-full bg-gradient-to-r from-transparent via-border to-transparent mb-8 md:mb-10" aria-hidden />
+        <div className="w-full">
+          <div className="mb-8 h-px w-full bg-gradient-to-r from-transparent via-border to-transparent md:mb-10" aria-hidden />
           <EditableWrapper id="sustain-fermentation-body" type="textarea" label="Texto — Benefícios da fermentação">
             {body ? (
-              <RichText content={body} className="text-muted-foreground leading-[1.75] text-[15px] md:text-base text-center" />
+              <RichText content={body} className="text-[15px] leading-[1.75] text-muted-foreground md:text-base" />
             ) : (
               <CmsPlaceholder label="Texto da fermentação" />
             )}
@@ -187,8 +189,8 @@ function SustainabilityGrid({
       <BrandTomilho className="absolute left-2 top-10 hidden h-24 w-auto opacity-[0.16] lg:block" />
       <BrandTomilhoB className="absolute right-6 bottom-10 hidden h-16 w-auto md:block" />
       <BrandLinhaDecorativa className="absolute right-10 top-8 hidden h-9 w-auto opacity-[0.18] md:block" />
-      <div className="container mx-auto px-4 max-w-6xl">
-        <div className="text-center max-w-3xl mx-auto mb-12">
+      <div className={siteContainerClass}>
+        <div className="mb-12 w-full text-center">
           <EditableWrapper id="sustain-s2-title" type="text" label="Título — Sustentabilidade">
             {s2Title ? (
               <RichText as="h2" inline content={s2Title} className="text-3xl md:text-4xl text-foreground" />
@@ -205,7 +207,7 @@ function SustainabilityGrid({
             return (
               <div
                 key={row.id}
-                className={`grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10 items-start ${
+                className={`grid grid-cols-1 items-start gap-8 md:grid-cols-2 md:items-center md:gap-10 ${
                   row.imageRight
                     ? "md:[&>*:first-child]:order-1 md:[&>*:last-child]:order-2"
                     : "md:[&>*:first-child]:order-2 md:[&>*:last-child]:order-1"

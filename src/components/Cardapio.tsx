@@ -7,6 +7,8 @@ import { useCmsCarousel } from "@/hooks/useCmsMedia";
 import { useCmsContents } from "@/hooks/useCmsContent";
 import RichText from "@/components/RichText";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { siteContainerClass } from "@/lib/siteLayout";
+import { cn } from "@/lib/utils";
 
 const Cardapio = () => {
   const isMobile = useIsMobile();
@@ -36,7 +38,7 @@ const Cardapio = () => {
     <section id="cardapio" className="section-paper relative overflow-hidden py-16 md:py-24">
       <BrandTrigo className="absolute right-0 top-0 h-40 opacity-30 hidden lg:block" />
       <BrandAlecrim className="absolute bottom-6 left-0 h-32 w-auto opacity-[0.2] hidden md:block" />
-      <div className="container relative z-10 mx-auto px-4 text-center">
+      <div className={cn(siteContainerClass, "relative z-10 text-center")}>
         <EditableWrapper id="home-cardapio-title" type="text" label="Título Cardápio">
           {cardapioTitle ? (
             <RichText as="h2" inline content={cardapioTitle} className="text-3xl md:text-4xl font-bold text-foreground mb-4" />
@@ -46,13 +48,13 @@ const Cardapio = () => {
         </EditableWrapper>
         <EditableWrapper id="home-cardapio-desc" type="textarea" label="Descrição Cardápio">
           {cardapioDescription ? (
-            <RichText content={cardapioDescription} className="text-muted-foreground mb-10 max-w-xl mx-auto space-y-3" />
+            <RichText content={cardapioDescription} className="text-muted-foreground mb-10 w-full space-y-3" />
           ) : (
-            <CmsPlaceholder label="Descrição" className="mb-10 max-w-xl mx-auto" />
+            <CmsPlaceholder label="Descrição" className="mb-10 w-full" />
           )}
         </EditableWrapper>
 
-        <div className="relative max-w-4xl mx-auto">
+        <div className="relative w-full">
           <div className="flex items-center gap-4 justify-center">
             <button
               type="button"
@@ -68,10 +70,10 @@ const Cardapio = () => {
               {safeLen === 0 ? (
                 <CmsPlaceholder label="Carrossel sem imagens publicadas" className="min-h-[12rem]" />
               ) : (
-                <div className="grid gap-4 w-full max-w-3xl" style={{ gridTemplateColumns: `repeat(${visibleColumns}, minmax(0, 1fr))` }}>
+                <div className="grid w-full gap-4" style={{ gridTemplateColumns: `repeat(${visibleColumns}, minmax(0, 1fr))` }}>
                   {visibleImages.map((img, i) => (
                     <div key={`${img.src}-${current}-${i}`} className="rounded-xl overflow-hidden shadow-lg">
-                      <img src={img.src} alt={img.alt} loading="lazy" className="w-full h-36 md:h-48 object-cover" />
+                      <img src={img.src} alt={img.alt} loading="lazy" className="h-52 w-full object-cover md:h-64 lg:h-72" />
                     </div>
                   ))}
                 </div>
@@ -104,15 +106,17 @@ const Cardapio = () => {
           )}
         </div>
 
-        <EditableWrapper id="home-cardapio-cta" type="link" label="Botão Cardápio">
-          {cta.label && cta.url ? (
-            <a href={cta.url} className="btn-secondary-dr inline-block mt-8">
-              <RichText as="span" inline content={cta.label} />
-            </a>
-          ) : (
-            <CmsPlaceholder label="Botão (título e URL)" className="inline-block mt-8 min-w-[10rem]" />
-          )}
-        </EditableWrapper>
+        <div className="mt-8 flex justify-center">
+          <EditableWrapper id="home-cardapio-cta" type="link" label="Botão Cardápio">
+            {cta.label && cta.url ? (
+              <a href={cta.url} className="btn-secondary-dr inline-block">
+                <RichText as="span" inline content={cta.label} />
+              </a>
+            ) : (
+              <CmsPlaceholder label="Botão (título e URL)" className="inline-block min-w-[10rem]" />
+            )}
+          </EditableWrapper>
+        </div>
       </div>
     </section>
   );

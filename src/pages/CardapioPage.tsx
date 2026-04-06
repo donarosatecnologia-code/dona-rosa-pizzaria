@@ -9,6 +9,7 @@ import { useAdminMirrorEmbed } from "@/contexts/AdminMirrorEmbedContext";
 import { useCmsContents } from "@/hooks/useCmsContent";
 import { useSiteShellReady } from "@/hooks/useSiteShellReady";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { siteContainerClass } from "@/lib/siteLayout";
 import { cn } from "@/lib/utils";
 
 function formatCurrency(value: number) {
@@ -170,7 +171,7 @@ const CardapioPage = () => {
 
       {/* Hero banner — textos em page_contents (page_key cardápio) */}
       <div className={cn("section-paper", isEmbed ? "pt-0" : "pt-16")}>
-        <div className="container relative mx-auto overflow-hidden px-4 py-12 text-left md:py-16 md:text-center">
+        <div className={cn(siteContainerClass, "relative overflow-hidden py-12 text-left md:py-16")}>
           <BrandAlecrim className="absolute left-0 top-0 hidden h-32 opacity-20 lg:block" />
           <BrandTrigo className="absolute right-8 top-1/2 hidden h-24 w-auto -translate-y-1/2 opacity-[0.14] xl:block" />
           <div className="relative z-10">
@@ -180,9 +181,9 @@ const CardapioPage = () => {
               <h1 className="mb-3 min-h-[2.5rem] text-4xl font-bold text-secondary md:text-5xl">&nbsp;</h1>
             )}
             {heroSubtitle ? (
-              <p className="max-w-xl text-muted-foreground md:mx-auto">{heroSubtitle}</p>
+              <p className="w-full text-muted-foreground">{heroSubtitle}</p>
             ) : (
-              <p className="min-h-[1.25rem] max-w-xl text-muted-foreground md:mx-auto">&nbsp;</p>
+              <p className="min-h-[1.25rem] w-full text-muted-foreground">&nbsp;</p>
             )}
           </div>
         </div>
@@ -190,7 +191,7 @@ const CardapioPage = () => {
 
       {/* Category anchor nav */}
       <nav className="sticky top-16 z-40 bg-background/95 backdrop-blur-sm border-b border-border">
-        <div className="container mx-auto px-4 flex items-center gap-1 overflow-x-auto py-3 scrollbar-hide">
+        <div className={cn(siteContainerClass, "flex items-center gap-1 overflow-x-auto py-3 scrollbar-hide")}>
           {(categories ?? []).map((cat) => (
             <button
               key={cat.slug}
@@ -232,15 +233,15 @@ const CardapioPage = () => {
               ) : (
                 <BrandAlecrim className="pointer-events-none absolute left-0 bottom-8 hidden h-24 w-auto opacity-[0.92] lg:block" />
               )}
-              <div className="container mx-auto px-4">
+              <div className={siteContainerClass}>
                 {/* Category title */}
-                <div className="cardapio-section-heading text-center mb-10">
-                  <h2 className="text-3xl md:text-4xl font-bold text-secondary inline-block relative">
+                <div className="cardapio-section-heading mb-10 text-left">
+                  <h2 className="relative inline-block text-3xl font-bold text-secondary md:text-4xl">
                     {group.category.name}
-                    <span className="block w-16 h-0.5 bg-primary mx-auto mt-3" />
+                    <span className="mt-3 block h-0.5 w-16 bg-primary" />
                   </h2>
                   {group.category.description && (
-                    <p className="text-muted-foreground mt-3 max-w-lg mx-auto text-sm">
+                    <p className="mt-3 w-full text-sm text-muted-foreground">
                       {group.category.description}
                     </p>
                   )}
@@ -248,11 +249,11 @@ const CardapioPage = () => {
 
                 {/* Desktop (lg+): linha à esquerda só na seção principal Pizzas (showLinhaDecorativa). */}
                 {hasWineGrouping ? (
-                  <div className="mx-auto w-full max-w-3xl">
+                  <div className="w-full">
                     <WineGroupedItems items={items} />
                   </div>
                 ) : hasPizzaRules && isLargeSection ? (
-                  <div className="mx-auto flex w-full max-w-5xl flex-row items-start gap-3 sm:gap-4 lg:items-stretch lg:gap-3">
+                  <div className="flex w-full flex-row items-start gap-3 sm:gap-4 lg:items-stretch lg:gap-3">
                     {showLinhaDecorativa ? <CardapioDesktopLinhaAside /> : null}
                     <div className="relative min-w-0 w-full flex-1">
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-0">
@@ -271,13 +272,13 @@ const CardapioPage = () => {
                     </div>
                   </div>
                 ) : hasPizzaRules ? (
-                  <div className="mx-auto w-full max-w-2xl">
+                  <div className="w-full">
                     {items.map((item) => (
                       <MenuItem key={item.id} item={item} showPizzaSizes />
                     ))}
                   </div>
                 ) : isLargeSection ? (
-                  <div className="mx-auto flex w-full max-w-5xl flex-row items-start gap-3 sm:gap-4 lg:items-stretch lg:gap-3">
+                  <div className="flex w-full flex-row items-start gap-3 sm:gap-4 lg:items-stretch lg:gap-3">
                     <div className="relative min-w-0 w-full flex-1">
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-0">
                         <div>
@@ -295,7 +296,7 @@ const CardapioPage = () => {
                     </div>
                   </div>
                 ) : (
-                  <div className="mx-auto w-full max-w-2xl">
+                  <div className="w-full">
                     {items.map((item) => (
                       <MenuItem key={item.id} item={item} showPizzaSizes={hasPizzaRules} />
                     ))}
@@ -308,9 +309,9 @@ const CardapioPage = () => {
         })}
 
         {groupedProducts.length === 0 && (
-          <div className="text-center py-20 text-muted-foreground">
+          <div className={cn(siteContainerClass, "py-20 text-center text-muted-foreground")}>
             <p className="text-lg">Nenhum item no cardápio ainda.</p>
-            <p className="text-sm mt-2">Acesse o painel administrativo para adicionar produtos.</p>
+            <p className="mt-2 text-sm">Acesse o painel administrativo para adicionar produtos.</p>
           </div>
         )}
       </div>
@@ -339,7 +340,7 @@ function PizzaCategoryFooter({
   }
 
   return (
-    <div className="cardapio-section-heading mx-auto mt-6 max-w-2xl border-t border-border/60 pt-4">
+    <div className="cardapio-section-heading mt-6 w-full border-t border-border/60 pt-4">
       {lines.map((line) => (
         <p key={line} className="text-center text-xs leading-relaxed text-muted-foreground">
           {line}

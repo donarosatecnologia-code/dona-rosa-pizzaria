@@ -4,6 +4,8 @@ import { CmsPlaceholder } from "@/components/CmsPlaceholder";
 import { useCmsImage } from "@/hooks/useCmsMedia";
 import { useCmsContents } from "@/hooks/useCmsContent";
 import RichText from "@/components/RichText";
+import { siteContainerClass } from "@/lib/siteLayout";
+import { cn } from "@/lib/utils";
 
 const Saude = () => {
   const { getText, getLink } = useCmsContents(["home-saude-title", "home-saude-desc", "home-saude-cta"], "home");
@@ -16,7 +18,7 @@ const Saude = () => {
     <section id="saude" className="relative overflow-hidden bg-background py-16 md:py-24">
       <BrandAlecrim className="absolute -left-2 top-20 h-32 w-auto opacity-[0.16] hidden lg:block" />
       <BrandTomilho className="absolute right-0 bottom-10 h-16 w-auto opacity-[0.18] hidden md:block" />
-      <div className="container relative z-10 mx-auto px-4 max-w-5xl">
+      <div className={cn(siteContainerClass, "relative z-10")}>
         <div className="grid md:grid-cols-2 gap-10 items-center">
           <EditableWrapper id="home-saude-img" type="image" label="Imagem Saúde">
             <div className="rounded-2xl overflow-hidden shadow-lg order-2 md:order-1 min-h-[16rem] flex items-center justify-center bg-muted/20">
@@ -28,7 +30,7 @@ const Saude = () => {
             </div>
           </EditableWrapper>
 
-          <div className="order-1 md:order-2 text-center md:text-left">
+          <div className="order-1 text-left md:order-2">
             <EditableWrapper id="home-saude-title" type="text" label="Título Saúde">
               {saudeTitle ? (
                 <RichText as="h2" inline content={saudeTitle} className="text-3xl md:text-4xl font-bold text-foreground mb-4" />

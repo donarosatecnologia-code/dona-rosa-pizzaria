@@ -252,7 +252,7 @@ Em **Settings → Secrets and variables → Actions**, crie:
 | `SUPABASE_FUNCTIONS_URL` | `https://SEU_REF.supabase.co/functions/v1` |
 | `KEEP_ALIVE_SECRET` | A mesma senha longa do passo D |
  
-O workflow `.github/workflows/supabase-keep-alive.yml` já agenda o ping **diariamente às 08:00 UTC**.
+O workflow `.github/workflows/supabase-keep-alive.yml` já agenda o ping **diariamente às 08:00 UTC**. Se os secrets ainda não estiverem definidos, o job **termina com sucesso** e regista um aviso no log (evita falha diária no GitHub até configurares o passo G).
  
 Para testar manualmente: **Actions → Supabase keep-alive → Run workflow**
  

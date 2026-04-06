@@ -6,6 +6,8 @@ import { CmsPlaceholder } from "@/components/CmsPlaceholder";
 import { useCmsGallery } from "@/hooks/useCmsMedia";
 import { useCmsContents } from "@/hooks/useCmsContent";
 import RichText from "@/components/RichText";
+import { siteContainerClass } from "@/lib/siteLayout";
+import { cn } from "@/lib/utils";
 
 const Fotos = () => {
   const { getText } = useCmsContents(["home-fotos-title"], "home");
@@ -68,7 +70,7 @@ const Fotos = () => {
       <section id="fotos" className="section-paper relative overflow-hidden py-16 md:py-24">
         <BrandTrigo className="absolute right-4 top-1/3 h-28 w-auto opacity-[0.2] hidden lg:block" />
         <BrandLinhaDecorativa className="absolute left-6 bottom-12 h-8 w-auto opacity-15 -rotate-6 hidden xl:block" />
-        <div className="container relative z-10 mx-auto px-4 text-center">
+        <div className={cn(siteContainerClass, "relative z-10 text-center")}>
           <EditableWrapper id="home-fotos-title" type="text" label="Título Fotos">
             {fotosTitle ? (
               <RichText as="h2" inline content={fotosTitle} className="text-3xl md:text-4xl font-bold text-foreground mb-10" />
@@ -79,9 +81,9 @@ const Fotos = () => {
 
           <EditableWrapper id="home-fotos-gallery" type="gallery" label="Galeria Fotos">
             {galleryImages.length === 0 ? (
-              <CmsPlaceholder label="Galeria sem imagens publicadas" className="max-w-5xl mx-auto" />
+              <CmsPlaceholder label="Galeria sem imagens publicadas" className="w-full" />
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-5xl mx-auto">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
                 {visibleImages.map((img, i) => (
                   <button
                     key={`${img.src}-${i}`}
@@ -96,7 +98,7 @@ const Fotos = () => {
             )}
           </EditableWrapper>
           {galleryImages.length > visibleCount && (
-            <div className="mt-8">
+            <div className="mt-8 flex justify-center">
               <button type="button" onClick={() => setVisibleCount((count) => count + 12)} className="btn-secondary-dr inline-block">
                 Carregar mais
               </button>

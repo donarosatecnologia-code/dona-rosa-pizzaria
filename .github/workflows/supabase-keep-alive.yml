@@ -1,6 +1,9 @@
 # Dispara uma leitura leve no Supabase todos os dias (UTC) para reduzir risco de inatividade.
 # Requer secrets no repositório: SUPABASE_FUNCTIONS_URL e KEEP_ALIVE_SECRET (o mesmo da Edge Function).
 # Ex.: SUPABASE_FUNCTIONS_URL = https://SEU_REF.supabase.co/functions/v1
+#
+# Se os secrets não estiverem definidos, o job termina com sucesso (aviso no log), para não falhar o CI diário.
+# Configure em: GitHub → Settings → Secrets and variables → Actions.
 
 name: Supabase keep-alive
 
@@ -19,7 +22,9 @@ jobs:
           SECRET: ${{ secrets.KEEP_ALIVE_SECRET }}
         run: |
           if [ -z "$BASE_URL" ] || [ -z "$SECRET" ]; then
-            echo "Defina os secrets SUPABASE_FUNCTIONS_URL e KEEP_ALIVE_SECRET no repositório."
-            exit 1
+            echo "::warning::Secrets SUPABASE_FUNCTIONS_URL e/ou KEEP_ALIVE_SECRET não configurados. Keep-alive não foi chamado."
+            echo "Defina em: Repositório → Settings → Secrets and variables → Actions."
+            echo "Valores: ver README (secção keep-alive do Supabase)."
+            exit 0
           fi
           curl -fsS "${BASE_URL}/keep-alive?secret=${SECRET}"

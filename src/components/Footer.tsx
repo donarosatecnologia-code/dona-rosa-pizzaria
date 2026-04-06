@@ -11,6 +11,7 @@ import { CmsPlaceholder } from "@/components/CmsPlaceholder";
 import { useCmsImage } from "@/hooks/useCmsMedia";
 import { useCmsContents } from "@/hooks/useCmsContent";
 import RichText from "@/components/RichText";
+import { siteContainerClass } from "@/lib/siteLayout";
 import { stripHtmlTags } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -73,7 +74,7 @@ const Footer = () => {
 
   return (
     <footer className="bg-foreground py-12 text-primary-foreground">
-      <div className="container mx-auto px-4">
+      <div className={siteContainerClass}>
         <BrandFooterAccent />
         <div className="mb-10 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
           {/* Col 1 - Logo & Social */}

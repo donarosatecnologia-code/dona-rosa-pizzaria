@@ -12,6 +12,8 @@ import { useCmsContents } from "@/hooks/useCmsContent";
 import { useCmsCarousel } from "@/hooks/useCmsMedia";
 import RichText from "@/components/RichText";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { siteContainerClass } from "@/lib/siteLayout";
+import { cn } from "@/lib/utils";
 
 type RowType = "text-image" | "image-text";
 
@@ -139,7 +141,7 @@ const QuemSomosPage = () => {
         <BrandAlecrim className="pointer-events-none absolute top-16 left-2 hidden h-auto w-28 lg:block lg:opacity-100" />
         <BrandTrigo className="pointer-events-none absolute right-2 top-24 z-[1] h-auto w-14 max-h-[4.5rem] max-w-[24%] object-contain object-top-right drop-shadow-md md:top-12 md:w-20 md:max-h-none md:max-w-[36%] lg:top-10 lg:w-24 lg:max-w-[42%] lg:opacity-100" />
 
-        <div className="container mx-auto px-4 max-w-3xl text-center relative z-10">
+        <div className={cn(siteContainerClass, "relative z-10 text-center")}>
           <EditableWrapper id="qs-hero-subtitle" type="text" label="Subtítulo Hero">
             {getText("qs-hero-subtitle") ? (
               <RichText
@@ -161,7 +163,7 @@ const QuemSomosPage = () => {
           </EditableWrapper>
           <EditableWrapper id="qs-hero-description" type="textarea" label="Descrição Hero">
             {getText("qs-hero-description") ? (
-              <RichText content={getText("qs-hero-description")} className="text-muted-foreground leading-relaxed max-w-2xl mx-auto text-base md:text-lg space-y-3" />
+              <RichText content={getText("qs-hero-description")} className="text-base text-muted-foreground leading-relaxed md:text-lg space-y-3" />
             ) : (
               <CmsPlaceholder label="Descrição" />
             )}
@@ -171,7 +173,7 @@ const QuemSomosPage = () => {
 
       {sections.map((section, sIdx) => (
         <section key={section.id} id={section.id} className={`py-16 md:py-24 ${sIdx % 2 === 0 ? "bg-background" : "section-paper"}`}>
-          <div className="container mx-auto px-4 max-w-6xl">
+          <div className={siteContainerClass}>
             <div className="text-center mb-14">
               <EditableWrapper id={`qs-${section.id}-title`} type="text" label={`Título: ${section.label}`}>
                 {getText(`qs-${section.id}-title`) ? (
@@ -182,7 +184,7 @@ const QuemSomosPage = () => {
               </EditableWrapper>
               <EditableWrapper id={`qs-${section.id}-desc`} type="textarea" label={`Descrição: ${section.label}`}>
                 {getText(`qs-${section.id}-desc`) ? (
-                  <RichText content={getText(`qs-${section.id}-desc`)} className="text-muted-foreground max-w-2xl mx-auto leading-relaxed space-y-3" />
+                  <RichText content={getText(`qs-${section.id}-desc`)} className="text-muted-foreground w-full leading-relaxed space-y-3" />
                 ) : (
                   <CmsPlaceholder label="Descrição da seção" />
                 )}
@@ -236,7 +238,7 @@ const QuemSomosPage = () => {
 
       <section className="section-paper relative overflow-hidden py-16 md:py-24">
         <BrandTomilhoB className="absolute right-4 top-6 h-24 w-auto hidden md:block" />
-        <div className="container mx-auto px-4 max-w-5xl">
+        <div className={siteContainerClass}>
           <div className="text-center mb-10">
             <EditableWrapper id="qs-brindar-title" type="text" label="Título Para Começar e Brindar">
               {getText("qs-brindar-title") ? (
@@ -247,14 +249,14 @@ const QuemSomosPage = () => {
             </EditableWrapper>
             <EditableWrapper id="qs-brindar-description" type="textarea" label="Descrição Para Começar e Brindar">
               {getText("qs-brindar-description") ? (
-                <RichText content={getText("qs-brindar-description")} className="text-muted-foreground leading-relaxed max-w-2xl mx-auto space-y-3" />
+                <RichText content={getText("qs-brindar-description")} className="text-muted-foreground w-full leading-relaxed space-y-3" />
               ) : (
                 <CmsPlaceholder label="Descrição" />
               )}
             </EditableWrapper>
           </div>
 
-          <div className="relative max-w-5xl mx-auto">
+          <div className="relative w-full">
             <button
               type="button"
               onClick={prevBrindar}
@@ -290,7 +292,7 @@ const QuemSomosPage = () => {
               <ChevronRight className="text-primary" size={20} />
             </button>
           </div>
-          <div className="text-center mt-8">
+          <div className="mt-8 flex justify-center">
             <EditableWrapper id="qs-brindar-cta" type="link" label="Botão Para Começar e Brindar">
               {brindarCta.label && brindarCta.url ? (
                 <a href={brindarCta.url} className="btn-secondary-dr inline-block">

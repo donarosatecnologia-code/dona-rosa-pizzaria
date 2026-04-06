@@ -5,6 +5,8 @@ import { CmsPlaceholder } from "@/components/CmsPlaceholder";
 import { useCmsImage } from "@/hooks/useCmsMedia";
 import { useCmsContents } from "@/hooks/useCmsContent";
 import RichText from "@/components/RichText";
+import { siteContainerClass } from "@/lib/siteLayout";
+import { cn } from "@/lib/utils";
 
 const Contato = () => {
   const { getText, getLink } = useCmsContents(
@@ -22,8 +24,8 @@ const Contato = () => {
     <section id="contato" className="relative overflow-hidden bg-background py-16 md:py-24">
       <BrandTrigo className="absolute right-0 top-1/4 h-36 w-auto opacity-[0.18] hidden xl:block" />
       <BrandLinhaDecorativa className="absolute bottom-8 left-4 h-10 w-auto opacity-20 hidden lg:block" />
-      <div className="container relative z-10 mx-auto px-4">
-        <div className="grid md:grid-cols-2 gap-10 items-center max-w-5xl mx-auto">
+      <div className={cn(siteContainerClass, "relative z-10")}>
+        <div className="grid items-center gap-10 md:grid-cols-2">
           <div>
             <EditableWrapper id="home-contato-title" type="text" label="Título Contato">
               {contatoTitle ? (
