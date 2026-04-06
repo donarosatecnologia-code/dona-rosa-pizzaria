@@ -15,21 +15,6 @@ function formatCurrency(value: number) {
   return `R$ ${value.toFixed(2)}`;
 }
 
-/** Linha decorativa à esquerda da lista — visível só no mobile (< lg). */
-function CardapioMobileLinhaAside({ tall }: { tall?: boolean }) {
-  return (
-    <div className="pointer-events-none shrink-0 self-start pt-1 lg:hidden">
-      <BrandLinhaDecorativa
-        className={
-          tall
-            ? "h-[min(420px,52vh)] w-auto max-w-[3rem] object-contain object-top drop-shadow-sm"
-            : "h-[min(380px,48vh)] w-auto max-w-[3rem] object-contain object-top drop-shadow-sm"
-        }
-      />
-    </div>
-  );
-}
-
 /** Linha decorativa à esquerda — apenas desktop (lg+), só em seções de duas colunas. Altura acompanha o texto; excedente é cortado. */
 function CardapioDesktopLinhaAside() {
   return (
@@ -261,17 +246,13 @@ const CardapioPage = () => {
                   )}
                 </div>
 
-                {/* Mobile (lg:hidden): linha decorativa em todas as seções. Desktop: linha à esquerda só na seção principal Pizzas (showLinhaDecorativa). */}
+                {/* Desktop (lg+): linha à esquerda só na seção principal Pizzas (showLinhaDecorativa). */}
                 {hasWineGrouping ? (
-                  <div className="mx-auto flex w-full max-w-3xl flex-row items-start gap-3 sm:gap-4 lg:gap-3">
-                    <CardapioMobileLinhaAside />
-                    <div className="min-w-0 flex-1">
-                      <WineGroupedItems items={items} />
-                    </div>
+                  <div className="mx-auto w-full max-w-3xl">
+                    <WineGroupedItems items={items} />
                   </div>
                 ) : hasPizzaRules && isLargeSection ? (
                   <div className="mx-auto flex w-full max-w-5xl flex-row items-start gap-3 sm:gap-4 lg:items-stretch lg:gap-3">
-                    <CardapioMobileLinhaAside tall />
                     {showLinhaDecorativa ? <CardapioDesktopLinhaAside /> : null}
                     <div className="relative min-w-0 w-full flex-1">
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-0">
@@ -290,17 +271,13 @@ const CardapioPage = () => {
                     </div>
                   </div>
                 ) : hasPizzaRules ? (
-                  <div className="mx-auto flex w-full max-w-2xl flex-row items-start gap-3 sm:gap-4 lg:gap-3">
-                    <CardapioMobileLinhaAside />
-                    <div className="min-w-0 w-full flex-1">
-                      {items.map((item) => (
-                        <MenuItem key={item.id} item={item} showPizzaSizes />
-                      ))}
-                    </div>
+                  <div className="mx-auto w-full max-w-2xl">
+                    {items.map((item) => (
+                      <MenuItem key={item.id} item={item} showPizzaSizes />
+                    ))}
                   </div>
                 ) : isLargeSection ? (
                   <div className="mx-auto flex w-full max-w-5xl flex-row items-start gap-3 sm:gap-4 lg:items-stretch lg:gap-3">
-                    <CardapioMobileLinhaAside tall />
                     <div className="relative min-w-0 w-full flex-1">
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-0">
                         <div>
@@ -318,13 +295,10 @@ const CardapioPage = () => {
                     </div>
                   </div>
                 ) : (
-                  <div className="mx-auto flex w-full max-w-2xl flex-row items-start gap-3 sm:gap-4 lg:gap-3">
-                    <CardapioMobileLinhaAside />
-                    <div className="min-w-0 w-full flex-1">
-                      {items.map((item) => (
-                        <MenuItem key={item.id} item={item} showPizzaSizes={hasPizzaRules} />
-                      ))}
-                    </div>
+                  <div className="mx-auto w-full max-w-2xl">
+                    {items.map((item) => (
+                      <MenuItem key={item.id} item={item} showPizzaSizes={hasPizzaRules} />
+                    ))}
                   </div>
                 )}
                 {hasPizzaRules && <PizzaCategoryFooter category={group.category} />}
@@ -483,6 +457,8 @@ function MenuItem({
     item.price_half_carafe != null ||
     item.price_carafe != null
   );
+  const descRaw = item.short_description || item.description;
+  const desc = descRaw?.trim() ? descRaw : null;
 
   return (
     <div className="py-3 border-b border-border/40 last:border-b-0">
@@ -495,7 +471,7 @@ function MenuItem({
           </span>
         ) : showPizzaSizes ? (
           <span className="font-bold text-secondary text-sm md:text-base whitespace-nowrap">
-            Grande: {formatCurrency(item.price)}
+            {formatCurrency(item.price)}
           </span>
         ) : (
           <span className="font-bold text-secondary text-sm md:text-base whitespace-nowrap">
@@ -503,10 +479,17 @@ function MenuItem({
           </span>
         )}
       </div>
-      {showPizzaSizes && !hasHouseWinePrices && pizzaSizeLines.length > 0 && (
-        <p className="text-xs text-muted-foreground mt-1">
-          {pizzaSizeLines.join(" | ")}
-        </p>
+      {showPizzaSizes && !hasHouseWinePrices && (
+        <>
+          {desc && (
+            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{desc}</p>
+          )}
+          {pizzaSizeLines.length > 0 && (
+            <p className="text-xs text-muted-foreground mt-1">
+              {pizzaSizeLines.join(" | ")}
+            </p>
+          )}
+        </>
       )}
       {hasHouseWinePrices && (
         <p className="text-xs text-muted-foreground mt-1">
@@ -517,10 +500,8 @@ function MenuItem({
           {item.price_carafe !== null && item.price_carafe !== undefined ? `Jarra: ${formatCurrency(item.price_carafe)}` : ""}
         </p>
       )}
-      {(item.short_description || item.description) && (
-        <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-          {item.short_description || item.description}
-        </p>
+      {!showPizzaSizes && desc && (
+        <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{desc}</p>
       )}
     </div>
   );

@@ -1,30 +1,6 @@
 @import url("https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,400&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,600;0,700;1,400&display=swap");
 
-@font-face {
-  font-family: "ARCENA";
-  src: url("/fonts/ARCENA.woff") format("woff");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "ARCENA";
-  src: url("/fonts/ARCENA.woff") format("woff");
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "ARCENA";
-  src: url("/fonts/ARCENA.woff") format("woff");
-  font-weight: 900;
-  font-style: normal;
-  font-display: swap;
-}
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -91,7 +67,7 @@
   h4,
   h5,
   h6 {
-    font-family: "ARCENA", "Lato", sans-serif !important;
+    font-family: "Lato", sans-serif !important;
     letter-spacing: 0.01em;
     font-synthesis: none;
   }
@@ -99,7 +75,7 @@
 
 @layer utilities {
   .font-display {
-    font-family: "ARCENA", "Lato", sans-serif !important;
+    font-family: "Lato", sans-serif !important;
     letter-spacing: 0.01em;
     font-synthesis: none;
   }
@@ -162,7 +138,7 @@
   .rich-text-content h4,
   .rich-text-content h5,
   .rich-text-content h6 {
-    font-family: "ARCENA", "Lato", sans-serif !important;
+    font-family: "Lato", sans-serif !important;
     letter-spacing: 0.01em;
     font-synthesis: none;
   }
@@ -207,7 +183,7 @@
   .legal-rich .rich-text-content h2,
   .legal-rich .rich-text-content h3,
   .legal-rich .rich-text-content h4 {
-    font-family: "ARCENA", "Lato", sans-serif !important;
+    font-family: "Lato", sans-serif !important;
     letter-spacing: 0.01em;
     font-synthesis: none;
     color: hsl(var(--primary));
@@ -235,7 +211,7 @@
     margin: 1.25rem 0 0.5rem;
   }
 
-  /* Termos de Uso — corpo em Montserrat; títulos (h2–h4) seguem ARCENA em .legal-rich */
+  /* Termos de Uso — corpo em Montserrat; títulos (h2–h4) em Lato em .legal-rich */
   .terms-page .legal-rich .rich-text-content p,
   .terms-page .legal-rich .rich-text-content li,
   .terms-page .legal-rich .rich-text-content ul,
