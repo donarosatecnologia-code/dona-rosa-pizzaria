@@ -15,7 +15,7 @@ export default {
     extend: {
       fontFamily: {
         sans: ["Lato", "sans-serif"],
-        display: ["ARCENA", "Lato", "sans-serif"],
+        display: ["Lato", "sans-serif"],
         montserrat: ["Montserrat", "Lato", "sans-serif"],
       },
       colors: {
