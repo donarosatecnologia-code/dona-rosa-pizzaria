@@ -14,6 +14,8 @@ import { useSiteShellReady } from "@/hooks/useSiteShellReady";
 import { useCmsContents } from "@/hooks/useCmsContent";
 import { useCmsCarousel, useCmsGallery } from "@/hooks/useCmsMedia";
 import { supabase } from "@/integrations/supabase/client";
+import { siteContainerClass } from "@/lib/siteLayout";
+import { cn } from "@/lib/utils";
 
 interface VenueZigZagRow {
   id: string;
@@ -100,8 +102,8 @@ function VenueIntro({
       <BrandAlecrim className="pointer-events-none absolute left-4 top-24 hidden h-32 w-auto max-w-[min(40%,12rem)] object-contain object-top-left drop-shadow-md lg:block lg:opacity-100" />
       <BrandTomilho className="pointer-events-none absolute bottom-28 right-4 hidden h-28 w-auto max-w-[42%] object-contain object-top-right drop-shadow-md lg:block lg:opacity-100" />
       <BrandLinhaDecorativa className="absolute right-4 top-1/3 h-11 w-auto opacity-15 hidden xl:block rotate-6" />
-      <div className="container relative z-10 mx-auto px-4 max-w-6xl">
-        <div className="text-center max-w-3xl mx-auto mb-12">
+      <div className={cn(siteContainerClass, "relative z-10")}>
+        <div className="mb-12 w-full text-center">
           <EditableWrapper id="venue-intro-title" type="text" label="Título Nosso Espaço">
             {introTitle ? (
               <RichText as="h1" inline content={introTitle} className="text-4xl md:text-5xl text-foreground" />
@@ -196,8 +198,8 @@ function MenuHighlights({
   return (
     <section className="relative overflow-hidden py-16 md:py-24 bg-background">
       <BrandTomilhoB className="absolute right-4 bottom-6 hidden h-20 w-auto md:block" />
-      <div className="container mx-auto px-4 max-w-6xl">
-        <div className="text-center mb-10">
+      <div className={siteContainerClass}>
+        <div className="mb-10 w-full text-center">
           <EditableWrapper id="venue-menu-title" type="text" label="Título Nosso Cardápio">
             {menuTitle ? (
               <RichText as="h2" inline content={menuTitle} className="text-3xl md:text-4xl text-foreground" />
@@ -225,8 +227,8 @@ function MenuHighlights({
           {len === 0 ? (
             <CmsPlaceholder label="Carrossel sem imagens publicadas" className="py-12" />
           ) : (
-            <div className="relative max-w-4xl mx-auto">
-              <div className="flex items-center gap-4 justify-center">
+            <div className="relative w-full">
+              <div className="flex items-center justify-center gap-4">
                 <button
                   type="button"
                   onClick={prev}
@@ -237,7 +239,7 @@ function MenuHighlights({
                 </button>
 
                 <div
-                  className="grid gap-4 w-full max-w-3xl"
+                  className="grid w-full gap-4"
                   style={{ gridTemplateColumns: `repeat(${visibleColumns}, minmax(0, 1fr))` }}
                 >
                   {visibleImages.map((image, index) => (
@@ -247,7 +249,7 @@ function MenuHighlights({
                         alt={image.alt}
                         loading="lazy"
                         decoding="async"
-                        className="w-full h-40 md:h-44 object-cover"
+                        className="h-52 w-full object-cover md:h-60 lg:h-64"
                       />
                     </div>
                   ))}
@@ -278,7 +280,7 @@ function MenuHighlights({
           )}
         </EditableWrapper>
 
-        <div className="text-center mt-8">
+        <div className="mt-8 flex justify-center">
           <EditableWrapper id="venue-menu-cta" type="link" label="Botão Nosso Cardápio">
             {menuCtaLink.label && menuCtaLink.url ? (
               <a href={menuCtaLink.url} className="btn-secondary-dr inline-block">
@@ -373,7 +375,7 @@ function LightboxGalleryGrid({
         )}
       </EditableWrapper>
       {images.length > visibleCount && (
-        <div className="text-center mt-8">
+        <div className="mt-8 flex justify-center">
           <button type="button" onClick={() => setVisibleCount((count) => count + 12)} className="btn-secondary-dr inline-block">
             Carregar mais
           </button>
@@ -435,8 +437,8 @@ function MomentsCarousel({
     <section className="section-paper relative overflow-hidden py-16 md:py-24">
       <BrandTomilho className="absolute right-2 top-8 hidden h-20 w-auto opacity-[0.16] lg:block" />
       <BrandLinhaDecorativa className="absolute left-8 bottom-8 hidden h-9 w-auto opacity-[0.2] md:block" />
-      <div className="container mx-auto px-4 max-w-6xl">
-        <div className="text-center mb-10">
+      <div className={siteContainerClass}>
+        <div className="mb-10 w-full text-center">
           <EditableWrapper id="venue-moments-title" type="text" label="Título Momentos">
             {t ? (
               <RichText as="h2" inline content={t} className="text-3xl md:text-4xl text-foreground" />
@@ -465,8 +467,8 @@ function CustomerMural({
     <section className="relative overflow-hidden py-16 md:py-24 bg-background">
       <BrandAlecrim className="absolute left-0 bottom-10 hidden h-24 w-auto opacity-[0.2] lg:block" />
       <BrandTomilhoB className="absolute right-8 top-10 hidden h-16 w-auto md:block lg:h-28 lg:w-auto lg:opacity-100" />
-      <div className="container mx-auto px-4 max-w-6xl">
-        <div className="text-center mb-10">
+      <div className={siteContainerClass}>
+        <div className="mb-10 w-full text-center">
           <EditableWrapper id="venue-customers-title" type="text" label="Título Nossos Clientes">
             {t ? (
               <RichText as="h2" inline content={t} className="text-3xl md:text-4xl text-foreground" />

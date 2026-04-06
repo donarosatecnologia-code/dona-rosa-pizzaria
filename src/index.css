@@ -80,16 +80,47 @@
     font-synthesis: none;
   }
 
-  /* Site público: no mobile, textos com text-center passam à esquerda; desktop inalterado (md+) */
+  /* Site público: no mobile, textos com text-center passam à esquerda */
   @media (max-width: 767px) {
     body.site-public .text-center {
       text-align: left !important;
     }
 
-    /* Cardápio: títulos/descrições de seção e notas de rodapé da categoria voltam ao centro no mobile */
-    body.site-public .cardapio-section-heading.text-center,
-    body.site-public .cardapio-section-heading .text-center {
-      text-align: center !important;
+  }
+
+  /* Desktop (lg+): texto justificado em todo o app; destaques e utilitários de alinhamento deixam de centralizar */
+  @media (min-width: 1024px) {
+    body {
+      text-align: justify;
+    }
+
+    /* Blocos de código e campos de formulário: alinhamento ao início (justificado em input fica confuso) */
+    pre,
+    code,
+    input:not([type="checkbox"]):not([type="radio"]),
+    textarea,
+    select {
+      text-align: start;
+    }
+
+    [class*="text-center"] {
+      text-align: justify !important;
+    }
+
+    [class*="text-left"] {
+      text-align: justify !important;
+    }
+
+    [class*="text-right"] {
+      text-align: justify !important;
+    }
+
+    [class*="text-start"] {
+      text-align: justify !important;
+    }
+
+    [class*="text-end"] {
+      text-align: justify !important;
     }
   }
 }

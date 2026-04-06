@@ -1,6 +1,6 @@
 import { useState, type FormEvent, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Facebook, Globe, Instagram, Linkedin, Mail, MapPin, Phone, Twitter, Youtube } from "lucide-react";
+import { Facebook, Globe, Instagram, Linkedin, Mail, MapPin, MessageCircle, Phone, Twitter, Youtube } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
@@ -14,7 +14,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { useCmsContents } from "@/hooks/useCmsContent";
 import { useSiteShellReady } from "@/hooks/useSiteShellReady";
 import { LoadingScreen } from "@/components/LoadingScreen";
-import { BrandAlecrim, BrandLinhaDecorativa, BrandTomilho, BrandTomilhoB } from "@/components/BrandAccents";
+import { BrandAlecrim, BrandTomilho, BrandTomilhoB } from "@/components/BrandAccents";
+import { siteContainerClass } from "@/lib/siteLayout";
+import { cn } from "@/lib/utils";
 
 const CONTACT_WHATSAPP_PHONE = "5511930617116";
 
@@ -99,51 +101,53 @@ function ContactForm() {
   };
 
   return (
-    <form onSubmit={onSubmit} className="mx-auto max-w-lg space-y-4 rounded-2xl border border-border bg-card p-6 shadow-lg md:p-8">
-      <div className="space-y-2">
-        <Label htmlFor="contact-name">Nome completo</Label>
-        <Input
-          id="contact-name"
-          name="name"
-          autoComplete="name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Seu nome"
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="contact-phone">Telefone</Label>
-        <Input
-          id="contact-phone"
-          name="phone"
-          type="tel"
-          autoComplete="tel"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          placeholder="(11) 99999-9999"
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="contact-email">E-mail</Label>
-        <Input
-          id="contact-email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="seu@email.com"
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="contact-subject">Assunto</Label>
-        <Input
-          id="contact-subject"
-          name="subject"
-          value={subject}
-          onChange={(e) => setSubject(e.target.value)}
-          placeholder="Assunto"
-        />
+    <form onSubmit={onSubmit} className="w-full space-y-5">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="contact-name">Nome completo</Label>
+          <Input
+            id="contact-name"
+            name="name"
+            autoComplete="name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Seu nome"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="contact-phone">Telefone</Label>
+          <Input
+            id="contact-phone"
+            name="phone"
+            type="tel"
+            autoComplete="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="(11) 99999-9999"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="contact-email">E-mail</Label>
+          <Input
+            id="contact-email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="seu@email.com"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="contact-subject">Assunto</Label>
+          <Input
+            id="contact-subject"
+            name="subject"
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            placeholder="Assunto"
+          />
+        </div>
       </div>
       <div className="space-y-2">
         <Label htmlFor="contact-message">Mensagem</Label>
@@ -154,10 +158,10 @@ function ContactForm() {
           onChange={(e) => setMessage(e.target.value)}
           placeholder="Sua mensagem"
           rows={5}
-          className="resize-y min-h-[120px]"
+          className="min-h-[140px] resize-y"
         />
       </div>
-      <button type="submit" className="btn-primary-dr w-full uppercase tracking-wide font-semibold">
+      <button type="submit" className="btn-primary-dr w-full font-semibold uppercase tracking-wide sm:w-auto sm:min-w-[12rem]">
         Enviar!
       </button>
     </form>
@@ -204,7 +208,7 @@ function ContactPage() {
   if (isError) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4">
-        <p className="text-center text-muted-foreground">Não foi possível carregar o conteúdo. Tente novamente mais tarde.</p>
+        <p className="text-muted-foreground">Não foi possível carregar o conteúdo. Tente novamente mais tarde.</p>
       </div>
     );
   }
@@ -213,146 +217,155 @@ function ContactPage() {
     <div className="min-h-screen bg-background">
       <Header />
 
-      <section className="section-paper relative overflow-hidden pt-28 pb-16 md:pt-36 md:pb-24">
+      {/* Bloco 1: introdução + grade de contato + reserva */}
+      <section className="section-paper relative overflow-hidden pt-28 pb-12 md:pt-36 md:pb-16">
         <BrandTomilhoB className="pointer-events-none absolute right-3 top-28 z-[1] h-28 w-auto max-w-[42%] object-contain drop-shadow-md lg:hidden" />
-        <BrandAlecrim className="pointer-events-none absolute left-0 top-28 h-40 w-auto hidden md:block lg:h-48 lg:opacity-100" />
-        <BrandTomilhoB className="pointer-events-none absolute right-0 bottom-6 h-44 w-auto hidden lg:block xl:bottom-10 xl:h-52 lg:opacity-100 drop-shadow-md" />
-        <BrandLinhaDecorativa className="absolute left-8 bottom-16 h-9 w-auto max-w-[11rem] opacity-[0.2] -rotate-6 hidden xl:block" />
-        <div className="container relative z-10 mx-auto max-w-3xl px-4">
-          <div className="mb-10 text-center md:mb-12">
+        <BrandAlecrim className="pointer-events-none absolute left-0 top-28 hidden h-40 w-auto md:block lg:h-48 lg:opacity-100" />
+        <BrandTomilhoB className="pointer-events-none absolute bottom-6 right-0 hidden h-44 w-auto lg:block xl:bottom-10 xl:h-52 lg:opacity-100 drop-shadow-md" />
+
+        <div className={cn(siteContainerClass, "relative z-10")}>
+          <header className="mb-12 w-full text-justify md:mb-14">
             <EditableWrapper id="contact-s1-title" type="text" label="Título — Entre em contato">
               <RichText
                 as="h1"
                 inline
                 content={getText("contact-s1-title")}
-                className="text-4xl md:text-5xl text-foreground"
+                className="text-4xl font-bold text-foreground md:text-5xl"
               />
             </EditableWrapper>
-            <div className="mx-auto mt-5 flex justify-center opacity-[0.35]">
-              <BrandLinhaDecorativa className="h-8 w-auto max-w-[min(100%,12rem)] object-contain" />
-            </div>
+            <div className="mt-5 h-1 w-16 rounded-full bg-secondary/80" aria-hidden />
             <EditableWrapper id="contact-s1-desc" type="textarea" label="Texto introdutório — Contato">
               <RichText
                 content={getText("contact-s1-desc")}
-                className="mt-4 text-muted-foreground mx-auto max-w-2xl leading-relaxed"
+                className="mt-6 text-base leading-relaxed text-muted-foreground md:text-lg"
               />
             </EditableWrapper>
-          </div>
+          </header>
 
-          <div className="mx-auto max-w-xl space-y-5 text-sm md:text-base">
-            <div className="flex gap-3">
-              <Phone className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
-              <EditableWrapper id="contact-phone-1" type="text" label="Telefone 1">
-                <RichText as="p" inline content={getText("contact-phone-1")} className="text-foreground" />
-              </EditableWrapper>
+          <div className="mb-10 grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-0 md:overflow-hidden md:rounded-2xl md:border md:border-border md:shadow-sm">
+            <div className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-6 md:rounded-none md:border-0 md:border-r md:p-8">
+              <div className="flex items-center gap-2 text-primary">
+                <Phone className="h-5 w-5" aria-hidden />
+                <span className="text-xs font-semibold uppercase tracking-wide text-secondary">Telefones</span>
+              </div>
+              <div className="space-y-3 text-sm md:text-base">
+                <EditableWrapper id="contact-phone-1" type="text" label="Telefone 1">
+                  <RichText as="p" inline content={getText("contact-phone-1")} className="text-foreground" />
+                </EditableWrapper>
+                <EditableWrapper id="contact-phone-2" type="text" label="Telefone 2">
+                  <RichText as="p" inline content={getText("contact-phone-2")} className="text-foreground" />
+                </EditableWrapper>
+              </div>
             </div>
-            <div className="flex gap-3">
-              <Phone className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
-              <EditableWrapper id="contact-phone-2" type="text" label="Telefone 2">
-                <RichText as="p" inline content={getText("contact-phone-2")} className="text-foreground" />
-              </EditableWrapper>
-            </div>
-            <div className="flex gap-3">
-              <Mail className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
+
+            <div className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-6 md:rounded-none md:border-0 md:border-r md:p-8">
+              <div className="flex items-center gap-2 text-primary">
+                <Mail className="h-5 w-5" aria-hidden />
+                <span className="text-xs font-semibold uppercase tracking-wide text-secondary">E-mail</span>
+              </div>
               <EditableWrapper id="contact-email" type="text" label="E-mail">
                 <a
                   href={`mailto:${stripMailtoPrefix(getText("contact-email"))}`}
-                  className="text-primary underline-offset-2 hover:underline"
+                  className="text-sm text-primary underline-offset-2 hover:underline md:text-base"
                 >
                   <RichText as="span" inline content={getText("contact-email")} />
                 </a>
               </EditableWrapper>
             </div>
-            <div className="flex gap-3">
-              <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
+
+            <div className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-6 md:rounded-none md:border-0 md:p-8">
+              <div className="flex items-center gap-2 text-primary">
+                <MapPin className="h-5 w-5" aria-hidden />
+                <span className="text-xs font-semibold uppercase tracking-wide text-secondary">Endereço</span>
+              </div>
               <EditableWrapper id="contact-address" type="textarea" label="Endereço">
-                <RichText content={getText("contact-address")} className="text-muted-foreground leading-relaxed" />
+                <RichText content={getText("contact-address")} className="text-sm leading-relaxed text-muted-foreground md:text-base" />
               </EditableWrapper>
             </div>
           </div>
 
-          {(socialLinks?.length ?? 0) > 0 && (
-            <div className="mx-auto mt-10 max-w-xl border-t border-border/60 pt-8">
-              <p className="mb-4 text-center text-sm font-medium text-foreground">Redes sociais</p>
-              <div className="flex flex-wrap items-center justify-center gap-4">
-                {(socialLinks ?? []).map((link) => (
-                  <a
-                    key={link.id}
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-foreground opacity-80 transition-opacity hover:opacity-100"
-                    aria-label={link.platform}
-                  >
-                    {iconMap[link.icon_name] || <Globe size={20} />}
-                  </a>
-                ))}
+          <div className="mb-10 rounded-2xl border border-primary/25 bg-gradient-to-br from-primary/[0.07] via-background to-secondary/[0.06] p-6 shadow-sm md:p-8">
+            <div className="flex flex-col gap-8 lg:flex-row lg:items-stretch lg:justify-between lg:gap-10">
+              <div className="min-w-0 flex-1 space-y-3">
+                <EditableWrapper id="contact-s2-title" type="text" label="Título — Reserve sua mesa">
+                  <RichText
+                    as="h2"
+                    inline
+                    content={getText("contact-s2-title")}
+                    className="text-2xl font-bold text-foreground md:text-3xl"
+                  />
+                </EditableWrapper>
+                <EditableWrapper id="contact-s2-desc" type="textarea" label="Texto — Reserva">
+                  <RichText
+                    content={getText("contact-s2-desc")}
+                    className="text-sm leading-relaxed text-muted-foreground md:text-base"
+                  />
+                </EditableWrapper>
+                <div className="border-t border-border/50 pt-4">
+                  <EditableWrapper id="contact-s2-hours" type="textarea" label="Horário de funcionamento (reserva)">
+                    <RichText
+                      content={getText("contact-s2-hours")}
+                      className="whitespace-pre-line text-sm leading-relaxed text-muted-foreground"
+                    />
+                  </EditableWrapper>
+                </div>
+              </div>
+              <div className="flex shrink-0 flex-col justify-center lg:w-72">
+                <a
+                  href={reservationWhatsAppUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-3 rounded-full bg-[#25D366] px-6 py-4 text-base font-semibold text-white shadow-md transition-transform hover:scale-[1.02] hover:shadow-lg"
+                  aria-label="Reservar mesa pelo WhatsApp"
+                >
+                  <MessageCircle className="h-6 w-6 shrink-0" aria-hidden />
+                  Reservar pelo WhatsApp
+                </a>
               </div>
             </div>
-          )}
-        </div>
-      </section>
-
-      <section className="bg-background py-16 md:py-24">
-        <div className="container relative z-10 mx-auto max-w-3xl px-4 text-center">
-          <EditableWrapper id="contact-s2-title" type="text" label="Título — Reserve sua mesa">
-            <RichText
-              as="h2"
-              inline
-              content={getText("contact-s2-title")}
-              className="text-3xl md:text-4xl text-foreground"
-            />
-          </EditableWrapper>
-          <EditableWrapper id="contact-s2-desc" type="textarea" label="Texto — Reserva">
-            <RichText
-              content={getText("contact-s2-desc")}
-              className="mt-4 text-muted-foreground mx-auto max-w-2xl leading-relaxed"
-            />
-          </EditableWrapper>
-
-          <div className="mt-10 flex justify-center">
-            <a
-              href={reservationWhatsAppUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex h-24 w-24 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg transition-transform hover:scale-105 md:h-28 md:w-28"
-              aria-label="Reservar mesa pelo WhatsApp"
-            >
-              <svg className="h-12 w-12 md:h-14 md:w-14" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.03-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-              </svg>
-            </a>
-          </div>
-
-          <div className="mx-auto mt-12 max-w-md">
-            <EditableWrapper id="contact-s2-hours" type="textarea" label="Horário de funcionamento (reserva)">
-              <RichText
-                content={getText("contact-s2-hours")}
-                className="text-center text-sm text-muted-foreground leading-relaxed whitespace-pre-line"
-              />
-            </EditableWrapper>
           </div>
         </div>
       </section>
 
-      <section className="section-paper relative overflow-hidden py-16 md:py-24">
-        <BrandTomilhoB className="pointer-events-none absolute left-2 top-20 h-24 w-auto opacity-[0.15] hidden md:block lg:top-24 lg:h-28 lg:opacity-100" />
-        <BrandTomilho className="pointer-events-none absolute bottom-10 right-4 h-28 w-auto opacity-[0.18] hidden lg:block xl:bottom-14 xl:h-32 lg:opacity-100" />
-        <BrandAlecrim className="absolute right-0 top-1/3 h-32 w-auto opacity-[0.12] -translate-y-1/2 hidden xl:block xl:h-40" />
-        <BrandLinhaDecorativa className="absolute left-6 top-28 h-10 w-auto opacity-[0.15] -rotate-6 hidden xl:block" />
-        <BrandLinhaDecorativa className="absolute right-12 bottom-40 h-11 w-auto opacity-[0.14] rotate-6 hidden 2xl:block" />
-        <div className="container relative z-10 mx-auto max-w-3xl px-4">
-          <div className="mb-10 text-center">
-            <EditableWrapper id="contact-s3-title" type="text" label="Título — Fale conosco">
-              <RichText
-                as="h2"
-                inline
-                content={getText("contact-s3-title")}
-                className="text-3xl md:text-4xl text-foreground"
-              />
-            </EditableWrapper>
+      {/* Bloco 2: formulário + redes sociais */}
+      <section className="relative border-t border-border/60 bg-muted/25 py-14 md:py-20">
+        <div className={siteContainerClass}>
+          <div className="mx-auto max-w-3xl">
+            <div className="mb-8 text-justify">
+              <EditableWrapper id="contact-s3-title" type="text" label="Título — Fale conosco">
+                <RichText
+                  as="h2"
+                  inline
+                  content={getText("contact-s3-title")}
+                  className="text-2xl font-bold text-foreground md:text-3xl"
+                />
+              </EditableWrapper>
+            </div>
+            <div className="rounded-2xl border border-border bg-card p-6 shadow-sm md:p-10">
+              <ContactForm />
+            </div>
+            {(socialLinks?.length ?? 0) > 0 && (
+              <div className="mt-10 flex w-full flex-col items-center border-t border-border/60 pt-8">
+                <div className="flex justify-center">
+                  <p className="text-sm font-medium text-muted-foreground">Siga a Dona Rosa</p>
+                </div>
+                <div className="mt-4 flex flex-wrap justify-center gap-5">
+                  {(socialLinks ?? []).map((link) => (
+                    <a
+                      key={link.id}
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-foreground opacity-75 transition-opacity hover:opacity-100"
+                      aria-label={link.platform}
+                    >
+                      {iconMap[link.icon_name] || <Globe size={22} />}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-          <ContactForm />
         </div>
       </section>
 

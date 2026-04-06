@@ -8,6 +8,8 @@ import { BrandAlecrim, BrandLinhaDecorativa, BrandTomilho, BrandTomilhoB, BrandT
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { useSiteShellReady } from "@/hooks/useSiteShellReady";
 import { useCmsContents } from "@/hooks/useCmsContent";
+import { siteContainerClass } from "@/lib/siteLayout";
+import { cn } from "@/lib/utils";
 
 const PRIVACY_PAGE_KEY = "politica-privacidade";
 
@@ -74,8 +76,8 @@ function PrivacyPolicyPage() {
         <BrandLinhaDecorativa className="absolute left-4 top-1/2 h-24 w-auto max-w-[4rem] opacity-[0.18] -translate-y-1/2 -rotate-6 hidden 2xl:block" />
         <BrandLinhaDecorativa className="absolute right-6 top-1/3 h-20 w-auto max-w-[3.5rem] opacity-[0.16] rotate-6 hidden 2xl:block" />
 
-        <div className="container relative z-10 mx-auto max-w-3xl px-4 sm:px-6">
-          <header className="mb-10 text-center md:mb-12">
+        <div className={cn(siteContainerClass, "relative z-10")}>
+          <header className="mb-10 flex justify-center md:mb-12">
             <EditableWrapper id="privacy-page-title" type="text" label="Título da página">
               {title ? (
                 <RichText as="h1" inline content={title} className="text-3xl font-bold text-primary md:text-4xl" />
@@ -85,7 +87,7 @@ function PrivacyPolicyPage() {
             </EditableWrapper>
           </header>
 
-          <article className="legal-rich space-y-8 md:space-y-10">
+          <article className="legal-rich w-full space-y-8 text-justify md:space-y-10">
             <LegalContentSection sectionKey="privacy-intro" label="Introdução e definições" getText={getText} />
             <LegalContentSection sectionKey="privacy-collected" label="Informações pessoais que coletamos" getText={getText} />
             <LegalContentSection sectionKey="privacy-why" label="Por que processamos seus dados?" getText={getText} />

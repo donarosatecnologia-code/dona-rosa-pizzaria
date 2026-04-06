@@ -4,6 +4,8 @@ import { BrandAlecrim, BrandTomilho } from "@/components/BrandAccents";
 import { CmsPlaceholder } from "@/components/CmsPlaceholder";
 import { useCmsContents } from "@/hooks/useCmsContent";
 import RichText from "@/components/RichText";
+import { siteContainerClass } from "@/lib/siteLayout";
+import { cn } from "@/lib/utils";
 
 const FEATURE_ICONS = ["home", "users", "leaf", "utensils"] as const;
 
@@ -36,7 +38,7 @@ const QuemSomos = () => {
     <section id="quem-somos" className="relative overflow-hidden bg-background py-16 md:py-24">
       <BrandAlecrim className="absolute left-0 top-12 h-28 w-auto opacity-[0.18] hidden md:block" />
       <BrandTomilho className="absolute right-0 bottom-16 h-20 w-auto opacity-[0.18] hidden lg:block" />
-      <div className="container relative z-10 mx-auto px-4 max-w-4xl text-center">
+      <div className={cn(siteContainerClass, "relative z-10 text-center")}>
         <EditableWrapper id="home-quemsmos-title" type="text" label="Título Quem Somos">
           {quemSomosTitle ? (
             <RichText as="h2" inline content={quemSomosTitle} className="text-3xl md:text-4xl font-bold text-foreground mb-6" />
@@ -46,9 +48,9 @@ const QuemSomos = () => {
         </EditableWrapper>
         <EditableWrapper id="home-quemsmos-desc" type="textarea" label="Descrição Quem Somos">
           {quemSomosDescription ? (
-            <RichText content={quemSomosDescription} className="text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed space-y-3" />
+            <RichText content={quemSomosDescription} className="text-muted-foreground mb-10 w-full leading-relaxed space-y-3" />
           ) : (
-            <CmsPlaceholder label="Descrição" className="mb-10 max-w-2xl mx-auto" />
+            <CmsPlaceholder label="Descrição" className="mb-10 w-full" />
           )}
         </EditableWrapper>
 
@@ -70,15 +72,17 @@ const QuemSomos = () => {
           })}
         </div>
 
-        <EditableWrapper id="home-quemsmos-cta" type="link" label="Botão Quem Somos">
-          {cta.label && cta.url ? (
-            <a href={cta.url} className="btn-secondary-dr inline-block">
-              <RichText as="span" inline content={cta.label} />
-            </a>
-          ) : (
-            <CmsPlaceholder label="Botão (título e URL)" className="inline-block min-w-[10rem]" />
-          )}
-        </EditableWrapper>
+        <div className="flex justify-center">
+          <EditableWrapper id="home-quemsmos-cta" type="link" label="Botão Quem Somos">
+            {cta.label && cta.url ? (
+              <a href={cta.url} className="btn-secondary-dr inline-block">
+                <RichText as="span" inline content={cta.label} />
+              </a>
+            ) : (
+              <CmsPlaceholder label="Botão (título e URL)" className="inline-block min-w-[10rem]" />
+            )}
+          </EditableWrapper>
+        </div>
       </div>
     </section>
   );

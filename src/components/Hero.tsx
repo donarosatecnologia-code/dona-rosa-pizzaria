@@ -3,6 +3,7 @@ import { BrandHeroAccents } from "@/components/BrandAccents";
 import { CmsPlaceholder } from "@/components/CmsPlaceholder";
 import { useCmsImage } from "@/hooks/useCmsMedia";
 import { useAdminMirrorEmbed } from "@/contexts/AdminMirrorEmbedContext";
+import { siteContainerClass } from "@/lib/siteLayout";
 import { cn } from "@/lib/utils";
 
 const Hero = () => {
@@ -17,7 +18,7 @@ const Hero = () => {
       )}
     >
       <BrandHeroAccents />
-      <div className="text-center py-16 px-4">
+      <div className={cn(siteContainerClass, "py-16 text-center")}>
         <EditableWrapper id="home-hero-logo" type="image" label="Logo Hero">
           {heroLogoImage ? (
             <img src={heroLogoImage} alt="Dona Rosa Pizzaria" className="mx-auto w-64 md:w-80 lg:w-96" />

@@ -8,6 +8,8 @@ import { BrandAlecrim, BrandLinhaDecorativa, BrandTomilho, BrandTomilhoB, BrandT
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { useSiteShellReady } from "@/hooks/useSiteShellReady";
 import { useCmsContents } from "@/hooks/useCmsContent";
+import { siteContainerClass } from "@/lib/siteLayout";
+import { cn } from "@/lib/utils";
 
 const TERMS_PAGE_KEY = "termos-de-uso";
 
@@ -76,8 +78,8 @@ function TermsOfUsePage() {
         <BrandTrigo className="absolute left-1 bottom-24 h-32 w-auto opacity-[0.12] hidden lg:block" />
         <BrandLinhaDecorativa className="absolute left-6 top-1/3 h-16 w-auto max-w-[4rem] opacity-[0.14] -rotate-6 hidden 2xl:block" />
 
-        <div className="container relative z-10 mx-auto max-w-3xl px-4 sm:px-6">
-          <header className="mb-10 text-center md:mb-12">
+        <div className={cn(siteContainerClass, "relative z-10")}>
+          <header className="mb-10 flex justify-center md:mb-12">
             <EditableWrapper id="terms-page-title" type="text" label="Título da página">
               {title ? (
                 <RichText as="h1" inline content={title} className="text-3xl font-bold text-primary md:text-4xl" />
@@ -87,7 +89,7 @@ function TermsOfUsePage() {
             </EditableWrapper>
           </header>
 
-          <article className="legal-rich space-y-8 md:space-y-10">
+          <article className="legal-rich w-full space-y-8 text-justify md:space-y-10">
             <LegalTextWrapper sectionKey="terms-intro" label="Introdução e concordância" getText={getText} />
             <LegalTextWrapper sectionKey="terms-section-1" label="1. Alterações nos Termos" getText={getText} />
             <LegalTextWrapper sectionKey="terms-section-2" label="2. Uso do Site" getText={getText} />

@@ -15,6 +15,8 @@ import { LoadingScreen } from "@/components/LoadingScreen";
 import { useSiteShellReady } from "@/hooks/useSiteShellReady";
 import { useCmsContents } from "@/hooks/useCmsContent";
 import { useCmsCarousel } from "@/hooks/useCmsMedia";
+import { siteContainerClass } from "@/lib/siteLayout";
+import { cn } from "@/lib/utils";
 
 const WHATSAPP_REGISTRATION_PHONE = "5511930617116";
 
@@ -130,7 +132,7 @@ function SingleImageCarousel({
       {images.length === 0 || !active ? (
         <CmsPlaceholder label="Carrossel sem imagens publicadas" className="py-10" />
       ) : (
-      <div className="relative max-w-xl mx-auto w-full">
+      <div className="relative w-full">
         <div className="flex items-center gap-3 justify-center">
           <button
             type="button"
@@ -237,8 +239,8 @@ function CoursesPage() {
         <BrandTomilho className="pointer-events-none absolute right-2 top-24 z-[1] h-20 w-auto max-h-20 max-w-[26%] object-contain object-top-right drop-shadow-md lg:hidden" />
         <BrandTrigo className="pointer-events-none absolute left-0 top-32 h-32 w-auto hidden lg:block lg:opacity-100 drop-shadow-sm" />
         <BrandTomilhoB className="pointer-events-none absolute bottom-6 right-0 h-28 w-auto hidden md:block md:opacity-100" />
-        <div className="container relative z-10 mx-auto px-4 max-w-6xl">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+        <div className={cn(siteContainerClass, "relative z-10")}>
+          <div className="grid grid-cols-1 items-center gap-10 md:grid-cols-2">
             <div className="space-y-4">
               <EditableWrapper id="courses-s1-title" type="text" label="Título — Espaço de Eventos">
                 <RichText
@@ -287,8 +289,8 @@ function CoursesPage() {
       {/* Seção 2 — liso */}
       <section id="curso-pizza" className="relative overflow-hidden bg-background py-16 md:py-24">
         <BrandTomilho className="absolute right-2 bottom-8 hidden h-20 w-auto opacity-[0.18] lg:block" />
-        <div className="container mx-auto px-4 max-w-6xl">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+        <div className={siteContainerClass}>
+          <div className="grid grid-cols-1 items-center gap-10 md:grid-cols-2">
             <div className="md:order-1">
               <SingleImageCarousel
                 carouselId="courses-pizza-carousel"
@@ -340,8 +342,8 @@ function CoursesPage() {
       <section id="dona-rosa-em-casa" className="section-paper relative overflow-hidden py-16 md:py-24">
         <BrandLinhaDecorativa className="absolute right-6 top-8 hidden h-10 w-auto opacity-[0.2] md:block" />
         <BrandAlecrim className="absolute left-2 bottom-8 hidden h-24 w-auto opacity-[0.2] lg:block" />
-        <div className="container mx-auto px-4 max-w-6xl">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+        <div className={siteContainerClass}>
+          <div className="grid grid-cols-1 items-center gap-10 md:grid-cols-2">
             <div className="space-y-4">
               <EditableWrapper id="courses-s3-title" type="text" label="Título — Dona Rosa em Casa">
                 <RichText
@@ -394,7 +396,7 @@ function CoursesPage() {
       >
         <BrandTomilhoB className="pointer-events-none absolute right-8 top-8 hidden h-24 w-auto md:block lg:h-32 lg:opacity-100" />
         <BrandLinhaDecorativa className="absolute left-8 bottom-10 hidden h-9 w-auto opacity-[0.22] md:block" />
-        <div className="container mx-auto px-4 max-w-lg">
+        <div className={cn(siteContainerClass, "flex justify-center")}>
           <RegistrationFormCard formTitle={getText("courses-form-title")} />
         </div>
       </section>
@@ -428,14 +430,14 @@ function RegistrationFormCard({ formTitle }: { formTitle: string }) {
   };
 
   return (
-    <div className="rounded-2xl border border-border bg-card shadow-lg p-6 md:p-8">
-      <div className="mb-8">
+    <div className="w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-lg md:p-8">
+      <div className="mb-8 flex justify-center">
         <EditableWrapper id="courses-form-title" type="text" label="Título do formulário">
           <RichText
             as="h2"
             inline
             content={formTitle}
-            className="text-2xl md:text-3xl text-center text-foreground"
+            className="text-2xl text-foreground md:text-3xl"
           />
         </EditableWrapper>
       </div>
