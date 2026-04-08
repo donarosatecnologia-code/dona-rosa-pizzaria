@@ -142,7 +142,12 @@ function FermentationSection({
           <div className="w-full max-w-4xl">
             <EditableWrapper id="sustain-fermentation-title" type="text" label="Título — Fermentação">
               {title ? (
-                <RichText as="h1" inline content={title} className="text-4xl md:text-5xl lg:text-[3.25rem] text-foreground tracking-tight" />
+                <RichText
+                  as="h1"
+                  inline
+                  content={title}
+                  className="text-2xl leading-snug text-foreground tracking-tight md:text-5xl md:leading-none lg:text-[3.25rem]"
+                />
               ) : (
                 <CmsPlaceholder label="Título da seção" className="py-6" />
               )}
