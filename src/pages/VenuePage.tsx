@@ -98,7 +98,7 @@ function VenueIntro({
 
   return (
     <section className="section-paper relative overflow-hidden pt-28 pb-16 md:pt-36 md:pb-24">
-      <BrandTomilhoB className="pointer-events-none absolute right-3 top-24 z-[1] h-28 w-auto max-w-[42%] object-contain drop-shadow-md lg:hidden" />
+      <BrandTomilho className="pointer-events-none absolute right-3 top-24 z-[1] h-20 w-auto max-w-[34%] object-contain drop-shadow-md lg:hidden" />
       <BrandAlecrim className="pointer-events-none absolute left-4 top-24 hidden h-32 w-auto max-w-[min(40%,12rem)] object-contain object-top-left drop-shadow-md lg:block lg:opacity-100" />
       <BrandTomilho className="pointer-events-none absolute bottom-28 right-4 hidden h-28 w-auto max-w-[42%] object-contain object-top-right drop-shadow-md lg:block lg:opacity-100" />
       <BrandLinhaDecorativa className="absolute right-4 top-1/3 h-11 w-auto opacity-15 hidden xl:block rotate-6" />

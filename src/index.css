@@ -80,12 +80,39 @@
     font-synthesis: none;
   }
 
-  /* Site público: no mobile, textos com text-center passam à esquerda */
+  /* Mobile: texto justificado (mesma ideia do desktop); formulários e código ficam alinhados ao início */
   @media (max-width: 767px) {
-    body.site-public .text-center {
-      text-align: left !important;
+    body {
+      text-align: justify;
     }
 
+    pre,
+    code,
+    input:not([type="checkbox"]):not([type="radio"]),
+    textarea,
+    select {
+      text-align: start;
+    }
+
+    [class*="text-center"] {
+      text-align: justify !important;
+    }
+
+    [class*="text-left"] {
+      text-align: justify !important;
+    }
+
+    [class*="text-right"] {
+      text-align: justify !important;
+    }
+
+    [class*="text-start"] {
+      text-align: justify !important;
+    }
+
+    [class*="text-end"] {
+      text-align: justify !important;
+    }
   }
 
   /* Desktop (lg+): texto justificado em todo o app; destaques e utilitários de alinhamento deixam de centralizar */

@@ -483,7 +483,7 @@ function MenuItem({
       {showPizzaSizes && !hasHouseWinePrices && (
         <>
           {desc && (
-            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{desc}</p>
+            <p className="text-xs text-black mt-1 leading-relaxed">{desc}</p>
           )}
           {pizzaSizeLines.length > 0 && (
             <p className="text-xs text-muted-foreground mt-1">
@@ -502,7 +502,7 @@ function MenuItem({
         </p>
       )}
       {!showPizzaSizes && desc && (
-        <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{desc}</p>
+        <p className="text-xs text-black mt-1 leading-relaxed">{desc}</p>
       )}
     </div>
   );
