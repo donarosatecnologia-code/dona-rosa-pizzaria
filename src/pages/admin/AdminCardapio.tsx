@@ -1,6 +1,11 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  PIZZA_BROTO_PERCENT_OF_GRANDE,
+  PIZZA_MINI_PERCENT_OF_GRANDE,
+  pizzaSizePriceFromGrande,
+} from "@/lib/pizzaPricing";
 import { toast } from "sonner";
 import { Plus, Trash2, Pencil, X, Check, ChevronDown, ChevronUp } from "lucide-react";
 
@@ -40,31 +45,6 @@ function parseOptionalNumber(value: string) {
     return Number.NaN;
   }
   return parsed;
-}
-
-function resolvePizzaSizePrice({
-  basePrice,
-  isEnabled,
-  mode,
-  percentage,
-  fixedPrice,
-  fallbackPercentage,
-}: {
-  basePrice: number;
-  isEnabled: boolean;
-  mode: PizzaPricingMode;
-  percentage: number | null;
-  fixedPrice: number | null;
-  fallbackPercentage: number;
-}) {
-  if (!isEnabled) {
-    return null;
-  }
-  if (mode === "fixed") {
-    return fixedPrice ?? null;
-  }
-  const pct = percentage ?? fallbackPercentage;
-  return basePrice * (pct / 100);
 }
 
 const AdminCardapio = () => {
@@ -1132,22 +1112,16 @@ function ProductRow({
             {category.has_pizza_size_pricing && !product.is_house_wine && (
               <div className="mt-1 space-y-1 text-[10px] text-muted-foreground">
                 {(() => {
-                  const brotoPrice = resolvePizzaSizePrice({
-                    basePrice: product.price,
-                    isEnabled: product.pizza_has_broto ?? true,
-                    mode: product.pizza_broto_pricing_mode ?? "percentage",
-                    percentage: product.pizza_broto_percentage ?? null,
-                    fixedPrice: product.pizza_broto_fixed_price ?? null,
-                    fallbackPercentage: 80,
-                  });
-                  const miniPrice = resolvePizzaSizePrice({
-                    basePrice: product.price,
-                    isEnabled: product.pizza_has_mini ?? true,
-                    mode: product.pizza_mini_pricing_mode ?? "percentage",
-                    percentage: product.pizza_mini_percentage ?? null,
-                    fixedPrice: product.pizza_mini_fixed_price ?? null,
-                    fallbackPercentage: 65,
-                  });
+                  const brotoPrice = pizzaSizePriceFromGrande(
+                    product.price,
+                    PIZZA_BROTO_PERCENT_OF_GRANDE,
+                    product.pizza_has_broto ?? true,
+                  );
+                  const miniPrice = pizzaSizePriceFromGrande(
+                    product.price,
+                    PIZZA_MINI_PERCENT_OF_GRANDE,
+                    product.pizza_has_mini ?? true,
+                  );
                   if (brotoPrice === null && miniPrice === null) {
                     return <p>Sem tamanhos adicionais neste item.</p>;
                   }
