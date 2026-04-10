@@ -10,6 +10,11 @@ import { useCmsContents } from "@/hooks/useCmsContent";
 import { useSiteShellReady } from "@/hooks/useSiteShellReady";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { siteContainerClass } from "@/lib/siteLayout";
+import {
+  PIZZA_BROTO_PERCENT_OF_GRANDE,
+  PIZZA_MINI_PERCENT_OF_GRANDE,
+  pizzaSizePriceFromGrande,
+} from "@/lib/pizzaPricing";
 import { cn } from "@/lib/utils";
 
 function formatCurrency(value: number) {
@@ -54,31 +59,6 @@ function isMainPizzasCategory(category: { name: string; slug: string }) {
     return false;
   }
   return name === "pizzas" || slug === "pizzas";
-}
-
-function resolvePizzaSizePrice({
-  basePrice,
-  isEnabled,
-  mode,
-  percentage,
-  fixedPrice,
-  fallbackPercentage,
-}: {
-  basePrice: number;
-  isEnabled: boolean;
-  mode?: string | null;
-  percentage?: number | null;
-  fixedPrice?: number | null;
-  fallbackPercentage: number;
-}) {
-  if (!isEnabled) {
-    return null;
-  }
-  if (mode === "fixed") {
-    return fixedPrice ?? null;
-  }
-  const pct = percentage ?? fallbackPercentage;
-  return basePrice * (pct / 100);
 }
 
 const CardapioPage = () => {
@@ -433,22 +413,16 @@ function MenuItem({
   };
   showPizzaSizes: boolean;
 }) {
-  const brotoPrice = resolvePizzaSizePrice({
-    basePrice: item.price,
-    isEnabled: item.pizza_has_broto ?? true,
-    mode: item.pizza_broto_pricing_mode,
-    percentage: item.pizza_broto_percentage,
-    fixedPrice: item.pizza_broto_fixed_price,
-    fallbackPercentage: 80,
-  });
-  const miniPrice = resolvePizzaSizePrice({
-    basePrice: item.price,
-    isEnabled: item.pizza_has_mini ?? true,
-    mode: item.pizza_mini_pricing_mode,
-    percentage: item.pizza_mini_percentage,
-    fixedPrice: item.pizza_mini_fixed_price,
-    fallbackPercentage: 65,
-  });
+  const brotoPrice = pizzaSizePriceFromGrande(
+    item.price,
+    PIZZA_BROTO_PERCENT_OF_GRANDE,
+    item.pizza_has_broto ?? true,
+  );
+  const miniPrice = pizzaSizePriceFromGrande(
+    item.price,
+    PIZZA_MINI_PERCENT_OF_GRANDE,
+    item.pizza_has_mini ?? true,
+  );
   const pizzaSizeLines = [
     brotoPrice !== null ? `Broto (6 pedaços): ${formatCurrency(brotoPrice)}` : null,
     miniPrice !== null ? `Mini (4 pedaços): ${formatCurrency(miniPrice)}` : null,
