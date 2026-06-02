@@ -8,6 +8,7 @@ import {
   Rows3,
   Send,
   Settings,
+  UserCog,
   Users,
   UtensilsCrossed,
 } from "lucide-react";
@@ -32,6 +33,7 @@ export const ADMIN_MORE_NAV: AdminNavItem[] = [
   { to: "/admin/templates", label: "Mensagens prontas", icon: FileText, matchPrefix: "/admin/templates" },
   { to: "/admin/pages", label: "Páginas do site", icon: FileStack, matchPrefix: "/admin/pages" },
   { to: "/admin/header-footer", label: "Topo e rodapé", icon: Rows3, matchPrefix: "/admin/header-footer" },
+  { to: "/admin/equipe", label: "Equipe", icon: UserCog, matchPrefix: "/admin/equipe" },
   { to: "/admin/configuracoes", label: "Ajustes", icon: Settings, matchPrefix: "/admin/configuracoes" },
 ];
 
@@ -44,6 +46,7 @@ export const ADMIN_DESKTOP_NAV: AdminNavItem[] = [
   { to: "/admin/pages", label: "Páginas do site", icon: FileStack, matchPrefix: "/admin/pages" },
   { to: "/admin/cardapio", label: "Cardápio", icon: UtensilsCrossed, matchPrefix: "/admin/cardapio" },
   { to: "/admin/header-footer", label: "Topo e rodapé", icon: Rows3, matchPrefix: "/admin/header-footer" },
+  { to: "/admin/equipe", label: "Equipe", icon: UserCog, matchPrefix: "/admin/equipe" },
   { to: "/admin/configuracoes", label: "Ajustes", icon: Settings, matchPrefix: "/admin/configuracoes" },
 ];
 
@@ -53,6 +56,9 @@ export function isAdminNavActive(pathname: string, item: AdminNavItem): boolean 
   const prefix = item.matchPrefix ?? item.to;
   if (prefix === "/admin/dashboard") {
     return pathname === "/admin/dashboard" || pathname === "/admin";
+  }
+  if (prefix === "/admin/equipe") {
+    return pathname === "/admin/equipe" || pathname.startsWith("/admin/equipe/");
   }
   return pathname === prefix || pathname.startsWith(`${prefix}/`);
 }

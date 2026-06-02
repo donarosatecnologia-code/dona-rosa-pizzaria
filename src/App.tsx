@@ -14,11 +14,18 @@ import ContactPage from "./pages/ContactPage";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 import TermsOfUsePage from "./pages/TermsOfUsePage";
 import Login from "./pages/Login";
+import ForgotPasswordPage from "./pages/ForgotPassword";
+import ResetPasswordPage from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminLayout from "./components/AdminLayout";
 import Dashboard from "./pages/admin/Dashboard";
 import AdminConfiguracoes from "./pages/admin/AdminConfiguracoes";
+import AdminEquipe from "./pages/admin/AdminEquipe";
+import AdminEquipeConvidar from "./pages/admin/AdminEquipeConvidar";
+import AdminEquipeEditar from "./pages/admin/AdminEquipeEditar";
+import AdminMinhaConta from "./pages/admin/AdminMinhaConta";
+import AdminForceChangePassword from "./pages/admin/AdminForceChangePassword";
 import AdminPages from "./pages/admin/AdminPages";
 import AdminHeaderFooter from "./pages/admin/AdminHeaderFooter";
 import AdminCardapio from "./pages/admin/AdminCardapio";
@@ -58,12 +65,19 @@ const App = () => (
             <Route path="/politica-de-privacidade" element={<PrivacyPolicyPage />} />
             <Route path="/termos-de-uso" element={<TermsOfUsePage />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/recuperar-senha" element={<ForgotPasswordPage />} />
+            <Route path="/redefinir-senha" element={<ResetPasswordPage />} />
 
             <Route path="/admin" element={<ProtectedRoute><Outlet /></ProtectedRoute>}>
               <Route path="preview/:pageSlug" element={<AdminPreviewPage />} />
               <Route element={<AdminLayout />}>
                 <Route index element={<Navigate to="dashboard" replace />} />
                 <Route path="dashboard" element={<Dashboard />} />
+                <Route path="trocar-senha" element={<AdminForceChangePassword />} />
+                <Route path="minha-conta" element={<AdminMinhaConta />} />
+                <Route path="equipe" element={<AdminEquipe />} />
+                <Route path="equipe/convidar" element={<AdminEquipeConvidar />} />
+                <Route path="equipe/editar/:id" element={<AdminEquipeEditar />} />
                 <Route path="contatos" element={<AdminContatos />} />
                 <Route path="templates" element={<AdminTemplates />} />
                 <Route path="conversas" element={<AdminConversas />} />

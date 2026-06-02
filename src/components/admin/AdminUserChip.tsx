@@ -1,4 +1,6 @@
+import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useAdminProfile } from "@/hooks/useAdminProfile";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
@@ -7,15 +9,12 @@ interface AdminUserChipProps {
   className?: string;
 }
 
-function getUserDisplayName(email: string | undefined, fullName: unknown): string {
-  if (typeof fullName === "string" && fullName.trim()) {
-    return fullName.trim();
+function getFallbackName(email: string | undefined): string {
+  if (!email) {
+    return "Usuário";
   }
-  if (email) {
-    const local = email.split("@")[0];
-    return local.charAt(0).toUpperCase() + local.slice(1);
-  }
-  return "Usuário";
+  const local = email.split("@")[0];
+  return local.charAt(0).toUpperCase() + local.slice(1);
 }
 
 function getInitials(label: string): string {
@@ -28,16 +27,18 @@ function getInitials(label: string): string {
 
 export function AdminUserChip({ variant = "light", className }: AdminUserChipProps) {
   const { user } = useAuth();
-  const displayName = getUserDisplayName(user?.email, user?.user_metadata?.full_name);
-  const initials = getInitials(displayName);
+  const { data: profile, isLoading } = useAdminProfile();
+  const displayName = profile?.full_name?.trim() || getFallbackName(user?.email);
+  const initials = isLoading ? "…" : getInitials(displayName);
 
   return (
-    <div
+    <Link
+      to="/admin/minha-conta"
       className={cn(
-        "flex items-center gap-2 min-h-[44px] max-w-[9rem] sm:max-w-[12rem]",
+        "flex items-center gap-2 min-h-[44px] max-w-[9rem] sm:max-w-[12rem] rounded-lg hover:opacity-90 transition-opacity",
         className,
       )}
-      title={user?.email ?? displayName}
+      title={`${displayName} — Minha conta`}
     >
       <Avatar className="h-9 w-9 shrink-0">
         <AvatarFallback
@@ -59,6 +60,6 @@ export function AdminUserChip({ variant = "light", className }: AdminUserChipPro
       >
         {displayName}
       </span>
-    </div>
+    </Link>
   );
 }

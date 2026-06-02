@@ -2,6 +2,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { MoreHorizontal } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ADMIN_BOTTOM_NAV, isAdminNavActive } from "@/lib/adminNavigation";
+import { useFilteredAdminNav } from "@/hooks/useFilteredAdminNav";
 import { useWhatsappWaitingCount } from "@/hooks/useWhatsappWaitingCount";
 import { cn } from "@/lib/utils";
 
@@ -13,6 +14,7 @@ interface AdminBottomNavProps {
 export function AdminBottomNav({ onMoreClick, className }: AdminBottomNavProps) {
   const waitingCount = useWhatsappWaitingCount();
   const { pathname } = useLocation();
+  const bottomNav = useFilteredAdminNav(ADMIN_BOTTOM_NAV);
 
   return (
     <nav
@@ -24,7 +26,7 @@ export function AdminBottomNav({ onMoreClick, className }: AdminBottomNavProps) 
       aria-label="Menu principal"
     >
       <div className="grid grid-cols-4 h-16">
-        {ADMIN_BOTTOM_NAV.map((item) => {
+        {bottomNav.map((item) => {
           const isMessages = item.to === "/admin/conversas";
           return (
             <NavLink

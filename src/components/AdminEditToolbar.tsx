@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Save, Rocket, Eye, Loader2 } from "lucide-react";
@@ -8,6 +8,7 @@ import { publishToProduction } from "@/lib/cmsPublish";
 import { useCmsUiStore } from "@/stores/cmsUiStore";
 import { Button } from "@/components/ui/button";
 import { isAdminPageSlug } from "@/pages/admin/adminPageComponents";
+import { useCanEditCurrentCms, useCanViewCurrentCms } from "@/hooks/useAdminMirrorSurface";
 import { cn } from "@/lib/utils";
 
 interface AdminEditToolbarProps {
@@ -16,10 +17,13 @@ interface AdminEditToolbarProps {
 
 export function AdminEditToolbar({ align = "start" }: AdminEditToolbarProps) {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const params = useParams();
   const queryClient = useQueryClient();
   const { requestSaveDraft } = useAdminEditor();
   const openConfirmDialog = useCmsUiStore((s) => s.openConfirmDialog);
+  const canEdit = useCanEditCurrentCms();
+  const canView = useCanViewCurrentCms();
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
 
@@ -27,6 +31,10 @@ export function AdminEditToolbar({ align = "start" }: AdminEditToolbarProps) {
     const slug = params.pageSlug;
     return isAdminPageSlug(slug) ? slug : null;
   }, [params.pageSlug]);
+
+  if (!canEdit && !canView) {
+    return null;
+  }
 
   async function handleSaveDraft(): Promise<void> {
     setSaving(true);
@@ -63,11 +71,13 @@ export function AdminEditToolbar({ align = "start" }: AdminEditToolbarProps) {
   }
 
   function handlePreview(): void {
-    if (previewSlug) {
-      navigate(`/admin/preview/${previewSlug}`);
+    if (pathname.startsWith("/admin/header-footer")) {
+      navigate("/admin/preview/header-footer");
       return;
     }
-    navigate("/admin/preview/header-footer");
+    if (previewSlug) {
+      navigate(`/admin/preview/${previewSlug}`);
+    }
   }
 
   return (
@@ -77,34 +87,40 @@ export function AdminEditToolbar({ align = "start" }: AdminEditToolbarProps) {
         align === "end" ? "justify-end w-full sm:w-auto" : "w-full",
       )}
     >
-      <Button
-        type="button"
-        variant="outline"
-        className="min-h-[44px] flex-1 sm:flex-none"
-        disabled={saving}
-        onClick={() => void handleSaveDraft()}
-      >
-        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-1.5" />}
-        Salvar
-      </Button>
-      <Button
-        type="button"
-        className="min-h-[44px] flex-1 sm:flex-none"
-        disabled={publishing}
-        onClick={handlePublish}
-      >
-        {publishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Rocket className="h-4 w-4 mr-1.5" />}
-        Colocar no ar
-      </Button>
-      <Button
-        type="button"
-        variant="secondary"
-        className="min-h-[44px] flex-1 sm:flex-none"
-        onClick={handlePreview}
-      >
-        <Eye className="h-4 w-4 mr-1.5" />
-        Ver como fica
-      </Button>
+      {canEdit && (
+        <>
+          <Button
+            type="button"
+            variant="outline"
+            className="min-h-[44px] flex-1 sm:flex-none"
+            disabled={saving}
+            onClick={() => void handleSaveDraft()}
+          >
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-1.5" />}
+            Salvar
+          </Button>
+          <Button
+            type="button"
+            className="min-h-[44px] flex-1 sm:flex-none"
+            disabled={publishing}
+            onClick={handlePublish}
+          >
+            {publishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Rocket className="h-4 w-4 mr-1.5" />}
+            Colocar no ar
+          </Button>
+        </>
+      )}
+      {canView && (
+        <Button
+          type="button"
+          variant="secondary"
+          className="min-h-[44px] flex-1 sm:flex-none"
+          onClick={handlePreview}
+        >
+          <Eye className="h-4 w-4 mr-1.5" />
+          Ver como fica
+        </Button>
+      )}
     </div>
   );
 }

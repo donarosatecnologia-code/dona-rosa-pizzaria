@@ -4,9 +4,11 @@ import { toast } from "sonner";
 import { WhatsappBusinessHoursCard } from "@/components/admin/whatsapp/WhatsappBusinessHoursCard";
 import { Button } from "@/components/ui/button";
 import { useContactDeletionAudit } from "@/hooks/whatsapp";
+import { useCanManageUsers } from "@/hooks/useFilteredAdminNav";
 
 const AdminConfiguracoes = () => {
   const { data: deletionAudit } = useContactDeletionAudit();
+  const canManageUsers = useCanManageUsers();
 
   function exportDeletionAudit() {
     if (!deletionAudit?.length) {
@@ -35,6 +37,19 @@ const AdminConfiguracoes = () => {
       </p>
 
       <div className="space-y-4">
+        {canManageUsers && (
+          <div className="rounded-xl border bg-background p-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium">Equipe do painel</p>
+              <p className="text-xs text-muted-foreground">
+                Convide pessoas, defina permissões e gerencie acessos.
+              </p>
+            </div>
+            <Button asChild size="sm" className="min-h-[44px]">
+              <Link to="/admin/equipe">Gerenciar equipe</Link>
+            </Button>
+          </div>
+        )}
         <WhatsappBusinessHoursCard />
         <div className="rounded-xl border bg-background p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">

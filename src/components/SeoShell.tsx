@@ -45,7 +45,8 @@ export function SeoShell() {
   const { pathname } = useLocation();
   const origin = getCanonicalOrigin(import.meta.env.VITE_PUBLIC_SITE_URL);
 
-  const isPrivate = pathname.startsWith("/admin") || pathname === "/login";
+  const isPrivate = pathname.startsWith("/admin") || pathname === "/login"
+    || pathname === "/recuperar-senha" || pathname === "/redefinir-senha";
   const pageSeo = getPageSeo(pathname);
   const baseTitle = pathname.startsWith("/admin")
     ? `Admin | ${pageSeo.title.split(" | ").pop()}`

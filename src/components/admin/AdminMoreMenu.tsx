@@ -8,6 +8,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { ADMIN_MORE_NAV, ADMIN_SIGN_OUT, isAdminNavActive } from "@/lib/adminNavigation";
+import { useFilteredAdminNav } from "@/hooks/useFilteredAdminNav";
 import { cn } from "@/lib/utils";
 
 interface AdminMoreMenuProps {
@@ -18,6 +19,7 @@ interface AdminMoreMenuProps {
 
 export function AdminMoreMenu({ open, onOpenChange, pathname }: AdminMoreMenuProps) {
   const { signOut } = useAuth();
+  const moreNav = useFilteredAdminNav(ADMIN_MORE_NAV);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -27,7 +29,7 @@ export function AdminMoreMenu({ open, onOpenChange, pathname }: AdminMoreMenuPro
           <SheetDescription>Clientes, promoções, site e ajustes.</SheetDescription>
         </SheetHeader>
         <nav className="mt-4 grid gap-1">
-          {ADMIN_MORE_NAV.map((item) => (
+          {moreNav.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}

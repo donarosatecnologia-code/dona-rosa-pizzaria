@@ -1,5 +1,34 @@
 project_id = "pptgzavxpdltcuqpcovo"
 
+[auth]
+site_url = "https://www.donarosa.com.br"
+additional_redirect_urls = [
+  "https://www.donarosa.com.br/redefinir-senha",
+  "https://www.donarosa.com.br/admin",
+  "http://localhost:5173/redefinir-senha",
+  "http://localhost:5173/admin",
+]
+
+[auth.email.template.invite]
+subject = "Convite para a equipe Dona Rosa"
+content_path = "./supabase/templates/invite.html"
+
+[auth.email.template.confirmation]
+subject = "Confirme seu e-mail — Dona Rosa"
+content_path = "./supabase/templates/confirmation.html"
+
+[auth.email.template.recovery]
+subject = "Sua senha no painel Dona Rosa"
+content_path = "./supabase/templates/recovery.html"
+
+[auth.email.template.magic_link]
+subject = "Seu link de acesso — Dona Rosa"
+content_path = "./supabase/templates/magic_link.html"
+
+[auth.email.template.email_change]
+subject = "Confirmar novo e-mail — Dona Rosa"
+content_path = "./supabase/templates/email_change.html"
+
 # Portas locais offset (+10) para rodar junto com outro projeto Supabase (ex.: auto-painel).
 # Studio: http://127.0.0.1:54333 | API: http://127.0.0.1:54331 | DB: 54332
 [api]

@@ -30,9 +30,20 @@ export function useAuth() {
     return { error };
   };
 
+  const resetPassword = async (email: string) => {
+    const redirectTo = `${window.location.origin}/redefinir-senha`;
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+    return { error };
+  };
+
+  const updatePassword = async (password: string) => {
+    const { error } = await supabase.auth.updateUser({ password });
+    return { error };
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
   };
 
-  return { user, session, loading, signIn, signOut };
+  return { user, session, loading, signIn, signOut, resetPassword, updatePassword };
 }

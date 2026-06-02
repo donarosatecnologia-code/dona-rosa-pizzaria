@@ -13,6 +13,7 @@ import { useAdminEditor } from "@/contexts/AdminEditorContext";
 import { useAdminShellRoutes } from "@/hooks/useAdminShellRoutes";
 import { useAuth } from "@/hooks/useAuth";
 import { ADMIN_DESKTOP_NAV, ADMIN_SIGN_OUT, isAdminNavActive } from "@/lib/adminNavigation";
+import { useFilteredAdminNav } from "@/hooks/useFilteredAdminNav";
 import { cn } from "@/lib/utils";
 
 const AdminLayout = () => {
@@ -22,6 +23,7 @@ const AdminLayout = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const { pathname, hideBottomNav, hideMobileHeader, fullBleedMobile } = useAdminShellRoutes();
+  const desktopNav = useFilteredAdminNav(ADMIN_DESKTOP_NAV);
 
   return (
     <div className="admin-workspace flex min-h-[100dvh] bg-muted">
@@ -50,7 +52,7 @@ const AdminLayout = () => {
 
         <AppScrollArea className="flex-1 min-h-0">
           <nav className="p-3 space-y-1">
-          {ADMIN_DESKTOP_NAV.map((item) => (
+          {desktopNav.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}

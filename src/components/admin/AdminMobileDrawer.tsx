@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/sheet";
 import { AppScrollArea } from "@/components/ui/app-scroll-area";
 import { ADMIN_DESKTOP_NAV, ADMIN_SIGN_OUT, isAdminNavActive } from "@/lib/adminNavigation";
+import { useFilteredAdminNav } from "@/hooks/useFilteredAdminNav";
 import { cn } from "@/lib/utils";
 
 interface AdminMobileDrawerProps {
@@ -19,6 +20,7 @@ interface AdminMobileDrawerProps {
 
 export function AdminMobileDrawer({ open, onOpenChange, pathname }: AdminMobileDrawerProps) {
   const { signOut } = useAuth();
+  const desktopNav = useFilteredAdminNav(ADMIN_DESKTOP_NAV);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -31,7 +33,7 @@ export function AdminMobileDrawer({ open, onOpenChange, pathname }: AdminMobileD
         </SheetHeader>
         <AppScrollArea className="flex-1 min-h-0">
           <nav className="p-3 space-y-1">
-          {ADMIN_DESKTOP_NAV.map((item) => (
+          {desktopNav.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}

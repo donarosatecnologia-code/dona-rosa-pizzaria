@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Convite — Dona Rosa</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f5f0e6;font-family:'Lato',Arial,Helvetica,sans-serif;color:#464039;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#f5f0e6;padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background-color:#fdfbf3;border-radius:12px;border:1px solid #ddd5c8;overflow:hidden;">
+          <tr>
+            <td style="background-color:#4f6559;padding:28px 32px;text-align:center;">
+              <img src="https://www.donarosa.com.br/images/logo-full.png" alt="Dona Rosa Pizzaria" width="180" style="display:block;margin:0 auto;max-width:180px;height:auto;" />
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:32px 32px 8px;">
+              <h1 style="margin:0 0 16px;font-family:'Montserrat','Lato',Arial,sans-serif;font-size:22px;font-weight:700;color:#4f6559;line-height:1.3;">
+                Você foi convidada para a equipe
+              </h1>
+              <p style="margin:0 0 16px;font-size:16px;line-height:1.6;color:#464039;">
+                Olá! A Dona Rosa te convidou para acessar o painel administrativo — de lá dá para cuidar do site, do cardápio e das conversas no WhatsApp.
+              </p>
+              <p style="margin:0 0 24px;font-size:16px;line-height:1.6;color:#464039;">
+                Toque no botão para aceitar o convite e criar sua senha. Leva menos de um minuto.
+              </p>
+              <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 0 24px;">
+                <tr>
+                  <td style="border-radius:8px;background-color:#4f6559;">
+                    <a href="{{ .ConfirmationURL }}" target="_blank" style="display:inline-block;padding:14px 28px;font-family:'Montserrat','Lato',Arial,sans-serif;font-size:16px;font-weight:600;color:#fdfbf3;text-decoration:none;border-radius:8px;">
+                      Aceitar convite
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:0 0 8px;font-size:14px;line-height:1.5;color:#6b635a;">
+                Se o botão não funcionar, copie e cole este endereço no navegador:
+              </p>
+              <p style="margin:0 0 24px;font-size:13px;line-height:1.5;color:#851f1f;word-break:break-all;">
+                {{ .ConfirmationURL }}
+              </p>
+              <p style="margin:0;font-size:14px;line-height:1.5;color:#6b635a;">
+                Não esperava este convite? Pode ignorar este e-mail.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:24px 32px 32px;border-top:1px solid #ddd5c8;background-color:#faf7ef;">
+              <p style="margin:0 0 4px;font-size:13px;color:#6b635a;text-align:center;">
+                Dona Rosa Pizzaria · Rua Caminha de Amorim, 242 — Vila Madalena, São Paulo
+              </p>
+              <p style="margin:0;font-size:12px;color:#9a9288;text-align:center;">
+                Enviado para {{ .Email }}
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
