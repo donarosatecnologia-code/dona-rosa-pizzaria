@@ -1,12 +1,17 @@
 project_id = "pptgzavxpdltcuqpcovo"
 
 [auth]
-site_url = "https://www.donarosa.com.br"
+site_url = "https://donarosapizzaria.com.br"
 additional_redirect_urls = [
+  "https://donarosapizzaria.com.br/redefinir-senha",
+  "https://donarosapizzaria.com.br/admin",
+  "https://donarosapizzaria.com.br/login",
   "https://www.donarosa.com.br/redefinir-senha",
   "https://www.donarosa.com.br/admin",
   "http://localhost:5173/redefinir-senha",
   "http://localhost:5173/admin",
+  "http://localhost:8080/redefinir-senha",
+  "http://localhost:8080/admin",
 ]
 
 [auth.mfa.totp]

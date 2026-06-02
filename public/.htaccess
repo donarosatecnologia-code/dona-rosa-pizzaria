@@ -1,0 +1,30 @@
+# Dona Rosa Pizzaria — SPA fallback (Apache / HostGator)
+# Encaminha rotas como /admin, /login e /politica-de-privacidade para index.html
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Arquivo ou pasta real → servir direto (assets, imagens, robots.txt, etc.)
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Demais rotas → React Router (index.html)
+  RewriteRule ^ index.html [L]
+</IfModule>
+
+# Evita listagem de diretórios
+Options -Indexes
+
+# Cache leve para assets com hash (Vite gera nomes únicos)
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType text/css "access plus 1 year"
+  ExpiresByType application/javascript "access plus 1 year"
+  ExpiresByType image/png "access plus 1 year"
+  ExpiresByType image/jpeg "access plus 1 year"
+  ExpiresByType image/webp "access plus 1 year"
+  ExpiresByType image/svg+xml "access plus 1 year"
+  ExpiresByType font/woff2 "access plus 1 year"
+</IfModule>

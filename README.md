@@ -15,13 +15,13 @@
 7. [Fluxo de conteúdo (CMS via Supabase)](#7-fluxo-de-conteúdo-cms-via-supabase)
 8. [Área administrativa](#8-área-administrativa)
 9. [SEO e metadados](#9-seo-e-metadados)
-10. [Deploy na Vercel](#10-deploy-na-vercel)
+10. [Deploy — HostGator (produção) e Vercel (backup)](#10-deploy--hostgator-produção-e-vercel-backup)
 11. [Keep-alive do Supabase (plano gratuito)](#11-keep-alive-do-supabase-plano-gratuito)
 12. [Supabase CLI — linkar projeto e migrations](#12-supabase-cli--linkar-projeto-e-migrations)
-13. [WhatsApp — Disparos Ativos (infra Supabase)](#13-whatsapp--disparos-ativos-infra-supabase)
-14. [Regras de negócio — não quebre isso](#14-regras-de-negócio--não-quebre-isso)
-15. [Onde pedir ajuda / credenciais](#15-onde-pedir-ajuda--credenciais)
-16. [Checklist de QA — painel administrativo](#16-checklist-de-qa--painel-administrativo)
+13. [WhatsApp — integração (infra Supabase)](#13-whatsapp--integração-infra-supabase)
+14. [Convenções técnicas — não quebre isso](#14-convenções-técnicas--não-quebre-isso)
+15. [Checklist de QA — painel administrativo](#15-checklist-de-qa--painel-administrativo)
+16. [Onde pedir ajuda / credenciais](#16-onde-pedir-ajuda--credenciais)
  
 ---
  
@@ -32,8 +32,10 @@
 | Front-end | React + TypeScript + Vite |
 | Estilização | Tailwind CSS + shadcn/ui |
 | Dados assíncronos | TanStack Query |
-| Backend / CMS / Auth | Supabase |
-| Hospedagem | Vercel |
+| Roteamento | React Router (SPA) |
+| Backend / CMS / Auth | Supabase (Postgres, Auth, Storage, Edge Functions) |
+| Hospedagem produção | **HostGator** — `https://donarosapizzaria.com.br` |
+| Hospedagem backup | **Vercel** — deploy alternativo com `vercel.json` |
  
 ---
  
@@ -67,7 +69,7 @@ Acesse: **http://localhost:8080**
 |---|---|---|
 | `VITE_SUPABASE_URL` | URL do projeto Supabase | Supabase Dashboard → Settings → API |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | Chave **anon** (pública) do Supabase | Mesmo lugar acima |
-| `VITE_PUBLIC_SITE_URL` | URL canônica do site em produção | Ex.: `https://www.donarosa.com.br` |
+| `VITE_PUBLIC_SITE_URL` | URL canônica do site no ambiente de build | HostGator: `https://donarosapizzaria.com.br` · Vercel: URL do projeto |
  
 **Regras importantes:**
 - Nunca commite o arquivo `.env` (já está no `.gitignore`).
@@ -80,11 +82,12 @@ Acesse: **http://localhost:8080**
 ## 4. Scripts disponíveis
  
 ```bash
-npm run dev       # Servidor local com hot-reload (porta 8080)
-npm run build     # Build de produção (gera pasta dist/)
-npm run preview   # Serve o build localmente para teste
-npm run lint      # Verifica qualidade do código com ESLint
-npm run test      # Roda os testes com Vitest
+npm run dev              # Servidor local com hot-reload (porta 8080)
+npm run build            # Build de produção genérico (usa .env local)
+npm run build:hostgator  # Build para upload na HostGator (fixa URL canônica)
+npm run preview          # Serve o build localmente para teste
+npm run lint             # Verifica qualidade do código com ESLint
+npm run test             # Roda os testes com Vitest
 ```
  
 ---
@@ -105,9 +108,12 @@ dona-rosa-pizzaria/
 │   ├── schema-baseline.reference.sql  # Referência do schema base (não aplicar em prod)
 │   └── config.toml     # project_id do Supabase linkado
 ├── public/
+│   ├── .htaccess       # Fallback SPA para Apache (HostGator) — copiado para dist/
 │   ├── robots.txt
-│   ├── sitemap.xml     # ⚠️ Atualizar URL base antes do go-live
+│   ├── sitemap.xml     # Atualizar URL base antes do go-live
 │   └── llms.txt        # Resumo do site para agentes de IA
+├── scripts/
+│   └── build-hostgator.sh  # Build + checklist de upload FTP
 ├── .github/
 │   └── workflows/
 │       └── supabase-keep-alive.yml  # Ping diário para evitar pausa no Supabase
@@ -131,8 +137,15 @@ O site usa uma estratégia de carregamento que **bloqueia o render** até os dad
 > ❌ Não remova essas guards de carregamento sem revisar todas as páginas.
  
 ### Roteamento SPA
- 
-O projeto usa `react-router-dom`. O arquivo `vercel.json` já inclui a regra de rewrite que redireciona todas as rotas para `index.html` — necessário para o roteamento client-side funcionar após deploy.
+
+O projeto usa `react-router-dom`. Rotas como `/admin`, `/login`, `/politica-de-privacidade` e `/termos-de-uso` existem só no client-side — o servidor precisa devolver `index.html` para qualquer path que não seja arquivo estático.
+
+| Ambiente | Mecanismo |
+|---|---|
+| Vercel | `vercel.json` — rewrite `/(.*)` → `/index.html` |
+| HostGator (Apache) | `public/.htaccess` — `mod_rewrite` para `index.html` |
+
+Sem esse fallback, acessar a URL diretamente (ou dar F5) retorna **404**, embora a home (`/`) funcione.
  
 ---
  
@@ -201,30 +214,101 @@ Para criar ou resetar acesso admin, use o painel do Supabase (Authentication →
  
 ---
  
-## 10. Deploy na Vercel
- 
-### Configuração inicial (só na primeira vez)
- 
-1. Acesse [vercel.com](https://vercel.com) com a conta autorizada.
-2. **Add New → Project** → importe o repositório `dona-rosa-pizzaria`.
-3. Configure:
-   - **Framework:** Vite
-   - **Build command:** `npm run build`
-   - **Output directory:** `dist`
-4. Em **Settings → Environment Variables**, adicione as 3 variáveis (seção 3) para os ambientes `Production`, `Preview` e `Development`.
- 
-### Deploy contínuo
- 
-- Basta fazer **merge na branch principal** — a Vercel deploya automaticamente.
- 
-### Checklist pós-deploy
- 
-- [ ] Navegação entre rotas internas funciona
-- [ ] Home e páginas internas carregam sem placeholder
-- [ ] `<title>` e `meta description` estão corretos por página
-- [ ] Área `/admin` abre e solicita login
-- [ ] `sitemap.xml` e `robots.txt` estão acessíveis
- 
+## 10. Deploy — HostGator (produção) e Vercel (backup)
+
+### Domínios e URLs úteis
+
+| Uso | URL |
+|---|---|
+| Site público (HostGator) | `https://donarosapizzaria.com.br` |
+| Política de privacidade (Meta) | `https://donarosapizzaria.com.br/politica-de-privacidade` |
+| Termos de uso (Meta) | `https://donarosapizzaria.com.br/termos-de-uso` |
+| Painel admin | `https://donarosapizzaria.com.br/admin` |
+| Login | `https://donarosapizzaria.com.br/login` |
+
+O conteúdo legal vem do CMS (Supabase). Se a página abrir em branco ou com placeholder, publique o conteúdo correspondente no admin antes de enviar à Meta.
+
+### Auth Supabase (redirects)
+
+O `supabase/config.toml` define `site_url` e `additional_redirect_urls` para o domínio de produção. Após alterar, sincronize:
+
+```bash
+supabase config push --yes
+```
+
+Confirme também no Dashboard: **Authentication → URL Configuration**.
+
+Para links de convite da equipe (Edge Function `admin-users`), configure no Supabase:
+
+```bash
+supabase secrets set PUBLIC_SITE_URL=https://donarosapizzaria.com.br
+```
+
+---
+
+### 10.A — Deploy na HostGator (produção atual)
+
+**Causa comum de 404:** Apache servindo só arquivos físicos, sem fallback SPA. O arquivo `public/.htaccess` corrige isso — ele **deve** estar na raiz de `public_html/` após o upload.
+
+#### Build
+
+```bash
+cp .env.example .env   # preencha VITE_SUPABASE_* 
+npm run build:hostgator
+```
+
+O script define `VITE_PUBLIC_SITE_URL=https://donarosapizzaria.com.br`, roda `npm run build` e valida que `dist/.htaccess` existe.
+
+#### Upload (FTP / Gerenciador de arquivos)
+
+1. Faça backup do `public_html/` atual (opcional, recomendado).
+2. Envie **todo** o conteúdo de `dist/` para `public_html/`.
+3. **Importante:** habilite “mostrar arquivos ocultos” no cliente FTP — o `.htaccess` começa com ponto.
+4. Não envie a pasta `dist` em si; envie o **conteúdo** (incluindo `index.html`, `assets/`, `.htaccess`).
+
+#### Checklist pós-upload HostGator
+
+- [ ] `https://donarosapizzaria.com.br/` carrega a home
+- [ ] `https://donarosapizzaria.com.br/politica-de-privacidade` abre (não 404)
+- [ ] `https://donarosapizzaria.com.br/termos-de-uso` abre (não 404)
+- [ ] `https://donarosapizzaria.com.br/admin` abre tela de login (não 404)
+- [ ] F5 em rotas internas continua funcionando
+- [ ] Login e recuperação de senha redirecionam corretamente
+
+> **Nota:** mensagens no console como `multi-tabs.js` / i18next vêm de **extensões do navegador**, não do projeto.
+
+---
+
+### 10.B — Deploy na Vercel (backup)
+
+Use quando precisar de preview rápido, rollback ou alternativa enquanto o HostGator não estiver acessível.
+
+#### Configuração inicial (primeira vez)
+
+1. [vercel.com](https://vercel.com) → **Add New → Project** → importe o repositório.
+2. Framework detectado: **Vite** (ou confirme manualmente).
+3. **Build command:** `npm run build`
+4. **Output directory:** `dist`
+5. Em **Settings → Environment Variables**, para Production (e Preview se quiser):
+
+| Variável | Valor |
+|---|---|
+| `VITE_SUPABASE_URL` | URL do projeto Supabase |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Chave anon pública |
+| `VITE_PUBLIC_SITE_URL` | URL do deploy Vercel (ex.: `https://dona-rosa-pizzaria.vercel.app`) |
+
+O `vercel.json` na raiz já configura rewrite SPA — não é necessário `.htaccess` na Vercel.
+
+#### Deploy contínuo
+
+Merge na branch principal → deploy automático (se o projeto estiver conectado ao Git).
+
+#### Checklist pós-deploy Vercel
+
+- [ ] Rotas diretas (`/admin`, `/politica-de-privacidade`) não retornam 404
+- [ ] `VITE_PUBLIC_SITE_URL` bate com a URL do deploy (canonical/OG corretos)
+- [ ] Se usar URL Vercel na Meta temporariamente, atualize depois para o domínio HostGator
+
 ---
  
 ## 11. Keep-alive do Supabase (plano gratuito)
@@ -294,7 +378,7 @@ Para testar manualmente: **Actions → Supabase keep-alive → Run workflow**
 
 ## 12. Supabase CLI — linkar projeto e migrations
 
-O repositório já aponta para o projeto remoto em `supabase/config.toml` (`project_id = pptgzavxpdltcuqpcovo`). Siga estes passos **uma vez** para vincular sua máquina e poder aplicar migrations e gerar tipos quando quiser.
+O **Reference ID** do projeto remoto está em `supabase/config.toml` (`project_id`). Siga estes passos **uma vez** para vincular sua máquina e aplicar migrations / gerar tipos.
 
 ### A) Instalar o Supabase CLI (Mac)
 
@@ -308,16 +392,16 @@ supabase --version
 ```bash
 cd ~/caminho/para/dona-rosa-pizzaria
 supabase login                    # abre o navegador — use a conta com acesso ao projeto
-supabase link --project-ref pptgzavxpdltcuqpcovo
+supabase link --project-ref SEU_REF   # mesmo valor de project_id em config.toml
 ```
 
-Quando pedir a **database password**, use a senha do Postgres do projeto (Dashboard → **Project Settings → Database → Database password**). Ela fica salva localmente em `supabase/.temp` (já está no `.gitignore`).
+Quando pedir a **database password**, use a senha do Postgres do projeto (Dashboard → **Project Settings → Database**). Ela fica salva localmente em `supabase/.temp` (já está no `.gitignore`).
 
 Confirme o vínculo:
 
 ```bash
 supabase projects list
-# deve aparecer ● linked ao lado do projeto Dona Rosa
+# deve aparecer ● linked ao lado do projeto
 ```
 
 ### C) Variáveis do front-end (`.env`)
@@ -328,7 +412,7 @@ O CLI **não** substitui o `.env` do Vite. Mantenha preenchido:
 |---|---|
 | `VITE_SUPABASE_URL` | Dashboard → Settings → API → Project URL |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | Settings → API → anon public |
-| `VITE_PUBLIC_SITE_URL` | URL de produção (ex.: `https://www.donarosa.com.br`) |
+| `VITE_PUBLIC_SITE_URL` | URL do ambiente de build (HostGator ou Vercel) |
 
 ### D) Comandos do dia a dia
 
@@ -437,142 +521,69 @@ git commit -m "feat(db): ..."
 
 ---
 
-## 13. WhatsApp — Disparos Ativos (infra Supabase)
+## 13. WhatsApp — integração (infra Supabase)
 
-Módulo de campanhas ativas via WhatsApp Business. Tabelas: `whatsapp_contacts`, `broadcast_campaigns`, `broadcast_campaign_recipients`, `survey_responses`.
+Módulo de mensagens, templates e campanhas via WhatsApp Business API (Meta). Dados em Postgres com RLS; processamento em Edge Functions.
 
 ### Secrets (Supabase — nunca no `.env` do Vite)
 
 ```bash
 cp supabase/secrets.meta.env.example supabase/secrets.meta.env
-# preencha os 4 valores, depois:
+# preencha os valores com a proprietária / Meta Business, depois:
 npm run secrets:meta
 ```
 
-Ou individualmente:
+Variáveis típicas: `META_APP_SECRET`, `META_ACCESS_TOKEN`, `META_PHONE_NUMBER_ID`, `META_VERIFY_TOKEN`. Opcional em homologação: `BROADCAST_DRY_RUN=true` (simula envio sem chamar a Graph API).
 
-```bash
-supabase secrets set META_APP_SECRET=...
-supabase secrets set META_ACCESS_TOKEN=...
-supabase secrets set META_PHONE_NUMBER_ID=...
-supabase secrets set META_VERIFY_TOKEN=...
-```
+Detalhes e exemplos: `supabase/secrets.meta.env.example` e scripts em `scripts/`.
 
-### Aplicar migration e deploy do webhook
+### Migration e Edge Functions
 
 ```bash
 npm run db:status
 npm run db:push:yes
 npm run db:types
-npm run functions:deploy:webhook
+npm run functions:deploy:whatsapp   # webhook, broadcast, templates, send-message
 ```
 
-URL do webhook para a Meta:
+URL do webhook (substitua `SEU_REF` pelo Reference ID do projeto):
 
 ```
-https://pptgzavxpdltcuqpcovo.supabase.co/functions/v1/whatsapp-webhook
+https://SEU_REF.supabase.co/functions/v1/whatsapp-webhook
 ```
 
-### Configurar no Meta Business Manager
+Configure no [Meta for Developers](https://developers.facebook.com) → WhatsApp → Webhook (Callback URL + Verify Token).
 
-1. [developers.facebook.com](https://developers.facebook.com) → App → WhatsApp → Configuration → Webhook
-2. **Callback URL:** URL acima
-3. **Verify Token:** mesmo valor de `META_VERIFY_TOKEN`
-4. Campos ativos: `messages`, `message_deliveries` (e `message_reads` se disponível)
-
-### Draft vs. publicado (campanhas)
-
-- Edição grava em `*_draft` (template, params, **content_type**, **queue_id**)
-- RPC `publish_broadcast_campaign(id)` consolida para colunas publicadas
-- **Motor de envio** lê apenas colunas publicadas + `resolve_queue_contact_ids(queue_id)`
-
-### Tags, filas e engajamento
-
-| Conceito | Tabela | Descrição |
-|---|---|---|
-| Tag | `whatsapp_tags` | Etiqueta atribuível ao contato (manual ou sistema) |
-| Tag no contato | `whatsapp_contact_tags` | M:N contato ↔ tag |
-| Fila | `whatsapp_queues` | Segmento nomeado (ex.: Clientes ativos) |
-| Regra da fila | `whatsapp_queue_tags` | Tags `include` / `exclude` + modo `any`/`all` |
-| Engajamento | `whatsapp_contacts.engagement_level` | active / warm / cold / unknown |
-| Resolver fila | `resolve_queue_contact_ids(uuid)` | IDs elegíveis para disparo |
-
-**Tags sistema (automáticas):** `cliente-ativo`, `cliente-inativo` — recalculadas via `refresh_contact_engagement` no webhook.
-
-**Tipos de conteúdo:** `survey`, `promotion`, `informational`, `utility`, `reminder`.
-
-**Respostas inbound:** tabela `broadcast_responses` (não só pesquisas).
-
-### Realtime (backoffice)
-
-Canal privado: `admin:whatsapp:broadcasts` · evento: `broadcast_response_received`
-
-### CRM de conversas
-
-Tabelas: `whatsapp_config`, `whatsapp_conversations`, `whatsapp_messages`, `whatsapp_webhook_events`.
-
-**Backoffice (`/admin`):**
+### Backoffice
 
 | Rota | Função |
 |---|---|
-| `/admin/conversas` | Inbox — lista conversas com preview e status |
-| `/admin/conversas/:id` | Thread de mensagens inbound/outbound |
-| `/admin/templates` | Modelos — criar, enviar para aprovação Meta, ver status |
-| `/admin/disparos` | Campanhas — criar (só modelos aprovados), publicar, disparar |
+| `/admin/conversas` | Inbox |
+| `/admin/templates` | Modelos de mensagem |
+| `/admin/disparos` | Campanhas |
+| `/admin/contatos` | CRM / contatos |
 
-Realtime CRM: canal `admin:whatsapp:crm`.
+Realtime usa canais privados (`private: true`) — ver migrations e hooks em `src/hooks/`.
 
-### Modo desenvolvimento vs. go-live (entrega BR)
+> ⚠️ Não submeta templates à Meta nem dispare campanhas reais em ambientes de teste sem autorização explícita.
 
-Número de teste Meta (+1 555…) **não entrega** para celulares BR (erro Meta `131031`). Até conectar número brasileiro real:
+## 14. Convenções técnicas — não quebre isso
 
-1. **`BROADCAST_DRY_RUN=true`** (secret Supabase) — `broadcast-send` grava `sent` + `meta_message_id` simulado (`dry_run_…`) e persiste no CRM **sem** chamar Graph API.
-2. Recebimento (celular → webhook → CRM) continua funcionando normalmente.
-3. UI exibe banner de modo dev e botão **Disparar (simulado)**.
-
-**Homologação / go-live:**
-
-```bash
-# Em supabase/secrets.meta.env
-BROADCAST_DRY_RUN=false
-npm run secrets:meta
-npm run functions:deploy:broadcast-send
-```
-
-Use número BR verificado no WhatsApp Manager antes de desligar o dry-run.
-
-### Modelos de mensagem (Meta)
-
-Tabela `whatsapp_templates` · Edge Function `whatsapp-templates` (submit + sync).
-
-**Fluxo para a Rosa (sem usar o painel Meta):**
-1. `/admin/templates` → **Novo modelo** → escrever texto com `{{1}}` para nome do cliente
-2. **Enviar para aprovação** → status `pending`
-3. **Atualizar status** (ou automático via webhook) → `approved` ou `rejected` + motivo
-4. Modelo aprovado aparece em **Disparos → Nova campanha**
-
-**Webhook Meta:** ative o campo `message_template_status_update` junto com `messages` e `message_deliveries`.
-
-**Token Meta:** precisa de permissão `whatsapp_business_management` para criar/listar templates.
-
-
-## 14. Regras de negócio — não quebre isso
- 
-| Regra | Por quê importa |
+| Convenção | Por quê importa |
 |---|---|
-| Manter guards de carregamento (`useHomeBootstrap` / `useSiteShellReady`) | Evita placeholders vazios em produção |
-| `/admin` e `/login` com `noindex` | Não devem ser indexados por buscadores |
-| Conteúdo vem do Supabase, nunca hardcoded | Permite que a proprietária edite sem deploy |
-| `VITE_PUBLIC_SITE_URL` correto por ambiente | Canonical, JSON-LD e OG dependem disso |
-| Migrations versionadas em `supabase/migrations/` | Rastreabilidade e reprodutibilidade do banco |
-| Nunca commitar `.env` ou service role key | Segurança — credenciais não vão para o repo |
-| `vercel.json` com rewrite SPA | Sem isso, rotas diretas (ex: `/cardapio`) retornam 404 |
-| Helpers de auth no schema `private` | Não expor `is_admin(uuid)` via RPC — usar `am_i_admin()` |
-| Não publicar CMS em testes de QA | Rascunhos ≠ site público; publicar só com OK da Rosa |
+| Guards de carregamento (`useHomeBootstrap` / `useSiteShellReady`) | Evita flash de placeholder no primeiro paint |
+| Conteúdo público via Supabase (rascunho vs. publicado) | CMS independente de deploy do front |
+| `VITE_PUBLIC_SITE_URL` correto no build de cada ambiente | Canonical, JSON-LD, OG e links de e-mail |
+| Fallback SPA: `.htaccess` (HostGator) + `vercel.json` (Vercel) | Rotas diretas sem 404 |
+| Migrations versionadas em `supabase/migrations/` | Schema reprodutível |
+| Auth helpers no schema `private`; RPC pública `am_i_admin()` | Menor superfície de ataque |
+| Secrets Meta e service role **somente** no Supabase | Nunca em `VITE_*` nem no Git |
+| `/admin` e `/login` com `noindex` | Rotas privadas fora do índice |
+| Em QA: preferir rascunho/preview; evitar “Publicar” no CMS | Não alterar site público sem OK da operação |
 
 ---
 
-## 16. Checklist de QA — painel administrativo
+## 15. Checklist de QA — painel administrativo
 
 Última rodada: **2026-06-02** · ambiente local `http://localhost:8080` · **nenhum conteúdo publicado** (cardápio, páginas, topo/rodapé intactos).
 
@@ -638,12 +649,12 @@ Executar logado, **sem clicar em Publicar** em CMS/cardápio/topo e rodapé:
 **Próximo sprint:** corrigir SEO de rotas auth; rodada E2E logada com Playwright; habilitar HIBP se plano Pro.
 
 ---
- 
-## 15. Onde pedir ajuda / credenciais
- 
-- **Credenciais** (Supabase, Vercel, GitHub, variáveis de ambiente): solicitar diretamente à **proprietária da pizzaria**.
+
+## 16. Onde pedir ajuda / credenciais
+
+- **Credenciais** (Supabase, HostGator, Vercel, GitHub, Meta Business, variáveis de ambiente): solicitar diretamente à **proprietária da pizzaria**.
 - **Dúvidas técnicas sobre a implementação**: contato com a desenvolvedora responsável — [Janaina Guiotti](https://janaina-guiotti.vercel.app/).
- 
+
 ---
  
 *Desenvolvido com ❤️ por [Janaina Guiotti](https://janaina-guiotti.vercel.app/)*
