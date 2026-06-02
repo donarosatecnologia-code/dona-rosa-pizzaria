@@ -1,23 +1,30 @@
-# Dona Rosa Pizzaria — SPA fallback (Apache / HostGator)
-# Encaminha rotas como /admin, /login e /politica-de-privacidade para index.html
+# Dona Rosa Pizzaria — SPA fallback (Apache / HostGator / cPanel)
+# Sem este arquivo, /login, /admin e /politica-de-privacidade retornam 404.
+
+Options -MultiViews
 
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
 
-  # Arquivo ou pasta real → servir direto (assets, imagens, robots.txt, etc.)
-  RewriteCond %{REQUEST_FILENAME} -f [OR]
-  RewriteCond %{REQUEST_FILENAME} -d
-  RewriteRule ^ - [L]
+  # index.html direto — não reescrever de novo
+  RewriteRule ^index\.html$ - [L]
 
-  # Demais rotas → React Router (index.html)
-  RewriteRule ^ index.html [L]
+  # Arquivo, pasta ou link simbólico real → servir direto
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_FILENAME} !-l
+
+  # Demais rotas → React Router
+  RewriteRule ^ /index.html [L,QSA]
 </IfModule>
 
-# Evita listagem de diretórios
-Options -Indexes
+# Evita listagem de diretórios (HostGator costuma permitir no .htaccess)
+<IfModule mod_autoindex.c>
+  Options -Indexes
+</IfModule>
 
-# Cache leve para assets com hash (Vite gera nomes únicos)
+# Cache para assets com hash (Vite)
 <IfModule mod_expires.c>
   ExpiresActive On
   ExpiresByType text/css "access plus 1 year"

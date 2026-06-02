@@ -1,0 +1,6 @@
+Dona Rosa Pizzaria — marcador de deploy SPA
+Se você vê este arquivo em https://donarosapizzaria.com.br/spa-deploy-marker.txt
+o upload do dist/ chegou na pasta correta.
+
+Próximo passo obrigatório: confirmar que .htaccess existe na mesma pasta que index.html.
+Se o FTP não enviou arquivos ocultos, renomeie hostgator-htaccess.txt → .htaccess no cPanel.

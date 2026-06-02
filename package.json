@@ -8,6 +8,7 @@
     "dev": "vite",
     "build": "vite build",
     "build:hostgator": "bash scripts/build-hostgator.sh",
+    "verify:hostgator": "bash scripts/verify-hostgator-spa.sh",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",

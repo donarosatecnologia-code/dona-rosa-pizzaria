@@ -20,10 +20,17 @@ if [[ ! -f dist/.htaccess ]]; then
   exit 1
 fi
 
+# Cópia visível para cPanel quando o FTP não envia arquivos ocultos
+cp dist/.htaccess dist/hostgator-htaccess.txt
+
 echo ""
 echo "✓ Build pronto em dist/"
-echo "  Envie TODO o conteúdo de dist/ para public_html/ na HostGator"
-echo "  (incluindo .htaccess — arquivos ocultos devem ser visíveis no FTP)"
+echo ""
+echo "Upload na HostGator (public_html/):"
+echo "  1. Envie TODO o conteúdo de dist/ (index.html, assets/, etc.)"
+echo "  2. Confirme .htaccess na raiz — FTP: ative 'mostrar arquivos ocultos'"
+echo "  3. Se .htaccess não subir: no cPanel, renomeie hostgator-htaccess.txt → .htaccess"
+echo "  4. Teste https://donarosapizzaria.com.br/spa-deploy-marker.txt (confirma upload)"
 echo ""
 echo "URLs para verificação Meta:"
 echo "  https://donarosapizzaria.com.br/politica-de-privacidade"

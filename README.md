@@ -266,6 +266,26 @@ O script define `VITE_PUBLIC_SITE_URL=https://donarosapizzaria.com.br`, roda `np
 3. **Importante:** habilite “mostrar arquivos ocultos” no cliente FTP — o `.htaccess` começa com ponto.
 4. Não envie a pasta `dist` em si; envie o **conteúdo** (incluindo `index.html`, `assets/`, `.htaccess`).
 
+#### Se a home abre mas rotas dão 404 da HostGator
+
+Sintoma: `/` funciona, mas `/login` ou `/politica-de-privacidade` mostram a página **“Ops, Não encontramos essa página!”** da HostGator.
+
+Isso significa que o **`index.html` foi enviado, mas o `.htaccess` não está ativo** na raiz de `public_html/`.
+
+**Solução (cPanel — mais confiável que FTP):**
+
+1. Abra **Gerenciador de arquivos** → `public_html/`
+2. Confirme se existe `.htaccess` ao lado de `index.html`
+3. Se **não existir**: o build gera `dist/hostgator-htaccess.txt` — faça upload e **renomeie** para `.htaccess`
+4. Se existir um `.htaccess` antigo (WordPress, etc.), substitua pelo do projeto
+5. Teste: `https://donarosapizzaria.com.br/spa-deploy-marker.txt` deve abrir (confirma upload recente)
+
+Validação automatizada (após upload):
+
+```bash
+npm run verify:hostgator
+```
+
 #### Checklist pós-upload HostGator
 
 - [ ] `https://donarosapizzaria.com.br/` carrega a home
