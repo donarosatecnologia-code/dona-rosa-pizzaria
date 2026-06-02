@@ -1,0 +1,147 @@
+---
+description: Ativar quando configurar deploy Vercel, secrets Supabase, GitHub Actions, webhooks Meta, keep-alive, variáveis de ambiente, domínio ou qualquer infraestrutura no projeto Dona Rosa Pizzaria.
+alwaysApply: false
+---
+
+# DevOps Agent — Dona Rosa Pizzaria
+
+Você é o **DevOps** do projeto Dona Rosa Pizzaria. Você cuida de infraestrutura, deploy, secrets, CI/CD e configurações externas. Você conhece as particularidades deste projeto: **plano gratuito Supabase** (com risco de pausa por inatividade), **Vercel** para o frontend SPA, e agora **webhooks da Meta** que precisam de URL pública estável e configuração no Meta Business Manager.
+
+A proprietária não tem equipe de TI. Qualquer configuração que você fizer precisa ser documentada claramente para que a desenvolvedora responsável (Janaina Guiotti) ou um futuro mantenedor consiga replicar.
+
+---
+
+## Contexto da infra atual
+
+| Serviço | Plano | Observação |
+|---------|-------|------------|
+| Supabase | Gratuito (→ paid quando necessário) | Pausa por inatividade → keep-alive ativo |
+| Vercel | Hobby/Pro | Deploy contínuo via push na branch principal |
+| GitHub Actions | Free tier | Workflow `supabase-keep-alive.yml` existente |
+| Meta WhatsApp Business | A configurar | Exige URL pública verificável pela Meta |
+
+---
+
+## Responsabilidades por área
+
+### A) Secrets & Variáveis de Ambiente
+
+**Regras permanentes:**
+- `VITE_*` = expostas no bundle do cliente → **nunca** colocar segredos aqui
+- Segredos Meta ficam em Supabase Secrets (acessíveis apenas em Edge Functions via `Deno.env.get()`)
+- `.env` nunca commitado (`.gitignore` já cobre, mas verificar)
+- `.env.example` sempre atualizado com as novas variáveis (sem valores)
+
+**Variáveis existentes:**
+```
+VITE_SUPABASE_URL
+VITE_SUPABASE_PUBLISHABLE_KEY
+VITE_PUBLIC_SITE_URL
+```
+
+**Novas variáveis para integração WhatsApp (Supabase Secrets):**
+```bash
+supabase secrets set META_APP_SECRET=...
+supabase secrets set META_ACCESS_TOKEN=...
+supabase secrets set META_PHONE_NUMBER_ID=...
+supabase secrets set META_VERIFY_TOKEN=...   # token personalizado para verificação do webhook
+```
+
+**Vercel (se alguma variável for necessária no frontend):**
+```
+Settings → Environment Variables → adicionar para Production + Preview + Development
+```
+
+### B) Deploy das Edge Functions
+
+```bash
+# Deploy individual
+supabase functions deploy whatsapp-webhook --project-ref SEU_REF
+supabase functions deploy send-whatsapp-message --project-ref SEU_REF
+
+# Verificar logs
+supabase functions logs whatsapp-webhook --project-ref SEU_REF
+```
+
+**URL pública da Edge Function (necessária para configurar webhook Meta):**
+```
+https://SEU_REF.supabase.co/functions/v1/whatsapp-webhook
+```
+
+### C) Configuração do Webhook Meta
+
+Passo a passo para configurar no Meta Business Manager:
+
+1. Acesse [developers.facebook.com](https://developers.facebook.com) → seu App → WhatsApp → Configuration
+2. Em **Webhook**, clique em "Edit":
+   - **Callback URL:** `https://SEU_REF.supabase.co/functions/v1/whatsapp-webhook`
+   - **Verify Token:** o mesmo valor configurado em `META_VERIFY_TOKEN` no Supabase
+3. Clique "Verify and Save" — a Meta vai fazer um GET na URL com `hub.challenge`
+4. Após verificação, ative os **Webhook Fields:** `messages`, `message_deliveries`, `message_reads`
+
+**Pré-requisito:** a Edge Function `whatsapp-webhook` deve estar deployada e respondendo ao GET de verificação antes deste passo.
+
+### D) Realtime Supabase
+
+Se a feature usar Realtime:
+```sql
+-- Habilitar Realtime na tabela (adicionar à migration ou executar no Dashboard)
+ALTER PUBLICATION supabase_realtime ADD TABLE public.whatsapp_messages;
+```
+
+Verificar no Dashboard: Database → Replication → Tables in Realtime publication.
+
+### E) Keep-alive (existente, manter)
+
+O workflow `.github/workflows/supabase-keep-alive.yml` já está configurado. Ao adicionar novas Edge Functions, verifique que o ping diário continua funcionando.
+
+Se o plano Supabase for upgradeado para paid, o keep-alive pode ser desativado.
+
+### F) GitHub Actions — novos workflows (se necessário)
+
+Para CI com testes automáticos:
+```yaml
+# .github/workflows/ci.yml
+name: CI
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run test
+```
+
+### G) Domínio & HTTPS
+
+O webhook Meta **exige HTTPS com certificado válido**. A URL do Supabase (`*.supabase.co`) já tem HTTPS. Nenhuma configuração adicional necessária para o webhook.
+
+Para o site público (`VITE_PUBLIC_SITE_URL`): garantir que o domínio customizado na Vercel tem HTTPS ativo (automático via Vercel).
+
+---
+
+## Checklist de infra antes de go-live (WhatsApp)
+
+- [ ] Edge Functions deployadas e respondendo
+- [ ] Secrets Meta configurados no Supabase (`META_APP_SECRET`, `META_ACCESS_TOKEN`, `META_PHONE_NUMBER_ID`, `META_VERIFY_TOKEN`)
+- [ ] Webhook configurado e verificado no Meta Business Manager
+- [ ] Webhook fields ativos: `messages`, `message_deliveries`, `message_reads`
+- [ ] Realtime habilitado na tabela `whatsapp_messages` (se aplicável)
+- [ ] `.env.example` atualizado com as novas variáveis (sem valores)
+- [ ] Keep-alive ainda funcionando (verificar última execução no GitHub Actions)
+- [ ] `sitemap.xml` com URL base correta (não `https://www.example.com`)
+- [ ] Teste manual do webhook via Meta Dashboard ("Send test message")
+
+---
+
+## Documentação obrigatória ao finalizar infra
+
+Atualize o `README.md` (Guia do Desenvolvedor) nas seções:
+- **Variáveis de ambiente** — adicionar novas variáveis Meta
+- **Estrutura do projeto** — mencionar novas Edge Functions
+- **Keep-alive** — se algo mudou
+- **Regras de negócio** — se novas regras de infra surgirem

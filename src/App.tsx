@@ -22,6 +22,12 @@ import AdminConfiguracoes from "./pages/admin/AdminConfiguracoes";
 import AdminPages from "./pages/admin/AdminPages";
 import AdminHeaderFooter from "./pages/admin/AdminHeaderFooter";
 import AdminCardapio from "./pages/admin/AdminCardapio";
+import AdminContatos from "./pages/admin/AdminContatos";
+import AdminConversas from "./pages/admin/AdminConversas";
+import AdminConversaDetail from "./pages/admin/AdminConversaDetail";
+import AdminDisparoDetail from "./pages/admin/AdminDisparoDetail";
+import AdminDisparos from "./pages/admin/AdminDisparos";
+import AdminTemplates from "./pages/admin/AdminTemplates";
 import AdminMirrorPage from "./pages/admin/AdminMirrorPage";
 import AdminPreviewPage from "./pages/admin/AdminPreviewPage";
 import { CmsConfirmDialog } from "./components/CmsConfirmDialog";
@@ -58,6 +64,12 @@ const App = () => (
               <Route element={<AdminLayout />}>
                 <Route index element={<Navigate to="dashboard" replace />} />
                 <Route path="dashboard" element={<Dashboard />} />
+                <Route path="contatos" element={<AdminContatos />} />
+                <Route path="templates" element={<AdminTemplates />} />
+                <Route path="conversas" element={<AdminConversas />} />
+                <Route path="conversas/:id" element={<AdminConversaDetail />} />
+                <Route path="disparos" element={<AdminDisparos />} />
+                <Route path="disparos/:id" element={<AdminDisparoDetail />} />
                 <Route path="pages" element={<AdminPages />} />
                 <Route path="mirror/:pageSlug" element={<AdminMirrorPage />} />
                 <Route path="home" element={<Navigate to="/admin/mirror/home" replace />} />

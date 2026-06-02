@@ -22,6 +22,7 @@ supabase/.branches
 supabase/.temp
 supabase/.env
 supabase/.secrets
+supabase/secrets.meta.env
 
 # Chaves e certificados comuns
 *.pem

@@ -2,7 +2,10 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ChevronDown, ChevronRight, Plus } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus, Download } from "lucide-react";
+import { WhatsappBusinessHoursCard } from "@/components/admin/whatsapp/WhatsappBusinessHoursCard";
+import { Button } from "@/components/ui/button";
+import { useContactDeletionAudit } from "@/hooks/whatsapp";
 
 const settingsSections = [
   {
@@ -40,6 +43,7 @@ const settingsSections = [
 const AdminConfiguracoes = () => {
   const queryClient = useQueryClient();
   const [openSections, setOpenSections] = useState<string[]>([]);
+  const { data: deletionAudit } = useContactDeletionAudit();
 
   const { data: contents, isLoading } = useQuery({
     queryKey: ["admin-page-contents", "settings"],
@@ -90,10 +94,43 @@ const AdminConfiguracoes = () => {
     );
   };
 
+  function exportDeletionAudit() {
+    if (!deletionAudit?.length) {
+      toast.error("Nenhum registro de exclusão para exportar.");
+      return;
+    }
+    const blob = new Blob([JSON.stringify(deletionAudit, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `lgpd-exclusoes-contatos-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Exportação concluída.");
+  }
+
   return (
     <div>
       <h1 className="text-2xl font-bold text-foreground mb-1">Configurações Gerais</h1>
       <p className="text-sm text-muted-foreground mb-6">Edite o header, footer, WhatsApp e SEO do site.</p>
+
+      <div className="mb-8 space-y-4">
+        <WhatsappBusinessHoursCard />
+        <div className="rounded-xl border bg-background p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-sm font-medium">Trilha de exclusão de contatos (LGPD)</p>
+              <p className="text-xs text-muted-foreground">
+                {deletionAudit?.length ?? 0} registro(s) de exclusão permanente.
+              </p>
+            </div>
+            <Button size="sm" variant="outline" onClick={exportDeletionAudit}>
+              <Download className="h-4 w-4 mr-2" />
+              Exportar JSON
+            </Button>
+          </div>
+        </div>
+      </div>
 
       <div className="space-y-3">
         {settingsSections.map((section) => {

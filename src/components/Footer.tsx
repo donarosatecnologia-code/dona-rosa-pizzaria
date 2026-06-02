@@ -16,6 +16,7 @@ import { stripHtmlTags } from "@/lib/utils";
 import type { Database } from "@/integrations/supabase/types";
 
 type NavLinkRow = Database["public"]["Tables"]["nav_links"]["Row"];
+type SocialLinkRow = Database["public"]["Tables"]["social_links"]["Row"];
 
 const iconMap: Record<string, React.ReactNode> = {
   instagram: <Instagram size={20} />,
@@ -239,7 +240,7 @@ function SocialLinkManager() {
         <div className="absolute bottom-full left-0 mb-2 bg-background text-foreground rounded-lg shadow-xl border border-border p-4 w-72 z-50">
           <h4 className="text-sm font-semibold mb-3">Redes Sociais</h4>
           <div className="space-y-2 mb-3 max-h-40 overflow-auto">
-            {(allLinks as any[] ?? []).map((link: any) => (
+            {(allLinks ?? []).map((link: SocialLinkRow) => (
               <div key={link.id} className="flex items-center gap-2 text-xs">
                 {editing?.id === link.id ? (
                   <>

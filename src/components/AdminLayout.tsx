@@ -8,19 +8,30 @@ import {
   UtensilsCrossed,
   FileStack,
   Rows3,
+  Settings,
+  MessageCircle,
+  Send,
+  Users,
+  FileText,
 } from "lucide-react";
 import { useState } from "react";
 import logoBranco from "@/assets/logo-branco.png";
 import { AdminEditToolbar } from "@/components/AdminEditToolbar";
+import { WhatsappNotificationBell } from "@/components/admin/whatsapp/WhatsappNotificationBell";
 import AdminEditorSidebar from "@/components/AdminEditorSidebar";
 import { useAdminEditor } from "@/contexts/AdminEditorContext";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/admin/contatos", label: "Contatos", icon: Users },
+  { to: "/admin/templates", label: "Modelos", icon: FileText },
+  { to: "/admin/disparos", label: "Disparos", icon: Send },
+  { to: "/admin/conversas", label: "Conversas", icon: MessageCircle },
   { to: "/admin/pages", label: "Páginas", icon: FileStack },
   { to: "/admin/cardapio", label: "Cardápio", icon: UtensilsCrossed },
   { to: "/admin/header-footer", label: "Header & Footer", icon: Rows3 },
+  { to: "/admin/configuracoes", label: "Configurações", icon: Settings },
 ];
 
 const AdminLayout = () => {
@@ -99,7 +110,12 @@ const AdminLayout = () => {
       >
         <main className="flex min-h-0 flex-1 flex-col overflow-hidden p-6">
           <div className="relative z-[130] mb-4 shrink-0 border-b border-border bg-muted/90 px-4 py-3 backdrop-blur-md -mx-6 -mt-6">
-            <AdminEditToolbar />
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <AdminEditToolbar />
+              </div>
+              <WhatsappNotificationBell />
+            </div>
           </div>
           <div className="admin-outlet-scroll relative z-0 min-h-0 flex-1 overflow-auto">
             <Outlet />

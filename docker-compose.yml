@@ -1,0 +1,27 @@
+# Stack local Supabase para testar migrations SEM tocar no remoto.
+# Requer: Docker Desktop + Supabase CLI (supabase start usa estes serviços).
+#
+# Uso:
+#   docker compose up -d          # sobe containers (alternativa manual)
+#   supabase start                # RECOMENDADO — orquestra tudo automaticamente
+#   supabase db reset             # aplica todas as migrations do zero
+#   supabase stop                 # para e remove containers
+#
+# Studio local: http://localhost:54323
+# API local:    http://127.0.0.1:54321
+
+services:
+  # Placeholder — o Supabase CLI gerencia os containers via `supabase start`.
+  # Este arquivo documenta o workflow e permite extensões futuras (ex.: pgAdmin).
+  #
+  # Para desenvolvimento local, prefira:
+  #   npm run db:local:start
+  #   npm run db:local:reset
+  #
+  # Se quiser apenas validar SQL sem Docker:
+  #   npm run db:status
+  migrations-info:
+    image: alpine:3.20
+    command: ["sh", "-c", "echo 'Use: npm run db:local:start (requer Docker + Supabase CLI)' && sleep infinity"]
+    profiles:
+      - docs-only

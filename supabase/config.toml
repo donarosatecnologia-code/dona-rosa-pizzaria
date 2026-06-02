@@ -1,4 +1,33 @@
 project_id = "pptgzavxpdltcuqpcovo"
 
+# Portas locais offset (+10) para rodar junto com outro projeto Supabase (ex.: auto-painel).
+# Studio: http://127.0.0.1:54333 | API: http://127.0.0.1:54331 | DB: 54332
+[api]
+port = 54331
+
+[db]
+port = 54332
+
+[studio]
+port = 54333
+
+[inbucket]
+port = 54334
+
+[analytics]
+port = 54337
+
 [functions.keep-alive]
 verify_jwt = false
+
+[functions.whatsapp-webhook]
+verify_jwt = false
+
+[functions.broadcast-send]
+verify_jwt = true
+
+[functions.whatsapp-templates]
+verify_jwt = true
+
+[functions.whatsapp-send-message]
+verify_jwt = true

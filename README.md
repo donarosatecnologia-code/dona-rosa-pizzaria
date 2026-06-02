@@ -17,8 +17,10 @@
 9. [SEO e metadados](#9-seo-e-metadados)
 10. [Deploy na Vercel](#10-deploy-na-vercel)
 11. [Keep-alive do Supabase (plano gratuito)](#11-keep-alive-do-supabase-plano-gratuito)
-12. [Regras de negócio — não quebre isso](#12-regras-de-negócio--não-quebre-isso)
-13. [Onde pedir ajuda / credenciais](#13-onde-pedir-ajuda--credenciais)
+12. [Supabase CLI — linkar projeto e migrations](#12-supabase-cli--linkar-projeto-e-migrations)
+13. [WhatsApp — Disparos Ativos (infra Supabase)](#13-whatsapp--disparos-ativos-infra-supabase)
+14. [Regras de negócio — não quebre isso](#14-regras-de-negócio--não-quebre-isso)
+15. [Onde pedir ajuda / credenciais](#15-onde-pedir-ajuda--credenciais)
  
 ---
  
@@ -98,7 +100,9 @@ dona-rosa-pizzaria/
 │       └── supabase/
 │           └── client.ts  # Cliente Supabase (lê apenas as variáveis VITE_*)
 ├── supabase/
-│   └── migrations/     # Esquema e seeds do banco — versionar sempre!
+│   ├── migrations/     # Esquema e seeds do banco — versionar sempre!
+│   ├── schema-baseline.reference.sql  # Referência do schema base (não aplicar em prod)
+│   └── config.toml     # project_id do Supabase linkado
 ├── public/
 │   ├── robots.txt
 │   ├── sitemap.xml     # ⚠️ Atualizar URL base antes do go-live
@@ -257,10 +261,274 @@ O workflow `.github/workflows/supabase-keep-alive.yml` já agenda o ping **diari
 Para testar manualmente: **Actions → Supabase keep-alive → Run workflow**
  
 > ⚠️ Se o projeto já estiver pausado, reative manualmente no Dashboard antes de depender desta função.
- 
+
 ---
- 
-## 12. Regras de negócio — não quebre isso
+
+## 12. Supabase CLI — linkar projeto e migrations
+
+O repositório já aponta para o projeto remoto em `supabase/config.toml` (`project_id = pptgzavxpdltcuqpcovo`). Siga estes passos **uma vez** para vincular sua máquina e poder aplicar migrations e gerar tipos quando quiser.
+
+### A) Instalar o Supabase CLI (Mac)
+
+```bash
+brew install supabase/tap/supabase
+supabase --version
+```
+
+### B) Autenticar e linkar
+
+```bash
+cd ~/caminho/para/dona-rosa-pizzaria
+supabase login                    # abre o navegador — use a conta com acesso ao projeto
+supabase link --project-ref pptgzavxpdltcuqpcovo
+```
+
+Quando pedir a **database password**, use a senha do Postgres do projeto (Dashboard → **Project Settings → Database → Database password**). Ela fica salva localmente em `supabase/.temp` (já está no `.gitignore`).
+
+Confirme o vínculo:
+
+```bash
+supabase projects list
+# deve aparecer ● linked ao lado do projeto Dona Rosa
+```
+
+### C) Variáveis do front-end (`.env`)
+
+O CLI **não** substitui o `.env` do Vite. Mantenha preenchido:
+
+| Variável | Onde achar |
+|---|---|
+| `VITE_SUPABASE_URL` | Dashboard → Settings → API → Project URL |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Settings → API → anon public |
+| `VITE_PUBLIC_SITE_URL` | URL de produção (ex.: `https://www.donarosa.com.br`) |
+
+### D) Comandos do dia a dia
+
+| Comando | O que faz |
+|---|---|
+| `npm run db:status` | Lista migrations locais vs. remoto (quais já foram aplicadas) |
+| `npm run db:push` | Aplica **somente migrations pendentes** no banco remoto |
+| `npm run db:types` | Regenera `src/integrations/supabase/types.ts` a partir do banco linkado |
+
+Fluxo típico ao criar uma migration nova:
+
+```bash
+# 1. Crie o arquivo em supabase/migrations/YYYYMMDDHHmmss_descricao.sql
+# 2. Revise o SQL
+npm run db:status    # confirme que aparece como "pending" no remoto
+npm run db:push      # aplica no Supabase remoto
+npm run db:types     # atualiza tipos TypeScript
+```
+
+> ⚠️ **Nunca** altere o banco manualmente no Dashboard sem criar a migration correspondente no Git.
+
+> ⚠️ **Não** rode `supabase/schema-baseline.reference.sql` em produção — é só documentação do schema que existia antes da primeira migration versionada.
+
+### E) Ambiente local opcional (Docker)
+
+Para testar migrations sem tocar no remoto:
+
+```bash
+supabase start          # sobe Postgres + Auth local via Docker
+supabase db reset       # aplica todas as migrations do zero
+supabase stop           # para os containers
+```
+
+Requer [Docker Desktop](https://www.docker.com/products/docker-desktop/) instalado.
+
+### F) Sincronizar se o remoto estiver à frente do repo
+
+Se alguém alterou o banco direto no Dashboard e você precisa trazer para o código:
+
+```bash
+supabase db pull      # gera migration com o diff (revisar antes de commitar)
+npm run db:types
+```
+
+Use com cuidado — revise o SQL gerado antes de commitar.
+
+### G) Problema: `Remote migration versions not found in local migrations directory`
+
+Isso acontece quando o banco remoto foi migrado com **timestamps diferentes** dos arquivos no Git (comum ao aplicar pelo Dashboard ou Lovable).
+
+**Sintoma:** remoto tem `20260323213931`, local tem `20260323213934` (+3 segundos).
+
+**Solução (já aplicada neste projeto):**
+
+```bash
+npm run db:repair    # reverte fantasmas + marca equivalentes locais como applied
+npm run db:deploy    # push --yes + db:types
+```
+
+Ou manualmente:
+
+```bash
+supabase migration repair --status reverted 20260323213931 20260323223045 20260324000705
+supabase migration repair --status applied 20260323213934 20260323223047 20260324000708
+npm run db:push:yes
+npm run db:types
+```
+
+> ⚠️ **Nunca** marque como `applied` migrations que ainda não rodaram no banco — isso pula SQL. Use `repair --status applied` só para alinhar nomes de migrations **já executadas**.
+
+### H) Ambiente local com Docker (testar migrations sem remoto)
+
+Requer [Docker Desktop](https://www.docker.com/products/docker-desktop/) + Supabase CLI.
+
+**Portas deste projeto (offset +10):** não conflita com `auto-painel` nas portas padrão.
+
+| Serviço | URL/porta |
+|---|---|
+| Studio | http://127.0.0.1:54333 |
+| API | http://127.0.0.1:54331 |
+| Postgres | `localhost:54332` |
+
+```bash
+npm run db:local:start   # sobe stack local (portas 54331+)
+npm run db:local:reset   # recria banco e aplica TODAS as migrations
+npm run db:local:status  # URLs e keys locais
+npm run db:local:stop    # para containers deste projeto
+```
+
+Se preferir usar as portas padrão (54321–54324), pare o outro projeto primeiro:
+
+```bash
+supabase stop --project-id auto-painel
+npm run db:local:start
+```
+
+### I) Fluxo recomendado ao criar migration nova
+
+```bash
+# 1. Crie supabase/migrations/YYYYMMDDHHmmss_descricao.sql
+npm run db:status          # deve aparecer como pending no remoto
+npm run db:deploy          # push + types
+git add supabase/migrations/ src/integrations/supabase/types.ts
+git commit -m "feat(db): ..."
+```
+
+---
+
+## 13. WhatsApp — Disparos Ativos (infra Supabase)
+
+Módulo de campanhas ativas via WhatsApp Business. Tabelas: `whatsapp_contacts`, `broadcast_campaigns`, `broadcast_campaign_recipients`, `survey_responses`.
+
+### Secrets (Supabase — nunca no `.env` do Vite)
+
+```bash
+cp supabase/secrets.meta.env.example supabase/secrets.meta.env
+# preencha os 4 valores, depois:
+npm run secrets:meta
+```
+
+Ou individualmente:
+
+```bash
+supabase secrets set META_APP_SECRET=...
+supabase secrets set META_ACCESS_TOKEN=...
+supabase secrets set META_PHONE_NUMBER_ID=...
+supabase secrets set META_VERIFY_TOKEN=...
+```
+
+### Aplicar migration e deploy do webhook
+
+```bash
+npm run db:status
+npm run db:push:yes
+npm run db:types
+npm run functions:deploy:webhook
+```
+
+URL do webhook para a Meta:
+
+```
+https://pptgzavxpdltcuqpcovo.supabase.co/functions/v1/whatsapp-webhook
+```
+
+### Configurar no Meta Business Manager
+
+1. [developers.facebook.com](https://developers.facebook.com) → App → WhatsApp → Configuration → Webhook
+2. **Callback URL:** URL acima
+3. **Verify Token:** mesmo valor de `META_VERIFY_TOKEN`
+4. Campos ativos: `messages`, `message_deliveries` (e `message_reads` se disponível)
+
+### Draft vs. publicado (campanhas)
+
+- Edição grava em `*_draft` (template, params, **content_type**, **queue_id**)
+- RPC `publish_broadcast_campaign(id)` consolida para colunas publicadas
+- **Motor de envio** lê apenas colunas publicadas + `resolve_queue_contact_ids(queue_id)`
+
+### Tags, filas e engajamento
+
+| Conceito | Tabela | Descrição |
+|---|---|---|
+| Tag | `whatsapp_tags` | Etiqueta atribuível ao contato (manual ou sistema) |
+| Tag no contato | `whatsapp_contact_tags` | M:N contato ↔ tag |
+| Fila | `whatsapp_queues` | Segmento nomeado (ex.: Clientes ativos) |
+| Regra da fila | `whatsapp_queue_tags` | Tags `include` / `exclude` + modo `any`/`all` |
+| Engajamento | `whatsapp_contacts.engagement_level` | active / warm / cold / unknown |
+| Resolver fila | `resolve_queue_contact_ids(uuid)` | IDs elegíveis para disparo |
+
+**Tags sistema (automáticas):** `cliente-ativo`, `cliente-inativo` — recalculadas via `refresh_contact_engagement` no webhook.
+
+**Tipos de conteúdo:** `survey`, `promotion`, `informational`, `utility`, `reminder`.
+
+**Respostas inbound:** tabela `broadcast_responses` (não só pesquisas).
+
+### Realtime (backoffice)
+
+Canal privado: `admin:whatsapp:broadcasts` · evento: `broadcast_response_received`
+
+### CRM de conversas
+
+Tabelas: `whatsapp_config`, `whatsapp_conversations`, `whatsapp_messages`, `whatsapp_webhook_events`.
+
+**Backoffice (`/admin`):**
+
+| Rota | Função |
+|---|---|
+| `/admin/conversas` | Inbox — lista conversas com preview e status |
+| `/admin/conversas/:id` | Thread de mensagens inbound/outbound |
+| `/admin/templates` | Modelos — criar, enviar para aprovação Meta, ver status |
+| `/admin/disparos` | Campanhas — criar (só modelos aprovados), publicar, disparar |
+
+Realtime CRM: canal `admin:whatsapp:crm`.
+
+### Modo desenvolvimento vs. go-live (entrega BR)
+
+Número de teste Meta (+1 555…) **não entrega** para celulares BR (erro Meta `131031`). Até conectar número brasileiro real:
+
+1. **`BROADCAST_DRY_RUN=true`** (secret Supabase) — `broadcast-send` grava `sent` + `meta_message_id` simulado (`dry_run_…`) e persiste no CRM **sem** chamar Graph API.
+2. Recebimento (celular → webhook → CRM) continua funcionando normalmente.
+3. UI exibe banner de modo dev e botão **Disparar (simulado)**.
+
+**Homologação / go-live:**
+
+```bash
+# Em supabase/secrets.meta.env
+BROADCAST_DRY_RUN=false
+npm run secrets:meta
+npm run functions:deploy:broadcast-send
+```
+
+Use número BR verificado no WhatsApp Manager antes de desligar o dry-run.
+
+### Modelos de mensagem (Meta)
+
+Tabela `whatsapp_templates` · Edge Function `whatsapp-templates` (submit + sync).
+
+**Fluxo para a Rosa (sem usar o painel Meta):**
+1. `/admin/templates` → **Novo modelo** → escrever texto com `{{1}}` para nome do cliente
+2. **Enviar para aprovação** → status `pending`
+3. **Atualizar status** (ou automático via webhook) → `approved` ou `rejected` + motivo
+4. Modelo aprovado aparece em **Disparos → Nova campanha**
+
+**Webhook Meta:** ative o campo `message_template_status_update` junto com `messages` e `message_deliveries`.
+
+**Token Meta:** precisa de permissão `whatsapp_business_management` para criar/listar templates.
+
+
+## 14. Regras de negócio — não quebre isso
  
 | Regra | Por quê importa |
 |---|---|
@@ -274,7 +542,7 @@ Para testar manualmente: **Actions → Supabase keep-alive → Run workflow**
  
 ---
  
-## 13. Onde pedir ajuda / credenciais
+## 15. Onde pedir ajuda / credenciais
  
 - **Credenciais** (Supabase, Vercel, GitHub, variáveis de ambiente): solicitar diretamente à **proprietária da pizzaria**.
 - **Dúvidas técnicas sobre a implementação**: contato com a desenvolvedora responsável — [Janaina Guiotti](https://janaina-guiotti.vercel.app/).

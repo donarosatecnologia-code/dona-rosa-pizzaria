@@ -14,4 +14,4 @@ User-agent: *
 Allow: /
 
 # Atualize o domínio abaixo para o de produção (deve coincidir com public/sitemap.xml)
-Sitemap: https://www.example.com/sitemap.xml
+Sitemap: https://www.donarosa.com.br/sitemap.xml

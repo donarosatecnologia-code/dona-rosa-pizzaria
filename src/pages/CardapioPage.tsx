@@ -13,7 +13,7 @@ import { siteContainerClass } from "@/lib/siteLayout";
 import {
   PIZZA_BROTO_PERCENT_OF_GRANDE,
   PIZZA_MINI_PERCENT_OF_GRANDE,
-  pizzaSizePriceFromGrande,
+  resolvePizzaSizePrice,
 } from "@/lib/pizzaPricing";
 import { cn } from "@/lib/utils";
 
@@ -66,11 +66,18 @@ const CardapioPage = () => {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const categoryRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const isEmbed = useAdminMirrorEmbed();
-  const { getText, isPending: cmsHeroPending } = useCmsContents(["cardapio-hero-title", "cardapio-hero-subtitle"], "cardapio");
+  const { getText, isPending: cmsHeroPending, isError: cmsHeroError } = useCmsContents(
+    ["cardapio-hero-title", "cardapio-hero-subtitle"],
+    "cardapio",
+  );
   const heroTitle = getText("cardapio-hero-title");
   const heroSubtitle = getText("cardapio-hero-subtitle");
 
-  const { data: categories, isPending: categoriesPending } = useQuery({
+  const {
+    data: categories,
+    isPending: categoriesPending,
+    isError: categoriesError,
+  } = useQuery({
     queryKey: ["public-categories"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -83,7 +90,11 @@ const CardapioPage = () => {
     },
   });
 
-  const { data: products, isPending: productsPending } = useQuery({
+  const {
+    data: products,
+    isPending: productsPending,
+    isError: productsError,
+  } = useQuery({
     queryKey: ["public-products"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -97,6 +108,7 @@ const CardapioPage = () => {
   });
 
   const showLoader = shell.isPending || cmsHeroPending || categoriesPending || productsPending;
+  const hasError = shell.isError || cmsHeroError || categoriesError || productsError;
 
   const groupedProducts = (categories ?? []).map((cat) => ({
     category: cat,
@@ -143,6 +155,16 @@ const CardapioPage = () => {
 
   if (showLoader) {
     return <LoadingScreen message="Carregando cardápio…" />;
+  }
+
+  if (hasError) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <p className="text-center text-muted-foreground">
+          Não foi possível carregar o conteúdo. Tente novamente mais tarde.
+        </p>
+      </div>
+    );
   }
 
   return (
@@ -413,16 +435,22 @@ function MenuItem({
   };
   showPizzaSizes: boolean;
 }) {
-  const brotoPrice = pizzaSizePriceFromGrande(
-    item.price,
-    PIZZA_BROTO_PERCENT_OF_GRANDE,
-    item.pizza_has_broto ?? true,
-  );
-  const miniPrice = pizzaSizePriceFromGrande(
-    item.price,
-    PIZZA_MINI_PERCENT_OF_GRANDE,
-    item.pizza_has_mini ?? true,
-  );
+  const brotoPrice = resolvePizzaSizePrice({
+    grandePrice: item.price,
+    isEnabled: item.pizza_has_broto ?? true,
+    pricingMode: item.pizza_broto_pricing_mode,
+    percentage: item.pizza_broto_percentage,
+    fixedPrice: item.pizza_broto_fixed_price,
+    defaultPercentOfGrande: PIZZA_BROTO_PERCENT_OF_GRANDE,
+  });
+  const miniPrice = resolvePizzaSizePrice({
+    grandePrice: item.price,
+    isEnabled: item.pizza_has_mini ?? true,
+    pricingMode: item.pizza_mini_pricing_mode,
+    percentage: item.pizza_mini_percentage,
+    fixedPrice: item.pizza_mini_fixed_price,
+    defaultPercentOfGrande: PIZZA_MINI_PERCENT_OF_GRANDE,
+  });
   const pizzaSizeLines = [
     brotoPrice !== null ? `Broto (6 pedaços): ${formatCurrency(brotoPrice)}` : null,
     miniPrice !== null ? `Mini (4 pedaços): ${formatCurrency(miniPrice)}` : null,

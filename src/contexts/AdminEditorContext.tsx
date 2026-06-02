@@ -1,7 +1,5 @@
 import { createContext, useContext, useState, useCallback, useRef, ReactNode } from "react";
-import { useAuth } from "@/hooks/useAuth";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 
 export interface EditingTarget {
   elementId: string;
@@ -35,7 +33,7 @@ const AdminEditorContext = createContext<AdminEditorContextType>({
 export const useAdminEditor = () => useContext(AdminEditorContext);
 
 export function AdminEditorProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { isAdmin } = useIsAdmin();
   const [editingTarget, setEditingTarget] = useState<EditingTarget | null>(null);
   const saveDraftHandlerRef = useRef<(() => Promise<void>) | null>(null);
 
@@ -46,17 +44,6 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   const requestSaveDraft = useCallback(async () => {
     await saveDraftHandlerRef.current?.();
   }, []);
-
-  const { data: isAdmin } = useQuery({
-    queryKey: ["is-admin", user?.id],
-    queryFn: async () => {
-      if (!user) return false;
-      const { data } = await supabase.rpc("is_admin", { _user_id: user.id });
-      return !!data;
-    },
-    enabled: !!user,
-    staleTime: 60_000,
-  });
 
   const openEditor = useCallback((target: EditingTarget) => {
     setEditingTarget(target);
@@ -69,7 +56,7 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   return (
     <AdminEditorContext.Provider
       value={{
-        isAdmin: !!isAdmin,
+        isAdmin,
         isEditing: !!editingTarget,
         editingTarget,
         openEditor,
