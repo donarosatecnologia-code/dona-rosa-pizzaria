@@ -10,7 +10,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { AppScrollArea } from "@/components/ui/app-scroll-area";
+import { Progress } from "@/components/ui/progress";
+import { ImportSummary } from "@/components/admin/contatos/ImportSummary";
 import { useImportContacts } from "@/hooks/whatsapp";
 import type { ImportContactsResult } from "@/lib/whatsapp/importContacts";
 
@@ -19,17 +20,22 @@ interface ImportContactsModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
+const ACCEPTED_TYPES =
+  ".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel";
+
 export function ImportContactsModal({ open, onOpenChange }: ImportContactsModalProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const importMutation = useImportContacts();
   const [file, setFile] = useState<File | null>(null);
   const [result, setResult] = useState<ImportContactsResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [progress, setProgress] = useState(0);
 
   function resetState() {
     setFile(null);
     setResult(null);
     setErrorMessage(null);
+    setProgress(0);
     importMutation.reset();
   }
 
@@ -45,34 +51,46 @@ export function ImportContactsModal({ open, onOpenChange }: ImportContactsModalP
       return;
     }
     setErrorMessage(null);
+    setProgress(0);
     try {
-      const summary = await importMutation.mutateAsync(file);
+      const summary = await importMutation.mutateAsync({
+        file,
+        onProgress: setProgress,
+      });
       setResult(summary);
     } catch (error) {
       const code = error instanceof Error ? error.message : "unknown";
       if (code === "missing_phone_column") {
-        setErrorMessage("Não encontramos coluna de telefone. Use telefone, phone ou celular.");
-      } else if (code === "empty_csv") {
+        setErrorMessage(
+          "Não encontramos a coluna de telefone. Use TELEFONE1, telefone ou phone no cabeçalho.",
+        );
+      } else if (code === "empty_file" || code === "empty_csv") {
         setErrorMessage("O arquivo está vazio ou só tem cabeçalho.");
       } else if (code === "too_many_rows") {
         setErrorMessage("O arquivo tem mais de 5.000 linhas. Divida em partes menores.");
+      } else if (code === "unsupported_format") {
+        setErrorMessage("Formato não suportado. Envie um arquivo .csv ou .xlsx.");
       } else {
-        setErrorMessage("Não conseguimos ler este arquivo. Verifique se é um .csv válido.");
+        setErrorMessage(
+          "Não conseguimos ler este arquivo. Verifique se é .csv ou .xlsx com coluna TELEFONE1 (ou telefone).",
+        );
       }
     }
   }
+
+  const isProcessing = importMutation.isPending;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Importar CSV</DialogTitle>
+          <DialogTitle>Importar clientes</DialogTitle>
           <DialogDescription>
-            Selecione um arquivo .csv com coluna de telefone (telefone, phone ou celular). Nome é opcional.
+            Selecione um arquivo .csv ou .xlsx com a lista de clientes (coluna TELEFONE1 ou telefone).
           </DialogDescription>
         </DialogHeader>
 
-        {!result && (
+        {!result && !isProcessing && (
           <div className="space-y-4">
             <div
               className="border-2 border-dashed border-border rounded-xl p-8 text-center cursor-pointer hover:bg-muted/40 transition-colors"
@@ -87,13 +105,13 @@ export function ImportContactsModal({ open, onOpenChange }: ImportContactsModalP
               ) : (
                 <>
                   <p className="text-sm font-medium">Arraste ou clique para selecionar</p>
-                  <p className="text-xs text-muted-foreground mt-1">Até 5.000 linhas</p>
+                  <p className="text-xs text-muted-foreground mt-1">CSV ou Excel (.xlsx) — até 5.000 linhas</p>
                 </>
               )}
               <input
                 ref={inputRef}
                 type="file"
-                accept=".csv,text/csv"
+                accept={ACCEPTED_TYPES}
                 className="hidden"
                 onChange={(e) => setFile(e.target.files?.[0] ?? null)}
               />
@@ -107,50 +125,38 @@ export function ImportContactsModal({ open, onOpenChange }: ImportContactsModalP
             )}
 
             <details className="text-xs text-muted-foreground">
-              <summary className="cursor-pointer font-medium text-foreground">Como formatar o arquivo?</summary>
+              <summary className="cursor-pointer font-medium text-foreground">
+                Como formatar o arquivo?
+              </summary>
               <pre className="mt-2 whitespace-pre-wrap bg-muted p-3 rounded-md text-[11px]">
-{`nome,telefone
-Maria Silva,11999998888
-João Santos,+5511988887777`}
+{`• Formatos: .csv ou .xlsx (primeira aba)
+• Coluna TELEFONE1: no Excel, formate como TEXTO antes de colar
+  (evita 1,19E+10 e perda de dígitos)
+• Aceito: 11999998888, 5511999998888, (11) 99999-8888, +55...
+• Nome: coluna NOME (ou name)
+• Endereço opcional: LOGR, ENDERECO, NUMERO, COMPLEMENTO, BAIRRO
+• Histórico opcional: compras, datas e dias sem comprar`}
               </pre>
             </details>
           </div>
         )}
 
-        {result && (
-          <Alert className="border-green-200 bg-green-50 text-green-950">
-            <AlertTitle>Importação concluída!</AlertTitle>
-            <AlertDescription className="space-y-1 text-sm">
-              <p>{result.imported} contato(s) adicionado(s).</p>
-              {result.duplicates > 0 && (
-                <p>{result.duplicates} número(s) já existentes foram ignorados.</p>
-              )}
-              {result.errors > 0 && (
-                <p>{result.errors} número(s) inválidos foram pulados.</p>
-              )}
-            </AlertDescription>
-          </Alert>
+        {isProcessing && (
+          <div className="space-y-3 py-2">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+              Importando contatos... isso pode levar alguns segundos.
+            </div>
+            <Progress value={progress || 8} className="h-2" />
+          </div>
         )}
 
-        {result && result.errorDetails.length > 0 && (
-          <AppScrollArea className="max-h-32 rounded-md border">
-            <ul className="text-xs space-y-1 p-2">
-            {result.errorDetails.slice(0, 20).map((err) => (
-              <li key={`${err.line}-${err.value}`}>
-                Linha {err.line}: {err.value} — {err.reason}
-              </li>
-            ))}
-            {result.errorDetails.length > 20 && (
-              <li className="text-muted-foreground">… e mais {result.errorDetails.length - 20} erros</li>
-            )}
-            </ul>
-          </AppScrollArea>
-        )}
+        {result && !isProcessing && <ImportSummary result={result} />}
 
         <DialogFooter>
           {!result ? (
-            <Button onClick={handleImport} disabled={!file || importMutation.isPending}>
-              {importMutation.isPending ? (
+            <Button onClick={handleImport} disabled={!file || isProcessing}>
+              {isProcessing ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Importando...

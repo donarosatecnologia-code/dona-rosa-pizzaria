@@ -4,20 +4,23 @@ import {
   normalizePhoneNumber,
   type MetaWebhookMessage,
 } from "./meta-webhook.ts";
+import { buildWebhookDedupeKey, type WebhookChangeContext } from "./webhook-dedupe.ts";
 
-export interface WebhookChangeContext {
-  field: string;
-  phoneNumberId?: string;
-  displayPhoneNumber?: string;
-  contacts?: Array<{ profile?: { name?: string }; wa_id?: string }>;
-  rawValue: Record<string, unknown>;
+export type { WebhookChangeContext };
+
+export interface WebhookEventLogResult {
+  id: string | null;
+  duplicate: boolean;
+  dedupeKey: string;
 }
 
-/** Persiste evento bruto para auditoria (dr-fase1). */
+/** Persiste evento bruto para auditoria (dr-fase1). Idempotente via dedupe_key. */
 export async function logWebhookEvent(
   supabase: SupabaseClient,
   ctx: WebhookChangeContext,
-): Promise<string | null> {
+): Promise<WebhookEventLogResult> {
+  const dedupeKey = buildWebhookDedupeKey(ctx);
+
   const { data, error } = await supabase
     .from("whatsapp_webhook_events")
     .insert({
@@ -25,16 +28,22 @@ export async function logWebhookEvent(
       phone_number_id: ctx.phoneNumberId ?? null,
       raw_payload: ctx.rawValue,
       processed: false,
+      dedupe_key: dedupeKey,
     })
     .select("id")
-    .single();
+    .maybeSingle();
+
+  if (error?.code === "23505") {
+    console.info("webhook_event_duplicate", { dedupeKey, field: ctx.field });
+    return { id: null, duplicate: true, dedupeKey };
+  }
 
   if (error) {
     console.error("webhook_event_log_failed", error.message);
-    return null;
+    return { id: null, duplicate: false, dedupeKey };
   }
 
-  return data.id as string;
+  return { id: (data?.id as string | undefined) ?? null, duplicate: false, dedupeKey };
 }
 
 export async function markWebhookEventProcessed(
@@ -210,6 +219,7 @@ export async function persistOutboundCrmMessage(
     bodyText?: string | null;
     content?: Record<string, unknown>;
     whatsappContactId?: string | null;
+    isAutomated?: boolean;
   },
 ): Promise<void> {
   const conversationId = await upsertConversation(supabase, input.waId, {
@@ -229,6 +239,7 @@ export async function persistOutboundCrmMessage(
     content: input.content ?? {},
     body_text: input.bodyText,
     status: "sent",
+    is_automated: input.isAutomated ?? false,
   });
 
   if (error && error.code !== "23505") {

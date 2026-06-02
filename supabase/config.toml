@@ -61,6 +61,9 @@ verify_jwt = false
 [functions.whatsapp-webhook]
 verify_jwt = false
 
+[functions.whatsapp-verify]
+verify_jwt = false
+
 [functions.broadcast-send]
 verify_jwt = true
 
@@ -68,4 +71,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.whatsapp-send-message]
+verify_jwt = true
+
+[functions.whatsapp-embedded-signup]
 verify_jwt = true

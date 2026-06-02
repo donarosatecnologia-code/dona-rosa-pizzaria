@@ -2,7 +2,6 @@ import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, Send, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts";
-import { WhatsappDevBanner } from "@/components/admin/whatsapp/WhatsappDevBanner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -58,11 +57,7 @@ export default function AdminDisparoDetail() {
     }
     try {
       const result = await send.mutateAsync({ campaign_id: id });
-      toast.success(
-        result.dry_run
-          ? `Simulação: ${result.sent} enviado(s).`
-          : `${result.sent} mensagem(ns) enviada(s).`,
-      );
+      toast.success(`${result.sent} mensagem(ns) enviada(s).`);
     } catch {
       toast.error("Disparo falhou.");
     }
@@ -105,14 +100,12 @@ export default function AdminDisparoDetail() {
             ) : (
               <>
                 <Send className="h-4 w-4 mr-1" />
-                Disparar (simulado)
+                Disparar
               </>
             )}
           </Button>
         )}
       </div>
-
-      <WhatsappDevBanner />
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         {[

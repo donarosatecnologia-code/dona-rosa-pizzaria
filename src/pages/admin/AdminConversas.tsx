@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { MessageCircle, ChevronRight, Clock } from "lucide-react";
-import { WhatsappDevBanner } from "@/components/admin/whatsapp/WhatsappDevBanner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -65,8 +64,6 @@ export default function AdminConversas() {
       <p className="text-sm text-muted-foreground mb-4">
         Veja quem escreveu e responda pelo WhatsApp.
       </p>
-
-      <WhatsappDevBanner compact />
 
       {outsideHours && (
         <div className="flex items-center gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4">

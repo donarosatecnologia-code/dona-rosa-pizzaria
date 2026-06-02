@@ -18,6 +18,7 @@ function getPageKeyFromSectionKey(sectionKey: string) {
   if (sectionKey.startsWith("contact-")) return "contato";
   if (sectionKey.startsWith("privacy-")) return "politica-privacidade";
   if (sectionKey.startsWith("terms-")) return "termos-de-uso";
+  if (sectionKey.startsWith("deletion-")) return "exclusao-de-dados";
   if (sectionKey.startsWith("footer-")) return "footer";
   if (sectionKey.startsWith("header-")) return "header";
   return "home";

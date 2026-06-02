@@ -1,6 +1,6 @@
 import { useState, type FormEvent, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Facebook, Globe, Instagram, Linkedin, Mail, MapPin, MessageCircle, Phone, Twitter, Youtube } from "lucide-react";
+import { Facebook, Globe, Instagram, Linkedin, Mail, MapPin, Phone, Twitter, Youtube } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
@@ -8,15 +8,23 @@ import Footer from "@/components/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
 import EditableWrapper from "@/components/EditableWrapper";
 import RichText from "@/components/RichText";
+import { FormFieldError } from "@/components/FormFieldError";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useCmsContents } from "@/hooks/useCmsContent";
+import { useFieldErrors } from "@/hooks/useFieldErrors";
 import { useSiteShellReady } from "@/hooks/useSiteShellReady";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { BrandAlecrim, BrandTomilho, BrandTomilhoB } from "@/components/BrandAccents";
 import { siteContainerClass } from "@/lib/siteLayout";
 import { buildWhatsAppUrl, SITE_WHATSAPP } from "@/lib/siteConfig";
+import { LegalTermsOptIn } from "@/components/LegalTermsOptIn";
+import { registerWhatsappSiteConsent } from "@/lib/whatsapp/registerSiteConsent";
+import { ContactWhatsAppReserveButton } from "@/components/ContactWhatsAppOptInPanel";
+import { MaskedEmailInput } from "@/components/MaskedEmailInput";
+import { MaskedPhoneInput } from "@/components/MaskedPhoneInput";
+import { brazilPhoneField, emailField, requiredField } from "@/lib/form-validation";
 import { cn } from "@/lib/utils";
 
 export interface ContactFormValues {
@@ -44,26 +52,37 @@ export function sendWhatsAppMessage(_phoneDigits: string, message: string): void
   window.open(buildWhatsAppUrl(message), "_blank", "noopener,noreferrer");
 }
 
-function validateContactForm(values: ContactFormValues): string | null {
-  if (!values.name.trim()) {
-    return "Informe seu nome.";
+type ContactFormField = "name" | "phone" | "email" | "subject" | "message" | "terms";
+
+function getContactFormErrors(
+  values: ContactFormValues,
+  acceptedTerms: boolean,
+): Partial<Record<ContactFormField, string>> {
+  const errors: Partial<Record<ContactFormField, string>> = {};
+  const nameErr = requiredField(values.name, "Informe seu nome.");
+  if (nameErr) {
+    errors.name = nameErr;
   }
-  if (!values.phone.trim()) {
-    return "Informe seu telefone.";
+  const phoneErr = brazilPhoneField(values.phone);
+  if (phoneErr) {
+    errors.phone = phoneErr;
   }
-  if (!values.email.trim()) {
-    return "Informe seu e-mail.";
+  const emailErr = emailField(values.email);
+  if (emailErr) {
+    errors.email = emailErr;
   }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim())) {
-    return "Informe um e-mail válido.";
+  const subjectErr = requiredField(values.subject, "Informe o assunto.");
+  if (subjectErr) {
+    errors.subject = subjectErr;
   }
-  if (!values.subject.trim()) {
-    return "Informe o assunto.";
+  const messageErr = requiredField(values.message, "Escreva sua mensagem.");
+  if (messageErr) {
+    errors.message = messageErr;
   }
-  if (!values.message.trim()) {
-    return "Escreva sua mensagem.";
+  if (!acceptedTerms) {
+    errors.terms = "Aceite os Termos de Uso e a Política de Privacidade para continuar.";
   }
-  return null;
+  return errors;
 }
 
 function stripMailtoPrefix(value: string): string {
@@ -85,82 +104,132 @@ function ContactForm() {
   const [email, setEmail] = useState("");
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const { validate, clearField, getError, showError } = useFieldErrors<ContactFormField>();
 
-  const onSubmit = (e: FormEvent) => {
+  const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     const values: ContactFormValues = { name, phone, email, subject, message };
-    const err = validateContactForm(values);
-    if (err) {
-      toast.error(err);
+    if (!validate(getContactFormErrors(values, acceptedTerms))) {
       return;
     }
+
+    try {
+      await registerWhatsappSiteConsent({
+        name: values.name.trim(),
+        phone: values.phone.trim(),
+        email: values.email.trim(),
+        source: "site_contact_form",
+      });
+    } catch {
+      toast.error("Não conseguimos salvar seu aceite agora, mas você pode continuar no WhatsApp.");
+    }
+
     sendWhatsAppMessage(SITE_WHATSAPP.e164, buildContactWhatsAppMessage(values));
     toast.success("Abrindo o WhatsApp com sua mensagem.");
+    setAcceptedTerms(false);
   };
 
   return (
     <form onSubmit={onSubmit} className="w-full space-y-5">
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="contact-name">Nome completo</Label>
+        <FormFieldError
+          label={<Label htmlFor="contact-name">Nome completo</Label>}
+          error={getError("name")}
+          showError={showError("name")}
+        >
           <Input
             id="contact-name"
             name="name"
             autoComplete="name"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => {
+              clearField("name");
+              setName(e.target.value);
+            }}
             placeholder="Seu nome"
           />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="contact-phone">Telefone</Label>
-          <Input
+        </FormFieldError>
+        <FormFieldError
+          label={<Label htmlFor="contact-phone">Telefone</Label>}
+          error={getError("phone")}
+          showError={showError("phone")}
+        >
+          <MaskedPhoneInput
             id="contact-phone"
             name="phone"
-            type="tel"
-            autoComplete="tel"
             value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="(11) 99999-9999"
+            onChange={(value) => {
+              clearField("phone");
+              setPhone(value);
+            }}
           />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="contact-email">E-mail</Label>
-          <Input
+        </FormFieldError>
+        <FormFieldError
+          label={<Label htmlFor="contact-email">E-mail</Label>}
+          error={getError("email")}
+          showError={showError("email")}
+        >
+          <MaskedEmailInput
             id="contact-email"
             name="email"
-            type="email"
-            autoComplete="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="seu@email.com"
+            onChange={(value) => {
+              clearField("email");
+              setEmail(value);
+            }}
           />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="contact-subject">Assunto</Label>
+        </FormFieldError>
+        <FormFieldError
+          label={<Label htmlFor="contact-subject">Assunto</Label>}
+          error={getError("subject")}
+          showError={showError("subject")}
+        >
           <Input
             id="contact-subject"
             name="subject"
             value={subject}
-            onChange={(e) => setSubject(e.target.value)}
+            onChange={(e) => {
+              clearField("subject");
+              setSubject(e.target.value);
+            }}
             placeholder="Assunto"
           />
-        </div>
+        </FormFieldError>
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="contact-message">Mensagem</Label>
+      <FormFieldError
+        label={<Label htmlFor="contact-message">Mensagem</Label>}
+        error={getError("message")}
+        showError={showError("message")}
+      >
         <Textarea
           id="contact-message"
           name="message"
           value={message}
-          onChange={(e) => setMessage(e.target.value)}
+          onChange={(e) => {
+            clearField("message");
+            setMessage(e.target.value);
+          }}
           placeholder="Sua mensagem"
           rows={5}
           className="min-h-[140px] resize-y"
         />
-      </div>
-      <button type="submit" className="btn-primary-dr w-full font-semibold uppercase tracking-wide sm:w-auto sm:min-w-[12rem]">
-        Enviar!
+      </FormFieldError>
+      <FormFieldError error={getError("terms")} showError={showError("terms")}>
+        <LegalTermsOptIn
+          id="contact-form-terms"
+          checked={acceptedTerms}
+          onCheckedChange={(checked) => {
+            clearField("terms");
+            setAcceptedTerms(checked);
+          }}
+        />
+      </FormFieldError>
+      <button
+        type="submit"
+        className="btn-primary-dr w-full font-semibold uppercase tracking-wide sm:w-auto sm:min-w-[12rem]"
+      >
+        Enviar pelo WhatsApp
       </button>
     </form>
   );
@@ -193,10 +262,6 @@ function ContactPage() {
       return data;
     },
   });
-
-  const reservationWhatsAppUrl = buildWhatsAppUrl(
-    "Olá! Gostaria de reservar uma mesa na Dona Rosa Pizzaria.",
-  );
 
   if (shell.isPending || isPending) {
     return <LoadingScreen message="Carregando conteúdo…" />;
@@ -308,16 +373,7 @@ function ContactPage() {
                 </div>
               </div>
               <div className="flex shrink-0 flex-col justify-center lg:w-72">
-                <a
-                  href={reservationWhatsAppUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-3 rounded-full bg-[#25D366] px-6 py-4 text-base font-semibold text-white shadow-md transition-transform hover:scale-[1.02] hover:shadow-lg"
-                  aria-label="Reservar mesa pelo WhatsApp"
-                >
-                  <MessageCircle className="h-6 w-6 shrink-0" aria-hidden />
-                  Reservar pelo WhatsApp
-                </a>
+                <ContactWhatsAppReserveButton />
               </div>
             </div>
           </div>

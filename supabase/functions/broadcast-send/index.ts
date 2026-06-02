@@ -206,11 +206,12 @@ async function processPendingRecipients(
 
   const contactIds = (pendingRows ?? []).map((row) => row.contact_id);
   const phoneByContactId = new Map<string, string>();
+  const termsAcceptedByContactId = new Map<string, boolean>();
 
   if (contactIds.length > 0) {
     const { data: contacts, error: contactsError } = await supabase
       .from("whatsapp_contacts")
-      .select("id, phone_number")
+      .select("id, phone_number, terms_accepted_at")
       .in("id", contactIds);
 
     if (contactsError) {
@@ -219,6 +220,7 @@ async function processPendingRecipients(
 
     for (const contact of contacts ?? []) {
       phoneByContactId.set(contact.id, contact.phone_number);
+      termsAcceptedByContactId.set(contact.id, Boolean(contact.terms_accepted_at));
     }
   }
 
@@ -229,8 +231,9 @@ async function processPendingRecipients(
 
   for (const row of pendingRows ?? []) {
     const phone = phoneByContactId.get(row.contact_id);
+    const hasTerms = termsAcceptedByContactId.get(row.contact_id);
 
-    if (!phone) {
+    if (!phone || !hasTerms) {
       await supabase
         .from("broadcast_campaign_recipients")
         .update({ send_status: "failed" })

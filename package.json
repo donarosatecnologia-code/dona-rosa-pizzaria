@@ -28,7 +28,9 @@
     "functions:deploy:broadcast-send": "supabase functions deploy broadcast-send --project-ref pptgzavxpdltcuqpcovo",
     "functions:deploy:templates": "supabase functions deploy whatsapp-templates --project-ref pptgzavxpdltcuqpcovo",
     "functions:deploy:send-message": "supabase functions deploy whatsapp-send-message --project-ref pptgzavxpdltcuqpcovo",
-    "functions:deploy:whatsapp": "npm run functions:deploy:webhook && npm run functions:deploy:broadcast-send && npm run functions:deploy:templates && npm run functions:deploy:send-message",
+    "functions:deploy:embedded-signup": "supabase functions deploy whatsapp-embedded-signup --project-ref pptgzavxpdltcuqpcovo",
+    "functions:deploy:verify": "supabase functions deploy whatsapp-verify --project-ref pptgzavxpdltcuqpcovo",
+    "functions:deploy:whatsapp": "npm run functions:deploy:webhook && npm run functions:deploy:verify && npm run functions:deploy:embedded-signup && npm run functions:deploy:broadcast-send && npm run functions:deploy:templates && npm run functions:deploy:send-message",
     "secrets:meta": "bash scripts/supabase-set-meta-secrets.sh",
     "meta:verify": "bash scripts/verify-meta-integration.sh",
     "broadcast:send": "bash scripts/invoke-broadcast-send.sh"
@@ -83,6 +85,7 @@
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.9",
+    "xlsx": "^0.18.5",
     "zod": "^3.25.76",
     "zustand": "^5.0.12"
   },

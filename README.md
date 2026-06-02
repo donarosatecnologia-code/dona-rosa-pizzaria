@@ -553,9 +553,31 @@ cp supabase/secrets.meta.env.example supabase/secrets.meta.env
 npm run secrets:meta
 ```
 
-Variáveis típicas: `META_APP_SECRET`, `META_ACCESS_TOKEN`, `META_PHONE_NUMBER_ID`, `META_VERIFY_TOKEN`. Opcional em homologação: `BROADCAST_DRY_RUN=true` (simula envio sem chamar a Graph API).
+Variáveis típicas: `META_APP_SECRET`, `META_ACCESS_TOKEN`, `META_PHONE_NUMBER_ID`, `META_VERIFY_TOKEN`. Opcionais: `META_WABA_ID`, `META_API_VERSION` (default `v21.0`). Em homologação: `BROADCAST_DRY_RUN=true` (simula envio sem chamar a Graph API).
 
 Detalhes e exemplos: `supabase/secrets.meta.env.example` e scripts em `scripts/`.
+
+### Fase 1 — infraestrutura (concluída)
+
+| Entrega | Descrição |
+|---|---|
+| `whatsapp-webhook` | GET hub.challenge + POST com HMAC; processamento assíncrono (`EdgeRuntime.waitUntil`) |
+| Idempotência | Coluna `dedupe_key` em `whatsapp_webhook_events` — reenvios Meta não duplicam CRM |
+| `whatsapp-verify` | Health-check protegido por `?secret=META_VERIFY_TOKEN` |
+| CRM base | `whatsapp_config`, conversas, mensagens, log de eventos |
+| Front | `useWhatsappConnectionStatus` — status no backoffice |
+
+```bash
+npm run meta:verify          # webhook + HMAC + whatsapp-verify + Graph API + secrets
+```
+
+URL do health-check (substitua o secret pelo valor de `META_VERIFY_TOKEN`):
+
+```
+https://pptgzavxpdltcuqpcovo.supabase.co/functions/v1/whatsapp-verify?secret=SEU_VERIFY_TOKEN
+```
+
+Resposta esperada quando tudo OK: `{ "ok": true, "meta": { "token_valid": true, ... } }`.
 
 ### Migration e Edge Functions
 
@@ -563,7 +585,7 @@ Detalhes e exemplos: `supabase/secrets.meta.env.example` e scripts em `scripts/`
 npm run db:status
 npm run db:push:yes
 npm run db:types
-npm run functions:deploy:whatsapp   # webhook, broadcast, templates, send-message
+npm run functions:deploy:whatsapp   # webhook, verify, broadcast, templates, send-message
 ```
 
 URL do webhook (substitua `SEU_REF` pelo Reference ID do projeto):
@@ -581,7 +603,29 @@ Configure no [Meta for Developers](https://developers.facebook.com) → WhatsApp
 | `/admin/conversas` | Inbox |
 | `/admin/templates` | Modelos de mensagem |
 | `/admin/disparos` | Campanhas |
-| `/admin/contatos` | CRM / contatos |
+| `/admin/contatos` | Importação CSV + lista de contatos |
+
+### Fase 2 — gestão de contatos (quase concluída)
+
+| Entrega | Status |
+|---|---|
+| `/admin/contatos` | Lista paginada, busca, opt-out, coluna último envio |
+| Importação CSV | Parse no cliente, normalização BR, lotes de até 5.000 linhas |
+| `whatsapp_import_batches` | Histórico de importações com resumo (importados / duplicados / erros) |
+| Consentimento termos | Opt-in do site grava contato + aceite; WhatsApp pergunta na 1ª mensagem se faltar aceite |
+| `opted_out_at` | Registro de quando o cliente parou de receber |
+
+**Pendente:** upload da planilha da cliente (~2.000 contatos) para validação em produção.
+
+Formato esperado do CSV:
+
+```csv
+nome,telefone
+Maria Silva,11999998888
+João Santos,+5511988887777
+```
+
+Colunas aceitas para telefone: `telefone`, `phone`, `cel`, `celular`, `numero`, `whatsapp`.
 
 Realtime usa canais privados (`private: true`) — ver migrations e hooks em `src/hooks/`.
 

@@ -7,9 +7,14 @@ export function useUpdateWhatsappContactStatus() {
 
   return useMutation({
     mutationFn: async (input: { contactId: string; status: WhatsappContactStatus }) => {
+      const now = new Date().toISOString();
       const { error } = await supabase
         .from("whatsapp_contacts")
-        .update({ status: input.status, updated_at: new Date().toISOString() })
+        .update({
+          status: input.status,
+          opted_out_at: input.status === "opted_out" ? now : null,
+          updated_at: now,
+        })
         .eq("id", input.contactId);
 
       if (error) {

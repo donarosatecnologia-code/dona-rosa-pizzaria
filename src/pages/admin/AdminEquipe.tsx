@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
-import { Mail, Pencil, Plus, Trash2 } from "lucide-react";
+import { Mail, Pencil, Plus, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
+import { AdminPageHeader, AdminPageShell } from "@/components/admin/AdminPageShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -49,28 +50,29 @@ export default function AdminEquipe() {
 
   if (!canManage) {
     return (
-      <p className="text-muted-foreground text-sm">
-        Você não tem permissão para gerenciar a equipe.
-      </p>
+      <AdminPageShell width="md">
+        <p className="text-muted-foreground text-sm">
+          Você não tem permissão para gerenciar a equipe.
+        </p>
+      </AdminPageShell>
     );
   }
 
   return (
-    <div className="space-y-6 max-w-4xl">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold">Equipe</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Convide pessoas por e-mail. Cada uma recebe senha temporária e redefine no primeiro acesso.
-          </p>
-        </div>
-        <Button asChild className="min-h-[44px]">
-          <Link to="/admin/equipe/convidar">
-            <Plus className="h-4 w-4 mr-2" />
-            Convidar
-          </Link>
-        </Button>
-      </div>
+    <AdminPageShell width="md" className="space-y-6">
+      <AdminPageHeader
+        title="Equipe"
+        description="Convide pessoas por e-mail. Cada uma recebe senha temporária e redefine no primeiro acesso."
+        icon={Users}
+        actions={
+          <Button asChild className="min-h-[44px]">
+            <Link to="/admin/equipe/convidar">
+              <Plus className="h-4 w-4 mr-2" />
+              Convidar
+            </Link>
+          </Button>
+        }
+      />
 
       {isLoading && (
         <div className="space-y-3">
@@ -135,6 +137,6 @@ export default function AdminEquipe() {
           </Card>
         ))}
       </div>
-    </div>
+    </AdminPageShell>
   );
 }

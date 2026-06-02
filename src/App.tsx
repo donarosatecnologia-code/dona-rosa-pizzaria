@@ -13,6 +13,7 @@ import SustainabilityPage from "./pages/SustainabilityPage";
 import ContactPage from "./pages/ContactPage";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 import TermsOfUsePage from "./pages/TermsOfUsePage";
+import DataDeletionPage from "./pages/DataDeletionPage";
 import Login from "./pages/Login";
 import ForgotPasswordPage from "./pages/ForgotPassword";
 import ResetPasswordPage from "./pages/ResetPassword";
@@ -21,6 +22,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import AdminLayout from "./components/AdminLayout";
 import Dashboard from "./pages/admin/Dashboard";
 import AdminConfiguracoes from "./pages/admin/AdminConfiguracoes";
+import AdminConectarWhatsapp from "./pages/admin/AdminConectarWhatsapp";
 import AdminEquipe from "./pages/admin/AdminEquipe";
 import AdminEquipeConvidar from "./pages/admin/AdminEquipeConvidar";
 import AdminEquipeEditar from "./pages/admin/AdminEquipeEditar";
@@ -40,6 +42,7 @@ import AdminPreviewPage from "./pages/admin/AdminPreviewPage";
 import { CmsConfirmDialog } from "./components/CmsConfirmDialog";
 import { SeoShell } from "./components/SeoShell";
 import { SitePublicChrome } from "./components/SitePublicChrome";
+import { PublicSiteChromeExtras } from "./components/PublicSiteChromeExtras";
 
 const queryClient = new QueryClient();
 
@@ -51,6 +54,7 @@ const App = () => (
       <AdminEditorProvider>
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <SitePublicChrome />
+          <PublicSiteChromeExtras />
           <SeoShell />
           <CmsConfirmDialog />
           <div className="relative z-10">
@@ -64,6 +68,7 @@ const App = () => (
             <Route path="/contato" element={<ContactPage />} />
             <Route path="/politica-de-privacidade" element={<PrivacyPolicyPage />} />
             <Route path="/termos-de-uso" element={<TermsOfUsePage />} />
+            <Route path="/exclusao-de-dados" element={<DataDeletionPage />} />
             <Route path="/login" element={<Login />} />
             <Route path="/recuperar-senha" element={<ForgotPasswordPage />} />
             <Route path="/redefinir-senha" element={<ResetPasswordPage />} />
@@ -91,6 +96,7 @@ const App = () => (
                 <Route path="cardapio" element={<AdminCardapio />} />
                 <Route path="header-footer" element={<AdminHeaderFooter />} />
                 <Route path="configuracoes" element={<AdminConfiguracoes />} />
+                <Route path="conectar-whatsapp" element={<AdminConectarWhatsapp />} />
               </Route>
             </Route>
 

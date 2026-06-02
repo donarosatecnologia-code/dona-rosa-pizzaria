@@ -88,7 +88,7 @@ export const ADMIN_MODULES: AdminModuleDefinition[] = [
     key: "configuracoes",
     label: "Ajustes",
     description: "Horário WhatsApp e registros LGPD",
-    routePrefixes: ["/admin/configuracoes"],
+    routePrefixes: ["/admin/configuracoes", "/admin/conectar-whatsapp"],
   },
   {
     key: "usuarios",

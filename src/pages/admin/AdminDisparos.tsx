@@ -2,7 +2,6 @@ import { Link } from "react-router-dom";
 import { useState } from "react";
 import { Send, Plus, Loader2, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
-import { WhatsappDevBanner } from "@/components/admin/whatsapp/WhatsappDevBanner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -95,11 +94,8 @@ export default function AdminDisparos() {
     setSendingId(campaignId);
     try {
       const result = await send.mutateAsync({ campaign_id: campaignId });
-      toast.success(
-        result.dry_run
-          ? `Simulação: ${result.sent} enviado(s), ${result.failed} falha(s).`
-          : `${result.sent} mensagem(ns) enviada(s).`,
-      );
+      const failedSuffix = result.failed > 0 ? `, ${result.failed} falha(s).` : ".";
+      toast.success(`${result.sent} mensagem(ns) enviada(s)${failedSuffix}`);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Disparo falhou.";
       toast.error(message.includes("Failed to fetch") ? "Erro de conexão. Tente novamente." : "Disparo falhou. Campanha publicada?");
@@ -204,8 +200,6 @@ export default function AdminDisparos() {
         </Dialog>
       </div>
 
-      <WhatsappDevBanner />
-
       {isLoading && (
         <div className="space-y-3">
           {[1, 2].map((i) => (
@@ -288,7 +282,7 @@ export default function AdminDisparos() {
                       ) : (
                         <>
                           <Send className="h-4 w-4 mr-1" />
-                          Disparar (simulado)
+                          Disparar
                         </>
                       )}
                     </Button>

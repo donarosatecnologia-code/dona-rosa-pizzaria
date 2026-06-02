@@ -6,16 +6,23 @@ import { BrandTomilho } from "@/components/BrandAccents";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FormFieldError } from "@/components/FormFieldError";
+import { MaskedEmailInput } from "@/components/MaskedEmailInput";
+import { useFieldErrors } from "@/hooks/useFieldErrors";
+import { emailField, requiredField } from "@/lib/form-validation";
 import logoSmall from "@/assets/logo-small.png";
+
+type LoginField = "email" | "password";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
+  const [authError, setAuthError] = useState("");
   const [loading, setLoading] = useState(false);
   const { signIn, user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const { validate, clearField, getError, showError } = useFieldErrors<LoginField>();
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -25,12 +32,24 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    setAuthError("");
+    const errors: Partial<Record<LoginField, string>> = {};
+    const emailErr = emailField(email);
+    if (emailErr) {
+      errors.email = emailErr;
+    }
+    const passwordErr = requiredField(password, "Informe sua senha.");
+    if (passwordErr) {
+      errors.password = passwordErr;
+    }
+    if (!validate(errors)) {
+      return;
+    }
     setLoading(true);
     const { error } = await signIn(email, password);
     setLoading(false);
     if (error) {
-      setError("E-mail ou senha incorretos. Tente de novo.");
+      setAuthError("E-mail ou senha incorretos. Tente de novo.");
     } else {
       navigate("/admin/dashboard");
     }
@@ -50,30 +69,38 @@ const Login = () => {
 
         <div className="rounded-2xl border border-border bg-background p-6 shadow-sm">
           <form onSubmit={handleSubmit} className="space-y-4" autoComplete="on">
-            {error && (
-              <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md">{error}</div>
+            {authError && (
+              <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md">{authError}</div>
             )}
-            <div className="space-y-2">
-              <Label htmlFor="login-email">E-mail</Label>
-              <Input
+            <FormFieldError
+              label={<Label htmlFor="login-email">E-mail</Label>}
+              error={getError("email")}
+              showError={showError("email")}
+            >
+              <MaskedEmailInput
                 id="login-email"
                 name="username"
-                type="email"
                 autoComplete="username email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
+                onChange={(value) => {
+                  clearField("email");
+                  setEmail(value);
+                }}
                 className="min-h-[44px]"
-                placeholder="seu@email.com"
               />
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <Label htmlFor="login-password">Senha</Label>
-                <Link to="/recuperar-senha" className="text-xs text-primary hover:underline">
-                  Esqueci minha senha
-                </Link>
-              </div>
+            </FormFieldError>
+            <FormFieldError
+              label={
+                <div className="flex items-center justify-between gap-2">
+                  <Label htmlFor="login-password">Senha</Label>
+                  <Link to="/recuperar-senha" className="text-xs text-primary hover:underline">
+                    Esqueci minha senha
+                  </Link>
+                </div>
+              }
+              error={getError("password")}
+              showError={showError("password")}
+            >
               <div className="relative">
                 <Input
                   id="login-password"
@@ -81,8 +108,10 @@ const Login = () => {
                   type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
+                  onChange={(e) => {
+                    clearField("password");
+                    setPassword(e.target.value);
+                  }}
                   className="min-h-[44px] pr-11"
                   placeholder="Sua senha"
                 />
@@ -97,7 +126,7 @@ const Login = () => {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </Button>
               </div>
-            </div>
+            </FormFieldError>
             <Button type="submit" disabled={loading} className="w-full min-h-[44px] btn-primary-dr">
               {loading ? "Entrando..." : "Entrar"}
             </Button>

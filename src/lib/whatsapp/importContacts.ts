@@ -1,8 +1,12 @@
 import { supabase } from "@/integrations/supabase/client";
+import type { ContactImportProfile } from "@/lib/whatsapp/importContactsColumnMap";
+import {
+  hasImportProfileData,
+  parseContactsSpreadsheet,
+} from "@/lib/whatsapp/importContactsParse";
 import { normalizeBrazilPhone } from "./normalizePhone";
 
-const PHONE_COLUMNS = ["telefone", "phone", "cel", "celular", "numero", "número", "whatsapp"];
-const NAME_COLUMNS = ["nome", "name"];
+const MAX_ERROR_DETAILS = 100;
 
 export interface ImportRowError {
   line: number;
@@ -11,6 +15,7 @@ export interface ImportRowError {
 }
 
 export interface ImportContactsResult {
+  batchId: string | null;
   totalRows: number;
   imported: number;
   duplicates: number;
@@ -18,99 +23,56 @@ export interface ImportContactsResult {
   errorDetails: ImportRowError[];
 }
 
-interface ParsedRow {
-  line: number;
-  name: string;
-  phoneRaw: string;
-}
-
-function parseCsvLine(line: string): string[] {
-  const fields: string[] = [];
-  let current = "";
-  let inQuotes = false;
-
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    if (char === '"') {
-      inQuotes = !inQuotes;
-      continue;
-    }
-    if (char === "," && !inQuotes) {
-      fields.push(current.trim());
-      current = "";
-      continue;
-    }
-    current += char;
-  }
-  fields.push(current.trim());
-  return fields;
-}
-
-function detectColumnIndex(headers: string[], candidates: string[]): number {
-  const normalized = headers.map((h) => h.toLowerCase().trim());
-  for (const candidate of candidates) {
-    const idx = normalized.indexOf(candidate);
-    if (idx >= 0) {
-      return idx;
-    }
-  }
-  return -1;
-}
-
-function parseCsvContent(text: string): ParsedRow[] {
-  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-  if (lines.length < 2) {
-    return [];
-  }
-
-  const headers = parseCsvLine(lines[0]);
-  const phoneIdx = detectColumnIndex(headers, PHONE_COLUMNS);
-  const nameIdx = detectColumnIndex(headers, NAME_COLUMNS);
-
-  if (phoneIdx < 0) {
-    throw new Error("missing_phone_column");
-  }
-
-  const rows: ParsedRow[] = [];
-  for (let i = 1; i < lines.length; i++) {
-    const cols = parseCsvLine(lines[i]);
-    const phoneRaw = cols[phoneIdx] ?? "";
-    if (!phoneRaw.trim()) {
-      continue;
-    }
-    rows.push({
-      line: i + 1,
-      name: nameIdx >= 0 ? (cols[nameIdx] ?? "").trim() : "",
-      phoneRaw,
-    });
-  }
-  return rows;
+export interface ImportContactsOptions {
+  onProgress?: (percent: number) => void;
 }
 
 const BATCH_SIZE = 100;
 
-export async function importContactsFromCsv(file: File): Promise<ImportContactsResult> {
-  const text = await file.text();
-  let parsed: ParsedRow[];
+async function markBatchFailed(batchId: string, errorDetails: ImportRowError[]): Promise<void> {
+  await supabase
+    .from("whatsapp_import_batches")
+    .update({
+      status: "failed",
+      error_details: errorDetails.slice(0, MAX_ERROR_DETAILS),
+    })
+    .eq("id", batchId);
+}
+
+export async function importContactsFromFile(
+  file: File,
+  options?: ImportContactsOptions,
+): Promise<ImportContactsResult> {
+  let parsed;
 
   try {
-    parsed = parseCsvContent(text);
+    parsed = await parseContactsSpreadsheet(file);
   } catch (error) {
-    if (error instanceof Error && error.message === "missing_phone_column") {
-      throw error;
+    if (error instanceof Error) {
+      if (error.message === "missing_phone_column") {
+        throw error;
+      }
+      if (error.message === "unsupported_format") {
+        throw error;
+      }
     }
-    throw new Error("invalid_csv");
+    throw new Error("invalid_file");
   }
 
   if (parsed.length === 0) {
-    throw new Error("empty_csv");
+    throw new Error("empty_file");
   }
 
   if (parsed.length > 5000) {
     throw new Error("too_many_rows");
   }
 
-  const validRows: Array<{ line: number; name: string; phone: string }> = [];
+  const validRows: Array<{
+    line: number;
+    name: string;
+    phone: string;
+    profile: ContactImportProfile;
+  }> = [];
   const errorDetails: ImportRowError[] = [];
 
   for (const row of parsed) {
@@ -127,10 +89,45 @@ export async function importContactsFromCsv(file: File): Promise<ImportContactsR
       line: row.line,
       name: row.name || result.normalized,
       phone: result.normalized,
+      profile: row.profile,
     });
   }
 
-  const phones = validRows.map((r) => r.phone);
+  const { data: batchRow, error: batchError } = await supabase
+    .from("whatsapp_import_batches")
+    .insert({
+      filename: file.name,
+      total_rows: parsed.length,
+      imported: 0,
+      duplicates: 0,
+      errors: errorDetails.length,
+      error_details: errorDetails.slice(0, MAX_ERROR_DETAILS),
+      status: "processing",
+    })
+    .select("id")
+    .single();
+
+  if (batchError || !batchRow) {
+    throw batchError ?? new Error("batch_create_failed");
+  }
+
+  const batchId = batchRow.id as string;
+  options?.onProgress?.(5);
+
+  const seenInFile = new Set<string>();
+  const uniqueValidRows: typeof validRows = [];
+  let fileDuplicates = 0;
+
+  for (const row of validRows) {
+    if (seenInFile.has(row.phone)) {
+      fileDuplicates += 1;
+      continue;
+    }
+    seenInFile.add(row.phone);
+    uniqueValidRows.push(row);
+  }
+
+  const phones = uniqueValidRows.map((r) => r.phone);
   const existingPhones = new Set<string>();
 
   for (let i = 0; i < phones.length; i += 500) {
@@ -144,33 +141,69 @@ export async function importContactsFromCsv(file: File): Promise<ImportContactsR
     }
   }
 
-  const toInsert = validRows.filter((r) => !existingPhones.has(r.phone));
-  const duplicates = validRows.length - toInsert.length;
+  options?.onProgress?.(15);
+
+  const toInsert = uniqueValidRows.filter((r) => !existingPhones.has(r.phone));
+  const duplicates = fileDuplicates + (uniqueValidRows.length - toInsert.length);
 
   let imported = 0;
+  const totalBatches = Math.max(1, Math.ceil(toInsert.length / BATCH_SIZE));
 
-  for (let i = 0; i < toInsert.length; i += BATCH_SIZE) {
-    const batch = toInsert.slice(i, i + BATCH_SIZE).map((r) => ({
-      name: r.name,
-      phone_number: r.phone,
-      status: "active" as const,
-    }));
+  try {
+    for (let i = 0; i < toInsert.length; i += BATCH_SIZE) {
+      const batch = toInsert.slice(i, i + BATCH_SIZE).map((r) => ({
+        name: r.name,
+        phone_number: r.phone,
+        status: "active" as const,
+        import_batch_id: batchId,
+        ...(hasImportProfileData(r.profile) ? { import_profile: r.profile } : {}),
+      }));
 
-    const { error } = await supabase
-      .from("whatsapp_contacts")
-      .upsert(batch, { onConflict: "phone_number", ignoreDuplicates: true });
+      const { data, error } = await supabase
+        .from("whatsapp_contacts")
+        .insert(batch)
+        .select("id");
 
-    if (error) {
-      throw error;
+      if (error) {
+        throw error;
+      }
+
+      imported += data?.length ?? batch.length;
+      const batchIndex = Math.floor(i / BATCH_SIZE) + 1;
+      options?.onProgress?.(15 + Math.round((batchIndex / totalBatches) * 80));
     }
-    imported += batch.length;
-  }
 
-  return {
-    totalRows: parsed.length,
-    imported,
-    duplicates,
-    errors: errorDetails.length,
-    errorDetails,
-  };
+    await supabase
+      .from("whatsapp_import_batches")
+      .update({
+        imported,
+        duplicates,
+        errors: errorDetails.length,
+        error_details: errorDetails.slice(0, MAX_ERROR_DETAILS),
+        status: "completed",
+      })
+      .eq("id", batchId);
+
+    options?.onProgress?.(100);
+
+    return {
+      batchId,
+      totalRows: parsed.length,
+      imported,
+      duplicates,
+      errors: errorDetails.length,
+      errorDetails,
+    };
+  } catch (error) {
+    await markBatchFailed(batchId, errorDetails);
+    throw error;
+  }
+}
+
+/** @deprecated Use importContactsFromFile */
+export async function importContactsFromCsv(
+  file: File,
+  options?: ImportContactsOptions,
+): Promise<ImportContactsResult> {
+  return importContactsFromFile(file, options);
 }

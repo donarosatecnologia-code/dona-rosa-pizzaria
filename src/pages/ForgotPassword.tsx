@@ -4,8 +4,11 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { BrandTomilho } from "@/components/BrandAccents";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FormFieldError } from "@/components/FormFieldError";
+import { MaskedEmailInput } from "@/components/MaskedEmailInput";
+import { useFieldErrors } from "@/hooks/useFieldErrors";
+import { emailField } from "@/lib/form-validation";
 import logoSmall from "@/assets/logo-small.png";
 
 export default function ForgotPasswordPage() {
@@ -13,9 +16,14 @@ export default function ForgotPasswordPage() {
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const { resetPassword } = useAuth();
+  const { validate, clearField, getError, showError } = useFieldErrors<"email">();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const emailErr = emailField(email);
+    if (!validate(emailErr ? { email: emailErr } : {})) {
+      return;
+    }
     setLoading(true);
     const { error } = await resetPassword(email.trim());
     setLoading(false);
@@ -46,18 +54,21 @@ export default function ForgotPasswordPage() {
             </p>
           ) : (
             <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="recover-email">E-mail</Label>
-                <Input
+              <FormFieldError
+                label={<Label htmlFor="recover-email">E-mail</Label>}
+                error={getError("email")}
+                showError={showError("email")}
+              >
+                <MaskedEmailInput
                   id="recover-email"
-                  type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
+                  onChange={(value) => {
+                    clearField("email");
+                    setEmail(value);
+                  }}
                   className="min-h-[44px]"
-                  placeholder="seu@email.com"
                 />
-              </div>
+              </FormFieldError>
               <Button type="submit" disabled={loading} className="w-full min-h-[44px]">
                 {loading ? "Enviando..." : "Enviar link"}
               </Button>

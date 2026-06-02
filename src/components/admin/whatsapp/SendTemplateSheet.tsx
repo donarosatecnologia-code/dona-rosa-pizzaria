@@ -29,12 +29,12 @@ export function SendTemplateSheet({ conversationId }: SendTemplateSheetProps) {
   async function handleSend(templateId: string) {
     setSendingId(templateId);
     try {
-      const result = await send.mutateAsync({
+      await send.mutateAsync({
         conversation_id: conversationId,
         action: "template",
         template_id: templateId,
       });
-      toast.success(result.dry_run ? "Salvou no modo teste (não chegou no celular)." : "Enviou!");
+      toast.success("Enviou!");
       setOpen(false);
     } catch (err) {
       toast.error(toAdminUserMessage(err instanceof Error ? err.message : undefined));

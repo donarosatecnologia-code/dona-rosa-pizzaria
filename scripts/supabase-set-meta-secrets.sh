@@ -42,10 +42,19 @@ SECRET_ARGS=(
 BROADCAST_DRY_RUN="${BROADCAST_DRY_RUN:-true}"
 SECRET_ARGS+=(BROADCAST_DRY_RUN="$BROADCAST_DRY_RUN")
 
+if [[ -n "${META_WABA_ID:-}" ]]; then
+  SECRET_ARGS+=(META_WABA_ID="$META_WABA_ID")
+fi
+
+if [[ -n "${META_API_VERSION:-}" ]]; then
+  SECRET_ARGS+=(META_API_VERSION="$META_API_VERSION")
+fi
+
 supabase secrets set "${SECRET_ARGS[@]}"
 
 echo ""
 echo "✓ Secrets Meta configurados."
 echo "  BROADCAST_DRY_RUN=$BROADCAST_DRY_RUN (false = envio real via Meta)"
 echo "  Webhook URL: https://pptgzavxpdltcuqpcovo.supabase.co/functions/v1/whatsapp-webhook"
+echo "  Health-check: https://pptgzavxpdltcuqpcovo.supabase.co/functions/v1/whatsapp-verify?secret=<META_VERIFY_TOKEN>"
 echo "  Verify Token: (valor de META_VERIFY_TOKEN em $SECRETS_FILE)"

@@ -9,7 +9,12 @@ import { BrandTomilho } from "@/components/BrandAccents";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FormFieldError } from "@/components/FormFieldError";
+import { useFieldErrors } from "@/hooks/useFieldErrors";
+import { passwordMatchField, passwordMinField, requiredField } from "@/lib/form-validation";
 import logoSmall from "@/assets/logo-small.png";
+
+type ResetPasswordField = "password" | "confirm";
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState("");
@@ -20,6 +25,7 @@ export default function ResetPasswordPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const clearMustChange = useClearMustChangePassword();
+  const { validate, clearField, getError, showError } = useFieldErrors<ResetPasswordField>();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -33,12 +39,21 @@ export default function ResetPasswordPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (password.length < 8) {
-      toast.error("Use pelo menos 8 caracteres.");
-      return;
+    const errors: Partial<Record<ResetPasswordField, string>> = {};
+    const passwordErr = passwordMinField(password);
+    if (passwordErr) {
+      errors.password = passwordErr;
     }
-    if (password !== confirm) {
-      toast.error("As senhas não coincidem.");
+    const confirmRequired = requiredField(confirm, "Confirme sua senha.");
+    if (confirmRequired) {
+      errors.confirm = confirmRequired;
+    } else {
+      const matchErr = passwordMatchField(password, confirm);
+      if (matchErr) {
+        errors.confirm = matchErr;
+      }
+    }
+    if (!validate(errors)) {
       return;
     }
 
@@ -88,16 +103,21 @@ export default function ResetPasswordPage() {
 
         <div className="rounded-2xl border p-6 shadow-sm bg-background">
           <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="new-password">Nova senha</Label>
+            <FormFieldError
+              label={<Label htmlFor="new-password">Nova senha</Label>}
+              error={getError("password")}
+              showError={showError("password")}
+            >
               <div className="relative">
                 <Input
                   id="new-password"
                   type={showPassword ? "text" : "password"}
                   autoComplete="new-password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
+                  onChange={(e) => {
+                    clearField("password");
+                    setPassword(e.target.value);
+                  }}
                   minLength={8}
                   className="min-h-[44px] pr-11"
                 />
@@ -112,20 +132,25 @@ export default function ResetPasswordPage() {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </Button>
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirm-password">Confirmar senha</Label>
+            </FormFieldError>
+            <FormFieldError
+              label={<Label htmlFor="confirm-password">Confirmar senha</Label>}
+              error={getError("confirm")}
+              showError={showError("confirm")}
+            >
               <Input
                 id="confirm-password"
                 type={showPassword ? "text" : "password"}
                 autoComplete="new-password"
                 value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
-                required
+                onChange={(e) => {
+                  clearField("confirm");
+                  setConfirm(e.target.value);
+                }}
                 minLength={8}
                 className="min-h-[44px]"
               />
-            </div>
+            </FormFieldError>
             <Button type="submit" disabled={loading} className="w-full min-h-[44px]">
               {loading ? "Salvando..." : "Salvar nova senha"}
             </Button>

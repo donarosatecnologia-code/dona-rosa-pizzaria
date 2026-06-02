@@ -24,6 +24,8 @@ const TERMS_CMS_KEYS = [
   "terms-section-6",
   "terms-section-7",
   "terms-section-8",
+  "terms-whatsapp",
+  "terms-cookies",
   "terms-vigencia",
 ] as const;
 
@@ -99,6 +101,8 @@ function TermsOfUsePage() {
             <LegalTextWrapper sectionKey="terms-section-6" label="6. Rescisão" getText={getText} />
             <LegalTextWrapper sectionKey="terms-section-7" label="7. Jurisdição" getText={getText} />
             <LegalTextWrapper sectionKey="terms-section-8" label="8. Contato" getText={getText} />
+            <LegalTextWrapper sectionKey="terms-whatsapp" label="9. WhatsApp e comunicações" getText={getText} />
+            <LegalTextWrapper sectionKey="terms-cookies" label="10. Cookies e preferências" getText={getText} />
             <LegalTextWrapper sectionKey="terms-vigencia" label="Data de vigência" getText={getText} />
           </article>
         </div>

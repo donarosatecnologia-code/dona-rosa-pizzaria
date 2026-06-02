@@ -116,9 +116,23 @@ export function getServiceWindowExpiresAt(lastInboundAt: string | null | undefin
 export function isWaitingForReply(conversation: {
   status: string;
   last_message_direction?: string | null;
+  last_inbound_at?: string | null;
+  last_outbound_at?: string | null;
 }): boolean {
+  if (conversation.status === "closed") {
+    return false;
+  }
+
+  if (!conversation.last_inbound_at) {
+    return false;
+  }
+
+  if (!conversation.last_outbound_at) {
+    return true;
+  }
+
   return (
-    conversation.status !== "closed" &&
-    conversation.last_message_direction === "inbound"
+    new Date(conversation.last_inbound_at).getTime() >
+    new Date(conversation.last_outbound_at).getTime()
   );
 }

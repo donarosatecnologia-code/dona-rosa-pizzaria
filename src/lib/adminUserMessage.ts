@@ -21,10 +21,6 @@ export function toAdminUserMessage(input: string | undefined | null): string {
     return ERROR_MAP[trimmed];
   }
 
-  if (trimmed.includes("dry-run") || trimmed.includes("dry_run")) {
-    return "Salvou no modo teste (não chegou no celular).";
-  }
-
   if (trimmed.includes("schema") || trimmed.includes("Supabase") || trimmed.includes("PGRST")) {
     return "Não deu para salvar. Tente de novo.";
   }

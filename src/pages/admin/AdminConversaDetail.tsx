@@ -52,12 +52,12 @@ export default function AdminConversaDetail() {
       return;
     }
     try {
-      const result = await send.mutateAsync({
+      await send.mutateAsync({
         conversation_id: id,
         action: "text",
         body_text: text.trim(),
       });
-      toast.success(result.dry_run ? "Salvou no modo teste (não chegou no celular)." : "Enviou!");
+      toast.success("Enviou!");
       setText("");
     } catch (err) {
       toast.error(toAdminUserMessage(err instanceof Error ? err.message : undefined));
@@ -150,12 +150,9 @@ export default function AdminConversaDetail() {
                 )}
               >
                 <p>{msg.body_text ?? `[${msg.message_type}]`}</p>
-                <div className={cn("mt-1 flex items-center gap-2 text-[10px] opacity-70", !isInbound && "justify-end")}>
-                  <span>{new Date(msg.created_at).toLocaleString("pt-BR", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" })}</span>
-                  {msg.meta_message_id?.startsWith("dry_run_") && (
-                    <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">Teste</Badge>
-                  )}
-                </div>
+                <p className={cn("mt-1 text-[10px] opacity-70", !isInbound && "text-right")}>
+                  {new Date(msg.created_at).toLocaleString("pt-BR", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" })}
+                </p>
               </div>
             </div>
           );

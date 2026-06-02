@@ -13,6 +13,7 @@ export { useWhatsappConnectionStatus } from "./useWhatsappConnectionStatus";
 export type { WhatsappConnectionStatus } from "./useWhatsappConnectionStatus";
 export { useWhatsappQueues } from "./useWhatsappQueues";
 export { useImportContacts } from "./useImportContacts";
+export { useWhatsappImportBatches } from "./useWhatsappImportBatches";
 export { useUpdateWhatsappContactStatus } from "./useUpdateWhatsappContactStatus";
 export {
   useWhatsappTemplates,

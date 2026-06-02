@@ -17,6 +17,8 @@ const PRIVACY_CMS_KEYS = [
   "privacy-page-title",
   "privacy-intro",
   "privacy-collected",
+  "privacy-cookies",
+  "privacy-whatsapp",
   "privacy-why",
   "privacy-rights",
   "privacy-links",
@@ -90,6 +92,8 @@ function PrivacyPolicyPage() {
           <article className="legal-rich w-full space-y-8 text-justify md:space-y-10">
             <LegalContentSection sectionKey="privacy-intro" label="Introdução e definições" getText={getText} />
             <LegalContentSection sectionKey="privacy-collected" label="Informações pessoais que coletamos" getText={getText} />
+            <LegalContentSection sectionKey="privacy-cookies" label="Cookies e preferências no navegador" getText={getText} />
+            <LegalContentSection sectionKey="privacy-whatsapp" label="WhatsApp e atendimento" getText={getText} />
             <LegalContentSection sectionKey="privacy-why" label="Por que processamos seus dados?" getText={getText} />
             <LegalContentSection sectionKey="privacy-rights" label="Seus direitos (LGPD)" getText={getText} />
             <LegalContentSection sectionKey="privacy-links" label="Links para outros sites" getText={getText} />

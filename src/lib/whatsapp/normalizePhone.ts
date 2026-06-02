@@ -1,3 +1,5 @@
+import { spreadsheetCellToString } from "./spreadsheetCell";
+
 export interface NormalizePhoneResult {
   normalized: string | null;
   valid: boolean;
@@ -6,10 +8,21 @@ export interface NormalizePhoneResult {
 
 /** Normaliza telefone BR para E.164 sem + (ex.: 5511999998888). */
 export function normalizeBrazilPhone(input: string): NormalizePhoneResult {
-  let digits = input.replace(/\D/g, "");
+  const prepared = spreadsheetCellToString(input);
+  let digits = prepared.replace(/\D/g, "");
 
   if (digits.length === 0) {
     return { normalized: null, valid: false, reason: "número vazio" };
+  }
+
+  digits = digits.replace(/^0+/, "");
+
+  if (digits.length === 0) {
+    return { normalized: null, valid: false, reason: "número vazio" };
+  }
+
+  if (digits.startsWith("5555")) {
+    digits = digits.slice(2);
   }
 
   if (!digits.startsWith("55")) {

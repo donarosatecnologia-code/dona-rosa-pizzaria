@@ -81,6 +81,12 @@ export const PAGE_SEO: Record<string, PageSeoMeta> = {
     keywords: ["termos de uso"],
     aiDescription: "Termos de uso do site da Dona Rosa Pizzaria.",
   },
+  "/exclusao-de-dados": {
+    title: `Exclusão de dados | ${SITE_NAME}`,
+    description: "Como solicitar a exclusão ou atualização dos seus dados pessoais na Dona Rosa Pizzaria.",
+    keywords: ["exclusão de dados", "LGPD", "privacidade"],
+    aiDescription: "Instruções para solicitar exclusão de dados pessoais — Dona Rosa Pizzaria.",
+  },
   "/login": {
     title: `Login | ${SITE_NAME}`,
     description: "Acesso ao painel administrativo da Dona Rosa Pizzaria.",

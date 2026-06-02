@@ -26,7 +26,7 @@ check "/spa-deploy-marker.txt" "Marcador de deploy"
 check "/politica-de-privacidade" "Política de privacidade"
 check "/termos-de-uso" "Termos de uso"
 check "/login" "Login"
-check "/admin" "Admin"
+check "/exclusao-de-dados" "Exclusão de dados"
 
 echo ""
 if [[ "$FAIL" -eq 0 ]]; then

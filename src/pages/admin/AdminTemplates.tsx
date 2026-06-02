@@ -4,7 +4,6 @@ import { FileText, Plus, RefreshCw, Send, Pencil, Loader2, Archive, Trash2 } fro
 import { toast } from "sonner";
 import { TemplateEditorDialog } from "@/components/admin/templates/TemplateEditorDialog";
 import { TemplateStatusBadge } from "@/components/admin/templates/TemplateStatusBadge";
-import { WhatsappDevBanner } from "@/components/admin/whatsapp/WhatsappDevBanner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -137,8 +136,6 @@ export default function AdminTemplates() {
           </Button>
         </div>
       </div>
-
-      <WhatsappDevBanner />
 
       {pendingCount > 0 && (
         <Alert className="mb-4 border-blue-200 bg-blue-50 text-blue-950">

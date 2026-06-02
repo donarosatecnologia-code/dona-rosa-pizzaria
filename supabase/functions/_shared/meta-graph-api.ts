@@ -112,6 +112,17 @@ export interface TextSendOptions {
   body: string;
 }
 
+export interface InteractiveButtonOption {
+  id: string;
+  title: string;
+}
+
+export interface InteractiveButtonsSendOptions {
+  to: string;
+  body: string;
+  buttons: InteractiveButtonOption[];
+}
+
 /** Envia mensagem de texto livre (janela 24h). */
 export async function sendWhatsAppText(
   accessToken: string,
@@ -139,6 +150,54 @@ export async function sendWhatsAppText(
 
   if (!response.ok || !data.messages?.[0]?.id) {
     const message = data.error?.message ?? "meta_text_send_failed";
+    throw new MetaApiError(message, response.status, {
+      code: data.error?.code,
+      type: data.error?.type,
+    });
+  }
+
+  return { messageId: data.messages[0].id };
+}
+
+/** Envia mensagem interativa com botões de resposta (janela 24h). */
+export async function sendWhatsAppInteractiveButtons(
+  accessToken: string,
+  phoneNumberId: string,
+  options: InteractiveButtonsSendOptions,
+): Promise<{ messageId: string }> {
+  const apiVersion = getMetaApiVersion();
+  const url = `https://graph.facebook.com/${apiVersion}/${phoneNumberId}/messages`;
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      to: options.to.replace(/\D/g, ""),
+      type: "interactive",
+      interactive: {
+        type: "button",
+        body: { text: options.body },
+        action: {
+          buttons: options.buttons.slice(0, 3).map((button) => ({
+            type: "reply",
+            reply: {
+              id: button.id,
+              title: button.title.slice(0, 20),
+            },
+          })),
+        },
+      },
+    }),
+  });
+
+  const data = (await response.json()) as GraphMessagesResponse;
+
+  if (!response.ok || !data.messages?.[0]?.id) {
+    const message = data.error?.message ?? "meta_interactive_send_failed";
     throw new MetaApiError(message, response.status, {
       code: data.error?.code,
       type: data.error?.type,

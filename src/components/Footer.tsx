@@ -171,9 +171,10 @@ const Footer = () => {
 
         <div className="border-t border-primary-foreground/20 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs opacity-50">
           <p>© 2026 Dona Rosa Pizzaria - Desenvolvido por <a href="https://janaina-guiotti.vercel.app/" target="_blank" rel="noopener noreferrer" className="hover:opacity-100 transition-opacity underline">Janaina Guiotti</a></p>
-          <div className="flex gap-4">
+          <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 sm:justify-end">
             <a href="/politica-de-privacidade" className="hover:opacity-100 transition-opacity">Política de Privacidade</a>
             <a href="/termos-de-uso" className="hover:opacity-100 transition-opacity">Termos de Uso</a>
+            <a href="/exclusao-de-dados" className="hover:opacity-100 transition-opacity">Exclusão de Dados</a>
           </div>
         </div>
       </div>

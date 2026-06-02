@@ -10,13 +10,18 @@ import RichText from "@/components/RichText";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { FormFieldError } from "@/components/FormFieldError";
 import { CmsPlaceholder } from "@/components/CmsPlaceholder";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { useFieldErrors } from "@/hooks/useFieldErrors";
 import { useSiteShellReady } from "@/hooks/useSiteShellReady";
 import { useCmsContents } from "@/hooks/useCmsContent";
 import { useCmsCarousel } from "@/hooks/useCmsMedia";
 import { siteContainerClass } from "@/lib/siteLayout";
 import { cn } from "@/lib/utils";
+import { MaskedEmailInput } from "@/components/MaskedEmailInput";
+import { MaskedPhoneInput } from "@/components/MaskedPhoneInput";
+import { brazilPhoneField, emailField, requiredField } from "@/lib/form-validation";
 
 import { buildWhatsAppUrl } from "@/lib/siteConfig";
 
@@ -53,41 +58,43 @@ function buildRegistrationMessage(values: RegistrationFormState): string {
   return lines.join("\n");
 }
 
-function validateRegistrationForm(values: RegistrationFormState): string | null {
-  if (!values.event.trim()) {
-    return "Selecione o tipo de evento.";
+type RegistrationFormField = "event" | "name" | "phone" | "email" | "date" | "time";
+
+function getRegistrationFormErrors(values: RegistrationFormState): Partial<Record<RegistrationFormField, string>> {
+  const errors: Partial<Record<RegistrationFormField, string>> = {};
+  const eventErr = requiredField(values.event, "Selecione o tipo de evento.");
+  if (eventErr) {
+    errors.event = eventErr;
   }
-  if (!values.name.trim()) {
-    return "Informe seu nome.";
+  const nameErr = requiredField(values.name, "Informe seu nome.");
+  if (nameErr) {
+    errors.name = nameErr;
   }
-  if (!values.phone.trim()) {
-    return "Informe seu telefone.";
+  const phoneErr = brazilPhoneField(values.phone);
+  if (phoneErr) {
+    errors.phone = phoneErr;
   }
-  if (!values.email.trim()) {
-    return "Informe seu e-mail.";
+  const emailErr = emailField(values.email);
+  if (emailErr) {
+    errors.email = emailErr;
   }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim())) {
-    return "Informe um e-mail válido.";
+  const dateErr = requiredField(values.date, "Informe a data.");
+  if (dateErr) {
+    errors.date = dateErr;
   }
-  if (!values.date) {
-    return "Informe a data.";
+  const timeErr = requiredField(values.time, "Informe o horário.");
+  if (timeErr) {
+    errors.time = timeErr;
   }
-  if (!values.time) {
-    return "Informe o horário.";
-  }
-  return null;
+  return errors;
 }
 
-function handleFormSubmit(values: RegistrationFormState): void {
-  const error = validateRegistrationForm(values);
-  if (error) {
-    toast.error(error);
-    return;
-  }
+function submitRegistrationForm(values: RegistrationFormState): boolean {
   const message = buildRegistrationMessage(values);
   const url = generateWhatsAppLink("", message);
   window.open(url, "_blank", "noopener,noreferrer");
   toast.success("Redirecionando para o WhatsApp. Sua mensagem foi preparada!");
+  return true;
 }
 
 /** Mesmo offset do cardápio (`scrollToCategory`) para o header fixo. */
@@ -413,19 +420,16 @@ function RegistrationFormCard({ formTitle }: { formTitle: string }) {
   const [email, setEmail] = useState("");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
+  const { validate, clearField, getError, showError } = useFieldErrors<RegistrationFormField>();
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
-    const label =
-      EVENT_OPTIONS.find((o) => o.value === event)?.label ?? event;
-    handleFormSubmit({
-      event: label,
-      name,
-      phone,
-      email,
-      date,
-      time,
-    });
+    const label = EVENT_OPTIONS.find((o) => o.value === event)?.label ?? event;
+    const values = { event: label, name, phone, email, date, time };
+    if (!validate(getRegistrationFormErrors({ event, name, phone, email, date, time }))) {
+      return;
+    }
+    submitRegistrationForm(values);
   };
 
   return (
@@ -441,9 +445,18 @@ function RegistrationFormCard({ formTitle }: { formTitle: string }) {
         </EditableWrapper>
       </div>
       <form onSubmit={onSubmit} className="space-y-5">
-          <div className="space-y-2">
-            <Label htmlFor="courses-event">Evento</Label>
-            <Select value={event || undefined} onValueChange={setEvent}>
+          <FormFieldError
+            label={<Label htmlFor="courses-event">Evento</Label>}
+            error={getError("event")}
+            showError={showError("event")}
+          >
+            <Select
+              value={event || undefined}
+              onValueChange={(value) => {
+                clearField("event");
+                setEvent(value);
+              }}
+            >
               <SelectTrigger id="courses-event" className="w-full">
                 <SelectValue placeholder="Escolha uma opção" />
               </SelectTrigger>
@@ -455,47 +468,81 @@ function RegistrationFormCard({ formTitle }: { formTitle: string }) {
                 ))}
               </SelectContent>
             </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="courses-name">Nome</Label>
+          </FormFieldError>
+          <FormFieldError
+            label={<Label htmlFor="courses-name">Nome</Label>}
+            error={getError("name")}
+            showError={showError("name")}
+          >
             <Input
               id="courses-name"
               autoComplete="name"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => {
+                clearField("name");
+                setName(e.target.value);
+              }}
               placeholder="Seu nome completo"
             />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="courses-phone">Telefone</Label>
-            <Input
+          </FormFieldError>
+          <FormFieldError
+            label={<Label htmlFor="courses-phone">Telefone</Label>}
+            error={getError("phone")}
+            showError={showError("phone")}
+          >
+            <MaskedPhoneInput
               id="courses-phone"
-              type="tel"
-              autoComplete="tel"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="(11) 99999-9999"
+              onChange={(value) => {
+                clearField("phone");
+                setPhone(value);
+              }}
             />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="courses-email">E-mail</Label>
-            <Input
+          </FormFieldError>
+          <FormFieldError
+            label={<Label htmlFor="courses-email">E-mail</Label>}
+            error={getError("email")}
+            showError={showError("email")}
+          >
+            <MaskedEmailInput
               id="courses-email"
-              type="email"
-              autoComplete="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="seu@email.com"
+              onChange={(value) => {
+                clearField("email");
+                setEmail(value);
+              }}
             />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="courses-date">Data</Label>
-            <Input id="courses-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="courses-time">Horário</Label>
-            <Input id="courses-time" type="time" value={time} onChange={(e) => setTime(e.target.value)} />
-          </div>
+          </FormFieldError>
+          <FormFieldError
+            label={<Label htmlFor="courses-date">Data</Label>}
+            error={getError("date")}
+            showError={showError("date")}
+          >
+            <Input
+              id="courses-date"
+              type="date"
+              value={date}
+              onChange={(e) => {
+                clearField("date");
+                setDate(e.target.value);
+              }}
+            />
+          </FormFieldError>
+          <FormFieldError
+            label={<Label htmlFor="courses-time">Horário</Label>}
+            error={getError("time")}
+            showError={showError("time")}
+          >
+            <Input
+              id="courses-time"
+              type="time"
+              value={time}
+              onChange={(e) => {
+                clearField("time");
+                setTime(e.target.value);
+              }}
+            />
+          </FormFieldError>
           <button type="submit" className="btn-primary-dr w-full mt-2">
             Enviar
           </button>

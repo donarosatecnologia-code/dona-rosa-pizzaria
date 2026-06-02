@@ -4,7 +4,8 @@ import { toast } from "sonner";
 import { ContactStatusBadge } from "@/components/admin/contatos/ContactStatusBadge";
 import { DeleteContactDialog } from "@/components/admin/contatos/DeleteContactDialog";
 import { ImportContactsModal } from "@/components/admin/contatos/ImportContactsModal";
-import { WhatsappDevBanner } from "@/components/admin/whatsapp/WhatsappDevBanner";
+import { ImportHistoryCard } from "@/components/admin/contatos/ImportHistoryCard";
+import { AdminPageHeader, AdminPageShell } from "@/components/admin/AdminPageShell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,13 @@ import { useWhatsappContacts, useUpdateWhatsappContactStatus } from "@/hooks/wha
 import { formatPhoneDisplay } from "@/lib/format-phone";
 
 const PAGE_SIZE = 50;
+
+function formatLastCampaign(at: string | null): string {
+  if (!at) {
+    return "—";
+  }
+  return new Date(at).toLocaleDateString("pt-BR");
+}
 
 export default function AdminContatos() {
   const { data: contacts, isLoading, error } = useWhatsappContacts();
@@ -57,24 +65,20 @@ export default function AdminContatos() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto w-full">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <Users className="h-6 w-6 text-primary shrink-0" />
-            <h1 className="text-xl sm:text-2xl font-bold">Clientes</h1>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Lista para promoções e envios pelo WhatsApp.
-          </p>
-        </div>
-        <Button onClick={() => setImportOpen(true)} className="shrink-0 min-h-[44px] w-full sm:w-auto">
-          <Upload className="h-4 w-4 mr-2" />
-          Importar planilha
-        </Button>
-      </div>
+    <AdminPageShell width="lg">
+      <AdminPageHeader
+        title="Contatos"
+        description="Importe sua lista de clientes para disparar campanhas pelo WhatsApp."
+        icon={Users}
+        actions={
+          <Button onClick={() => setImportOpen(true)} className="shrink-0 min-h-[44px] w-full sm:w-auto">
+            <Upload className="h-4 w-4 mr-2" />
+            Importar lista
+          </Button>
+        }
+      />
 
-      <WhatsappDevBanner compact />
+      <ImportHistoryCard />
 
       <div className="relative mb-4">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -100,7 +104,7 @@ export default function AdminContatos() {
       {error && (
         <Card className="border-destructive/30">
           <CardContent className="pt-6 text-sm text-destructive">
-            Não deu para carregar. Tente de novo.
+            Não foi possível carregar os contatos. Tente novamente.
           </CardContent>
         </Card>
       )}
@@ -108,10 +112,10 @@ export default function AdminContatos() {
       {!isLoading && !error && filtered.length === 0 && (
         <Card>
           <CardContent className="pt-6 text-center text-sm text-muted-foreground">
-            <p className="font-medium text-foreground mb-1">Nenhum cliente ainda</p>
-            <p>Importe uma planilha para começar.</p>
+            <p className="font-medium text-foreground mb-1">Nenhum contato ainda</p>
+            <p>Importe uma lista CSV ou Excel (.xlsx) para começar.</p>
             <Button className="mt-4 min-h-[44px]" variant="secondary" onClick={() => setImportOpen(true)}>
-              Importar planilha
+              Importar lista
             </Button>
           </CardContent>
         </Card>
@@ -127,8 +131,11 @@ export default function AdminContatos() {
                     <div className="min-w-0 flex-1">
                       <p className="font-medium">{contact.name}</p>
                       <p className="text-sm text-muted-foreground">{formatPhoneDisplay(contact.phone_number)}</p>
-                      <div className="mt-2">
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
                         <ContactStatusBadge status={contact.status} />
+                        <span className="text-xs text-muted-foreground">
+                          Último envio: {formatLastCampaign(contact.last_outbound_at)}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -151,7 +158,7 @@ export default function AdminContatos() {
             ))}
           </div>
 
-          <div className="hidden md:block overflow-x-auto rounded-xl border">
+          <div className="hidden md:block overflow-x-auto rounded-xl border bg-white">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -159,6 +166,7 @@ export default function AdminContatos() {
                   <TableHead>Telefone</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Cadastro</TableHead>
+                  <TableHead>Último envio</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -172,6 +180,9 @@ export default function AdminContatos() {
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {new Date(contact.created_at).toLocaleDateString("pt-BR")}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {formatLastCampaign(contact.last_outbound_at)}
                     </TableCell>
                     <TableCell className="text-right space-x-1">
                       {contact.status === "active" && (
@@ -197,7 +208,7 @@ export default function AdminContatos() {
 
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-4 text-sm">
             <p className="text-muted-foreground">
-              {filtered.length} cliente(s) · página {page + 1} de {totalPages}
+              {filtered.length} contato(s) · página {page + 1} de {totalPages}
             </p>
             <div className="flex gap-2">
               <Button size="sm" variant="outline" className="min-h-[44px] flex-1 sm:flex-none" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
@@ -218,6 +229,6 @@ export default function AdminContatos() {
       )}
 
       <ImportContactsModal open={importOpen} onOpenChange={setImportOpen} />
-    </div>
+    </AdminPageShell>
   );
 }

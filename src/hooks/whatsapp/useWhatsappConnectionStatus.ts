@@ -10,7 +10,7 @@ export interface WhatsappConnectionStatus {
 
 /** Status da conexão Meta ↔ Supabase (dr-fase1). */
 export function useWhatsappConnectionStatus() {
-  return useQuery({
+  const query = useQuery({
     queryKey: ["whatsapp", "connection-status"],
     queryFn: async (): Promise<WhatsappConnectionStatus> => {
       const { data: configRows, error: configError } = await supabase
@@ -43,4 +43,12 @@ export function useWhatsappConnectionStatus() {
     },
     staleTime: 30_000,
   });
+
+  return {
+    ...query,
+    isLoading: query.isPending,
+    isConnected: query.data?.isConnected ?? false,
+    config: query.data?.config ?? null,
+    lastWebhookAt: query.data?.lastWebhookAt ?? null,
+  };
 }

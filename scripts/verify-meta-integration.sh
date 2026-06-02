@@ -6,6 +6,7 @@ cd "$(dirname "$0")/.."
 
 SECRETS_FILE="supabase/secrets.meta.env"
 WEBHOOK_URL="https://pptgzavxpdltcuqpcovo.supabase.co/functions/v1/whatsapp-webhook"
+VERIFY_URL="https://pptgzavxpdltcuqpcovo.supabase.co/functions/v1/whatsapp-verify"
 PASS=0
 FAIL=0
 WARN=0
@@ -70,6 +71,20 @@ else
 fi
 
 echo ""
+echo "--- Health-check whatsapp-verify ---"
+VERIFY_HTTP=$(curl -sS -o /tmp/meta-verify.json -w "%{http_code}" \
+  "${VERIFY_URL}?secret=${META_VERIFY_TOKEN}" || true)
+if [[ "$VERIFY_HTTP" == "200" ]] && python3 -c "import json,sys; d=json.load(open('/tmp/meta-verify.json')); sys.exit(0 if d.get('ok') else 1)" 2>/dev/null; then
+  VERIFY_DISPLAY=$(python3 -c "import json; print(json.load(open('/tmp/meta-verify.json')).get('meta',{}).get('display_phone_number','?'))" 2>/dev/null || echo "?")
+  ok "whatsapp-verify OK — Meta: ${VERIFY_DISPLAY}"
+else
+  bad "whatsapp-verify falhou (HTTP ${VERIFY_HTTP:-?}) — rode npm run functions:deploy:verify"
+  if [[ -f /tmp/meta-verify.json ]]; then
+    python3 -c "import json; print(json.dumps(json.load(open('/tmp/meta-verify.json')), indent=2))" 2>/dev/null || cat /tmp/meta-verify.json
+  fi
+fi
+
+echo ""
 echo "--- Graph API (Access Token + Phone Number ID) ---"
 if [[ "${META_ACCESS_TOKEN:-}" == EAA* ]] && [[ ${#META_ACCESS_TOKEN} -gt 50 ]]; then
   ok "Formato do access token parece válido (EAA…)"
@@ -79,16 +94,36 @@ else
   warn "META_ACCESS_TOKEN não parece um token OAuth (esperado: string longa iniciando com EAA)"
 fi
 
-GRAPH=$(curl -sS "https://graph.facebook.com/v21.0/${META_PHONE_NUMBER_ID}?fields=display_phone_number,verified_name,quality_rating" \
+GRAPH=$(curl -sS "https://graph.facebook.com/v21.0/${META_PHONE_NUMBER_ID}?fields=display_phone_number,verified_name,quality_rating,status,platform_type,is_on_biz_app" \
   -H "Authorization: Bearer ${META_ACCESS_TOKEN}" || true)
 
 if echo "$GRAPH" | python3 -c "import sys,json; d=json.load(sys.stdin); exit(0 if 'display_phone_number' in d else 1)" 2>/dev/null; then
   DISPLAY=$(echo "$GRAPH" | python3 -c "import sys,json; print(json.load(sys.stdin).get('display_phone_number','?'))")
-  ok "Phone Number ID válido — display: +${DISPLAY}"
-  if [[ "$DISPLAY" == *"555"* ]] || [[ "$DISPLAY" == "15556523526" ]]; then
+  VERIFIED=$(echo "$GRAPH" | python3 -c "import sys,json; print(json.load(sys.stdin).get('verified_name',''))" 2>/dev/null || true)
+  PHONE_STATUS=$(echo "$GRAPH" | python3 -c "import sys,json; print(json.load(sys.stdin).get('status','?'))" 2>/dev/null || echo "?")
+  PLATFORM_TYPE=$(echo "$GRAPH" | python3 -c "import sys,json; print(json.load(sys.stdin).get('platform_type','?'))" 2>/dev/null || echo "?")
+  IS_ON_BIZ_APP=$(echo "$GRAPH" | python3 -c "import sys,json; print(str(json.load(sys.stdin).get('is_on_biz_app','')).lower())" 2>/dev/null || echo "false")
+  ok "Phone Number ID válido — display: ${DISPLAY}${VERIFIED:+ ($VERIFIED)}"
+  if [[ "$DISPLAY" == *"555"* ]] || [[ "$DISPLAY" == *"15556523526"* ]]; then
+    IS_TEST_NUMBER=1
     ok "Número de teste Meta detectado (+1 555-652-3526 ou similar)"
   else
-    warn "Display ($DISPLAY) não parece o número de teste +1 555-652-3526 — confira no API Setup"
+    IS_TEST_NUMBER=0
+    ok "Número de produção detectado (não é o +1 555 de teste)"
+  fi
+  echo ""
+  echo "--- Status Cloud API / Coexistência ---"
+  if [[ "$PHONE_STATUS" == "CONNECTED" ]] && [[ "$PLATFORM_TYPE" == "CLOUD_API" ]]; then
+    ok "Número CONNECTED na Cloud API (coexistência ativa se is_on_biz_app=true)"
+  elif [[ "$PHONE_STATUS" == "DISCONNECTED" ]] || [[ "$PLATFORM_TYPE" == "ON_PREMISE" ]]; then
+    bad "Número ${PHONE_STATUS} / ${PLATFORM_TYPE} — mensagens chegam no celular mas a Meta NÃO envia webhooks"
+    echo ""
+    echo "  → No celular da pizzaria (WhatsApp Business):"
+    echo "    Configurações → Conta → Plataforma comercial → Conectar"
+    echo "  → Ou refaça o Embedded Signup escolhendo \"Conectar app WhatsApp Business\""
+    echo "  → Esperado após reconectar: status=CONNECTED, platform_type=CLOUD_API"
+  else
+    warn "Status inesperado: ${PHONE_STATUS} / ${PLATFORM_TYPE} (is_on_biz_app=${IS_ON_BIZ_APP})"
   fi
 else
   MSG=$(echo "$GRAPH" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('error',{}).get('message','erro desconhecido'))" 2>/dev/null || echo "resposta inválida")
@@ -115,15 +150,17 @@ echo "=== Resumo: ${PASS} ok | ${WARN} avisos | ${FAIL} falhas ==="
 
 if [[ $FAIL -eq 0 ]]; then
   echo ""
-  echo "--- Recebimento vs envio (modo teste) ---"
-  echo "  • META_ACCESS_TOKEN só afeta ENVIO (Graph API). Receber usa webhook + META_APP_SECRET."
-  echo "  • Token temporário dura ~24h; gere novo só quando for ENVIAR via API/Supabase."
-  echo "  • Para testar RECEBIMENTO no Supabase:"
-  echo "      1) Do celular (+5511...) envie mensagem PARA +1 555-652-3526 (não o contrário)"
-  echo "      2) No painel Meta, webhook deve mostrar payload com \"messages\":[{\"from\":...}]"
-  echo "      3) SQL: select phone_number, last_inbound_at from public.whatsapp_contacts;"
-  echo "  • Para receber template hello_world NO celular: se não chegar, envie 1 msg do celular"
-  echo "    para o número de teste primeiro (janela de 24h), depois reenvie pelo painel Meta."
+  if [[ "${IS_TEST_NUMBER:-0}" == "1" ]]; then
+    echo "--- Próximos passos (modo teste) ---"
+    echo "  • Envie mensagem do celular PARA +1 555-652-3526 para testar recebimento."
+  else
+    echo "--- Próximos passos (produção) ---"
+    echo "  • Envie mensagem do celular PARA +55 11 93061-7116 (ou ${DISPLAY:-seu número BR})."
+    echo "  • Confira em /admin/conversas se a thread apareceu."
+  fi
+  echo "  • META_ACCESS_TOKEN afeta ENVIO; recebimento usa webhook + META_APP_SECRET."
+  echo "  • Token de System User (Employee) no Business Manager é permanente — mantenha-o seguro."
+  echo "  • SQL: select phone_number, last_inbound_at from public.whatsapp_contacts;"
 fi
 
 if [[ $FAIL -gt 0 ]]; then

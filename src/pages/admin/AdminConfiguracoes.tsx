@@ -51,6 +51,17 @@ const AdminConfiguracoes = () => {
           </div>
         )}
         <WhatsappBusinessHoursCard />
+        <div className="rounded-xl border bg-background p-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium">Conexão WhatsApp</p>
+            <p className="text-xs text-muted-foreground">
+              Vincule o número da pizzaria ao painel (coexistência com o app no celular).
+            </p>
+          </div>
+          <Button asChild size="sm" className="min-h-[44px]">
+            <Link to="/admin/conectar-whatsapp">Conectar WhatsApp</Link>
+          </Button>
+        </div>
         <div className="rounded-xl border bg-background p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>

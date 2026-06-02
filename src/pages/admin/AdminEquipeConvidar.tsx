@@ -3,12 +3,15 @@ import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Copy, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { AdminPermissionsEditor } from "@/components/admin/AdminPermissionsEditor";
+import { FormFieldError } from "@/components/FormFieldError";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AppScrollArea } from "@/components/ui/app-scroll-area";
 import { useInviteAdminUser } from "@/hooks/useAdminUsers";
 import { useCanManageUsers } from "@/hooks/useFilteredAdminNav";
+import { useFieldErrors } from "@/hooks/useFieldErrors";
+import { emailField, requiredField } from "@/lib/form-validation";
 import {
   createEmptyPermissions,
   createFullPermissions,
@@ -24,6 +27,7 @@ export default function AdminEquipeConvidar() {
   const [email, setEmail] = useState("");
   const [permissions, setPermissions] = useState<AdminPermissionsMap>(createEmptyPermissions());
   const [tempPassword, setTempPassword] = useState<string | null>(null);
+  const { validate, clearField, getError, showError } = useFieldErrors<"fullName" | "email">();
 
   if (!canManage) {
     return (
@@ -35,8 +39,16 @@ export default function AdminEquipeConvidar() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!fullName.trim() || !email.trim()) {
-      toast.error("Preencha nome e e-mail.");
+    const errors: Partial<Record<"fullName" | "email", string>> = {};
+    const nameErr = requiredField(fullName, "Informe o nome.");
+    if (nameErr) {
+      errors.fullName = nameErr;
+    }
+    const emailErr = emailField(email);
+    if (emailErr) {
+      errors.email = emailErr;
+    }
+    if (!validate(errors)) {
       return;
     }
     try {
@@ -85,27 +97,39 @@ export default function AdminEquipeConvidar() {
         <AppScrollArea className="flex-1 min-h-0 px-4 lg:px-0">
           <div className="space-y-6 pb-6">
             <div className="space-y-4 rounded-xl border bg-background p-4">
-              <div className="space-y-2">
-                <Label htmlFor="invite-name">Nome</Label>
+              <FormFieldError
+                label={<Label htmlFor="invite-name">Nome</Label>}
+                error={getError("fullName")}
+                showError={showError("fullName")}
+              >
                 <Input
                   id="invite-name"
                   value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
+                  onChange={(e) => {
+                    clearField("fullName");
+                    setFullName(e.target.value);
+                  }}
                   className="min-h-[44px]"
                   placeholder="Ex.: Maria Silva"
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="invite-email">E-mail</Label>
+              </FormFieldError>
+              <FormFieldError
+                label={<Label htmlFor="invite-email">E-mail</Label>}
+                error={getError("email")}
+                showError={showError("email")}
+              >
                 <Input
                   id="invite-email"
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    clearField("email");
+                    setEmail(e.target.value);
+                  }}
                   className="min-h-[44px]"
                   placeholder="nome@email.com"
                 />
-              </div>
+              </FormFieldError>
             </div>
 
             <div className="space-y-3">

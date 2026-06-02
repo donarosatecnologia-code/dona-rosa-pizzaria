@@ -16,6 +16,10 @@ import {
   type MetaWebhookMessage,
   type MetaWebhookPayload,
 } from "../_shared/meta-webhook.ts";
+import {
+  handleTermsConsentFlow,
+  type ContactConsentRow,
+} from "../_shared/terms-consent.ts";
 
 const JSON_HEADERS = {
   "Content-Type": "application/json",
@@ -136,7 +140,17 @@ async function processWebhookPayload(
         statuses: value.statuses?.length ?? 0,
       });
 
-      const eventId = await logWebhookEvent(supabase, ctx);
+      const eventLog = await logWebhookEvent(supabase, ctx);
+
+      if (eventLog.duplicate) {
+        console.info("webhook_change_duplicate_skipped", {
+          field: change.field,
+          dedupeKey: eventLog.dedupeKey,
+        });
+        continue;
+      }
+
+      const eventId = eventLog.id;
 
       try {
         await touchWhatsappConfig(supabase, ctx.phoneNumberId, ctx.displayPhoneNumber);
@@ -255,12 +269,34 @@ async function handleInboundMessage(
   console.info("inbound_received", { phone, type: message.type, messageId: message.id });
 
   const now = new Date().toISOString();
-  const contact = await ensureActiveContact(supabase, phone);
+  const contact = await ensureActiveContact(supabase, phone, ctx);
 
   await persistInboundCrmMessage(supabase, message, ctx, contact?.id ?? null);
 
   if (!contact) {
     console.info("inbound_skipped", { phone, reason: "contact_missing_or_opted_out" });
+    return;
+  }
+
+  const termsFlow = await handleTermsConsentFlow(supabase, message, contact, phone);
+
+  if (termsFlow === "handled" || termsFlow === "pending") {
+    const { error: engagementError } = await supabase
+      .from("whatsapp_contacts")
+      .update({
+        last_inbound_at: now,
+        inbound_count: (contact.inbound_count ?? 0) + 1,
+        updated_at: now,
+      })
+      .eq("id", contact.id);
+
+    if (engagementError) {
+      console.error("inbound_engagement_update_failed", engagementError.message);
+    }
+
+    if (termsFlow === "pending") {
+      console.info("inbound_waiting_terms_consent", { phone });
+    }
     return;
   }
 
@@ -316,14 +352,15 @@ async function handleInboundMessage(
   }
 }
 
-/** Garante contato ativo; cria automaticamente se inbound vier de número desconhecido (modo teste). */
+/** Garante contato ativo; cria registro mínimo se inbound vier de número desconhecido. */
 async function ensureActiveContact(
   supabase: ReturnType<typeof createClient>,
   phone: string,
-): Promise<{ id: string; status: string; inbound_count: number | null } | null> {
+  ctx: WebhookChangeContext,
+): Promise<ContactConsentRow | null> {
   const { data: existing } = await supabase
     .from("whatsapp_contacts")
-    .select("id, status, inbound_count")
+    .select("id, status, inbound_count, terms_accepted_at, terms_prompt_sent_at")
     .eq("phone_number", phone)
     .maybeSingle();
 
@@ -331,17 +368,20 @@ async function ensureActiveContact(
     if (existing.status === "opted_out") {
       return null;
     }
-    return existing;
+    return existing as ContactConsentRow;
   }
+
+  const contactName =
+    ctx.contacts?.find((c) => c.wa_id === phone)?.profile?.name?.trim() ?? phone;
 
   const { data: created, error: insertError } = await supabase
     .from("whatsapp_contacts")
     .insert({
       phone_number: phone,
-      name: phone,
+      name: contactName,
       status: "active",
     })
-    .select("id, status, inbound_count")
+    .select("id, status, inbound_count, terms_accepted_at, terms_prompt_sent_at")
     .single();
 
   if (insertError) {
@@ -350,7 +390,7 @@ async function ensureActiveContact(
   }
 
   console.info("inbound_contact_created", { phone });
-  return created;
+  return created as ContactConsentRow;
 }
 
 async function handleTemplateStatusUpdate(

@@ -4,11 +4,52 @@ export type WhatsappContactStatus = "active" | "opted_out";
 
 export type EngagementLevel = "active" | "warm" | "cold" | "unknown";
 
+export type WhatsappImportBatchStatus = "processing" | "completed" | "failed";
+
+export interface WhatsappImportBatch {
+  id: string;
+  filename: string | null;
+  total_rows: number;
+  imported: number;
+  duplicates: number;
+  errors: number;
+  error_details: Array<{ line: number; value: string; reason: string }>;
+  status: WhatsappImportBatchStatus;
+  created_at: string;
+}
+
+export type WhatsappTermsSource =
+  | "site_widget"
+  | "site_contact_form"
+  | "site_reserve"
+  | "whatsapp";
+
+export interface ContactImportProfile {
+  logr?: string;
+  street?: string;
+  address_number?: string;
+  complement?: string;
+  neighborhood?: string;
+  purchase_count?: string;
+  purchase_total?: string;
+  registered_at?: string;
+  last_purchase_at?: string;
+  days_without_purchase?: string;
+  full_address?: string;
+}
+
 export interface WhatsappContact {
   id: string;
   name: string;
   phone_number: string;
+  email: string | null;
   status: WhatsappContactStatus;
+  opted_out_at: string | null;
+  terms_accepted_at: string | null;
+  terms_accepted_source: WhatsappTermsSource | null;
+  terms_prompt_sent_at: string | null;
+  import_batch_id: string | null;
+  import_profile: ContactImportProfile | null;
   engagement_level: EngagementLevel;
   last_inbound_at: string | null;
   last_outbound_at: string | null;

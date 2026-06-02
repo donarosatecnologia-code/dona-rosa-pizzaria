@@ -54,6 +54,7 @@ export interface WhatsappWebhookEvent {
   raw_payload: Record<string, unknown>;
   processed: boolean;
   processing_error: string | null;
+  dedupe_key: string | null;
   created_at: string;
 }
 
