@@ -1,25 +1,14 @@
 import { Link } from "react-router-dom";
 import { ExternalLink } from "lucide-react";
-import { ADMIN_PAGE_SLUGS } from "@/pages/admin/adminPageComponents";
-
-const labels: Record<string, string> = {
-  home: "Home",
-  "quem-somos": "Quem Somos",
-  espacos: "Espaços",
-  "cursos-e-eventos": "Cursos e Eventos",
-  "saude-e-sustentabilidade": "Saúde e Sustentabilidade",
-  contato: "Contato",
-  "politica-privacidade": "Política de Privacidade",
-  "termos-de-uso": "Termos de Uso",
-};
+import { ADMIN_PAGE_LABELS, ADMIN_PAGE_SLUGS } from "@/pages/admin/adminPageComponents";
 
 export default function AdminPages() {
   return (
     <div className="max-w-3xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Páginas</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-foreground">Páginas do site</h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          Abra o espelho da página para editar com o mesmo layout do site. O público só vê conteúdo após publicar na barra superior. O cardápio de produtos é gerido em{" "}
+          Abra a página para editar com o lápis. Salve e coloque no ar na linha de botões abaixo do título. Cardápio em{" "}
           <Link to="/admin/cardapio" className="font-medium text-primary hover:underline">
             Cardápio
           </Link>
@@ -35,7 +24,7 @@ export default function AdminPages() {
         </li>
         {ADMIN_PAGE_SLUGS.map((slug) => (
           <li key={slug} className="flex items-center justify-between gap-4 p-4">
-            <span className="font-medium text-foreground">{labels[slug] ?? slug}</span>
+            <span className="font-medium text-foreground">{ADMIN_PAGE_LABELS[slug] ?? slug}</span>
             <Link to={`/admin/mirror/${slug}`} className="flex items-center gap-1 text-sm text-primary hover:underline">
               Editar espelho <ExternalLink size={14} />
             </Link>

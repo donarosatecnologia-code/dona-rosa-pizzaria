@@ -114,10 +114,10 @@ export default function AdminDisparos() {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Send className="h-6 w-6 text-primary" />
-            <h1 className="text-2xl font-bold">Disparos</h1>
+            <h1 className="text-xl sm:text-2xl font-bold">Promoções</h1>
           </div>
           <p className="text-sm text-muted-foreground">
-            Campanhas ativas via WhatsApp ·{" "}
+            Envie a mesma mensagem para vários clientes ·{" "}
             <Link to="/admin/contatos" className="text-primary hover:underline">
               {contacts?.length ?? 0} contato(s)
             </Link>

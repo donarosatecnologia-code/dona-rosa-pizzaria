@@ -16,9 +16,8 @@ import { useSiteShellReady } from "@/hooks/useSiteShellReady";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { BrandAlecrim, BrandTomilho, BrandTomilhoB } from "@/components/BrandAccents";
 import { siteContainerClass } from "@/lib/siteLayout";
+import { buildWhatsAppUrl, SITE_WHATSAPP } from "@/lib/siteConfig";
 import { cn } from "@/lib/utils";
-
-const CONTACT_WHATSAPP_PHONE = "5511930617116";
 
 export interface ContactFormValues {
   name: string;
@@ -41,9 +40,8 @@ export function buildContactWhatsAppMessage(values: ContactFormValues): string {
   return lines.join("\n");
 }
 
-export function sendWhatsAppMessage(phoneDigits: string, message: string): void {
-  const url = `https://wa.me/${phoneDigits}?text=${encodeURIComponent(message)}`;
-  window.open(url, "_blank", "noopener,noreferrer");
+export function sendWhatsAppMessage(_phoneDigits: string, message: string): void {
+  window.open(buildWhatsAppUrl(message), "_blank", "noopener,noreferrer");
 }
 
 function validateContactForm(values: ContactFormValues): string | null {
@@ -96,7 +94,7 @@ function ContactForm() {
       toast.error(err);
       return;
     }
-    sendWhatsAppMessage(CONTACT_WHATSAPP_PHONE, buildContactWhatsAppMessage(values));
+    sendWhatsAppMessage(SITE_WHATSAPP.e164, buildContactWhatsAppMessage(values));
     toast.success("Abrindo o WhatsApp com sua mensagem.");
   };
 
@@ -196,10 +194,9 @@ function ContactPage() {
     },
   });
 
-  const reservationMessage = encodeURIComponent(
+  const reservationWhatsAppUrl = buildWhatsAppUrl(
     "Olá! Gostaria de reservar uma mesa na Dona Rosa Pizzaria.",
   );
-  const reservationWhatsAppUrl = `https://wa.me/${CONTACT_WHATSAPP_PHONE}?text=${reservationMessage}`;
 
   if (shell.isPending || isPending) {
     return <LoadingScreen message="Carregando conteúdo…" />;

@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { AppScrollArea } from "@/components/ui/app-scroll-area";
 import { useImportContacts } from "@/hooks/whatsapp";
 import type { ImportContactsResult } from "@/lib/whatsapp/importContacts";
 
@@ -132,7 +133,8 @@ João Santos,+5511988887777`}
         )}
 
         {result && result.errorDetails.length > 0 && (
-          <ul className="max-h-32 overflow-y-auto text-xs space-y-1 border rounded-md p-2">
+          <AppScrollArea className="max-h-32 rounded-md border">
+            <ul className="text-xs space-y-1 p-2">
             {result.errorDetails.slice(0, 20).map((err) => (
               <li key={`${err.line}-${err.value}`}>
                 Linha {err.line}: {err.value} — {err.reason}
@@ -141,7 +143,8 @@ João Santos,+5511988887777`}
             {result.errorDetails.length > 20 && (
               <li className="text-muted-foreground">… e mais {result.errorDetails.length - 20} erros</li>
             )}
-          </ul>
+            </ul>
+          </AppScrollArea>
         )}
 
         <DialogFooter>

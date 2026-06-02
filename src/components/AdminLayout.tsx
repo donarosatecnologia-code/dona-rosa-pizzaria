@@ -1,103 +1,89 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
-import {
-  LogOut,
-  LayoutDashboard,
-  PanelLeftClose,
-  PanelLeftOpen,
-  UtensilsCrossed,
-  FileStack,
-  Rows3,
-  Settings,
-  MessageCircle,
-  Send,
-  Users,
-  FileText,
-} from "lucide-react";
 import { useState } from "react";
+import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import logoBranco from "@/assets/logo-branco.png";
-import { AdminEditToolbar } from "@/components/AdminEditToolbar";
-import { WhatsappNotificationBell } from "@/components/admin/whatsapp/WhatsappNotificationBell";
+import { AdminBottomNav } from "@/components/admin/AdminBottomNav";
+import { AdminMobileHeader } from "@/components/admin/AdminMobileHeader";
+import { AdminDesktopTopBar } from "@/components/admin/AdminDesktopTopBar";
+import { AdminMobileDrawer } from "@/components/admin/AdminMobileDrawer";
+import { AdminMoreMenu } from "@/components/admin/AdminMoreMenu";
 import AdminEditorSidebar from "@/components/AdminEditorSidebar";
+import { AppScrollArea } from "@/components/ui/app-scroll-area";
 import { useAdminEditor } from "@/contexts/AdminEditorContext";
+import { useAdminShellRoutes } from "@/hooks/useAdminShellRoutes";
+import { useAuth } from "@/hooks/useAuth";
+import { ADMIN_DESKTOP_NAV, ADMIN_SIGN_OUT, isAdminNavActive } from "@/lib/adminNavigation";
 import { cn } from "@/lib/utils";
-
-const navItems = [
-  { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/admin/contatos", label: "Contatos", icon: Users },
-  { to: "/admin/templates", label: "Modelos", icon: FileText },
-  { to: "/admin/disparos", label: "Disparos", icon: Send },
-  { to: "/admin/conversas", label: "Conversas", icon: MessageCircle },
-  { to: "/admin/pages", label: "Páginas", icon: FileStack },
-  { to: "/admin/cardapio", label: "Cardápio", icon: UtensilsCrossed },
-  { to: "/admin/header-footer", label: "Header & Footer", icon: Rows3 },
-  { to: "/admin/configuracoes", label: "Configurações", icon: Settings },
-];
 
 const AdminLayout = () => {
   const { signOut } = useAuth();
   const { isEditing } = useAdminEditor();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const { pathname, hideBottomNav, hideMobileHeader, fullBleedMobile } = useAdminShellRoutes();
 
   return (
-    <div className="admin-workspace flex min-h-screen bg-muted">
+    <div className="admin-workspace flex min-h-[100dvh] bg-muted">
       <aside
-        className={`${
-          sidebarCollapsed ? "w-16" : "w-60"
-        } relative z-[100] bg-foreground text-primary-foreground flex flex-col shrink-0 transition-all duration-300 sticky top-0 h-screen`}
+        className={cn(
+          "relative z-[100] bg-foreground text-primary-foreground flex-col shrink-0 transition-all duration-300 sticky top-0 h-screen",
+          "hidden lg:flex",
+          sidebarCollapsed ? "w-16" : "w-60",
+        )}
       >
         <div className="p-4 border-b border-primary-foreground/20 flex items-center justify-between gap-2">
           {!sidebarCollapsed && (
             <div className="min-w-0">
               <img src={logoBranco} alt="Dona Rosa" className="h-10 w-auto max-w-[9rem] object-contain object-left" />
-              <p className="text-xs opacity-60 mt-1">Painel administrativo</p>
             </div>
           )}
           <button
             type="button"
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="text-primary-foreground/70 hover:text-primary-foreground p-1 shrink-0"
+            className="text-primary-foreground/70 hover:text-primary-foreground p-2.5 shrink-0 min-h-[44px] min-w-[44px] flex items-center justify-center"
             aria-label={sidebarCollapsed ? "Expandir menu" : "Recolher menu"}
           >
             {sidebarCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
           </button>
         </div>
 
-        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-          {navItems.map((item) => (
+        <AppScrollArea className="flex-1 min-h-0">
+          <nav className="p-3 space-y-1">
+          {ADMIN_DESKTOP_NAV.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               title={item.label}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors ${
-                  isActive ? "bg-primary text-primary-foreground" : "text-primary-foreground/70 hover:bg-primary-foreground/10"
-                } ${sidebarCollapsed ? "justify-center" : ""}`
+                cn(
+                  "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors min-h-[44px]",
+                  isActive || isAdminNavActive(pathname, item)
+                    ? "bg-primary text-primary-foreground"
+                    : "text-primary-foreground/70 hover:bg-primary-foreground/10",
+                  sidebarCollapsed && "justify-center px-2",
+                )
               }
             >
               <item.icon size={18} />
               {!sidebarCollapsed && item.label}
             </NavLink>
           ))}
-        </nav>
+          </nav>
+        </AppScrollArea>
 
-        <div className="p-3 border-t border-primary-foreground/20 space-y-2">
-          {!sidebarCollapsed && (
-            <p className="text-xs text-primary-foreground/50 px-1 leading-relaxed">
-              Edite no espelho da página (Páginas) ou em Header &amp; Footer. Salve rascunho e publique na barra superior.
-            </p>
-          )}
-
+        <div className="p-3 border-t border-primary-foreground/20">
           <button
             type="button"
-            onClick={signOut}
-            title="Sair"
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm text-primary-foreground/70 hover:bg-primary-foreground/10 w-full ${
-              sidebarCollapsed ? "justify-center" : ""
-            }`}
+            onClick={() => void signOut()}
+            title={ADMIN_SIGN_OUT.label}
+            className={cn(
+              "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm text-primary-foreground/70 hover:bg-primary-foreground/10 w-full min-h-[44px]",
+              sidebarCollapsed && "justify-center",
+            )}
           >
-            <LogOut size={18} />
-            {!sidebarCollapsed && "Sair"}
+            <ADMIN_SIGN_OUT.icon size={18} />
+            {!sidebarCollapsed && ADMIN_SIGN_OUT.label}
           </button>
         </div>
       </aside>
@@ -105,24 +91,46 @@ const AdminLayout = () => {
       <div
         className={cn(
           "admin-main-column flex min-h-0 min-w-0 flex-1 flex-col transition-[padding] duration-300 ease-out",
-          isEditing && "pr-[min(380px,90vw)]",
+          isEditing && "lg:pr-[min(380px,90vw)]",
         )}
       >
-        <main className="flex min-h-0 flex-1 flex-col overflow-hidden p-6">
-          <div className="relative z-[130] mb-4 shrink-0 border-b border-border bg-muted/90 px-4 py-3 backdrop-blur-md -mx-6 -mt-6">
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <AdminEditToolbar />
-              </div>
-              <WhatsappNotificationBell />
-            </div>
-          </div>
-          <div className="admin-outlet-scroll relative z-0 min-h-0 flex-1 overflow-auto">
-            <Outlet />
+        {!hideMobileHeader && (
+          <AdminMobileHeader onMenuClick={() => setDrawerOpen(true)} />
+        )}
+
+        <main
+          className={cn(
+            "flex min-h-0 flex-1 flex-col overflow-hidden",
+            fullBleedMobile ? "p-0 pt-14 lg:p-6 lg:pt-6" : "p-4 pt-[calc(3.5rem+1rem)] lg:p-6 lg:pt-6",
+            !hideBottomNav && "pb-[calc(4rem+env(safe-area-inset-bottom))] lg:pb-6",
+            hideMobileHeader && fullBleedMobile && "pt-0 lg:pt-6",
+          )}
+        >
+          <AdminDesktopTopBar />
+
+          <div
+            className={cn(
+              "admin-outlet-scroll relative z-0 min-h-0 flex-1",
+              fullBleedMobile && "overflow-hidden",
+            )}
+          >
+            {fullBleedMobile ? (
+              <Outlet />
+            ) : (
+              <AppScrollArea className="h-full">
+                <Outlet />
+              </AppScrollArea>
+            )}
           </div>
         </main>
       </div>
 
+      {!hideBottomNav && (
+        <AdminBottomNav onMoreClick={() => setMoreOpen(true)} />
+      )}
+
+      <AdminMobileDrawer open={drawerOpen} onOpenChange={setDrawerOpen} pathname={pathname} />
+      <AdminMoreMenu open={moreOpen} onOpenChange={setMoreOpen} pathname={pathname} />
       <AdminEditorSidebar />
     </div>
   );

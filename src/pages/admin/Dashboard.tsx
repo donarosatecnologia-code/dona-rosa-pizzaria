@@ -1,11 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 import { Package, FileText, FolderOpen } from "lucide-react";
 
 const Dashboard = () => {
-  const { user } = useAuth();
-
   const { data: productCount } = useQuery({
     queryKey: ["admin-product-count"],
     queryFn: async () => {
@@ -38,9 +35,9 @@ const Dashboard = () => {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-foreground mb-1">Dashboard</h1>
+      <h1 className="text-xl sm:text-2xl font-bold text-foreground mb-1">Início</h1>
       <p className="text-sm text-muted-foreground mb-6">
-        Bem-vindo(a), {user?.email}
+        Olá! Aqui está um resumo do seu painel.
       </p>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

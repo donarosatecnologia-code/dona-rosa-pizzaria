@@ -7,6 +7,7 @@ import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import RichTextEditor from "@/components/RichTextEditor";
 import { LoadingPizzaSpinner } from "@/components/LoadingScreen";
+import { AppScrollArea } from "@/components/ui/app-scroll-area";
 
 function getPageKeyFromSectionKey(sectionKey: string) {
   if (sectionKey.startsWith("qs-")) return "quem-somos";
@@ -203,11 +204,12 @@ const AdminEditorSidebar = () => {
                   <p className="text-xs text-muted-foreground capitalize">{editingTarget.elementType}</p>
                 </div>
               </div>
-              <button onClick={closeEditor} className="text-muted-foreground hover:text-foreground p-1"><X size={18} /></button>
+              <button onClick={closeEditor} className="text-muted-foreground hover:text-foreground min-h-[44px] min-w-[44px] flex items-center justify-center p-2"><X size={18} /></button>
             </div>
 
             {/* Content — scroll interno sem cortar o painel */}
-            <div className="editor-sidebar-body min-h-0 flex-1 space-y-4 overflow-y-auto overflow-x-hidden overscroll-contain p-4">
+            <AppScrollArea className="editor-sidebar-body min-h-0 flex-1">
+              <div className="space-y-4 p-4">
               {loading ? (
                 <div className="flex flex-col items-center gap-3 text-muted-foreground text-sm py-10 justify-center">
                   <div className="animate-[spin_2.2s_linear_infinite]">
@@ -252,7 +254,8 @@ const AdminEditorSidebar = () => {
                   <RichTextEditor value={textValue} onChange={setTextValue} minHeightClassName="min-h-[100px]" />
                 </div>
               )}
-            </div>
+              </div>
+            </AppScrollArea>
 
             {/* Footer - hide save for multi-image (they save inline) */}
             {!isMultiImage && (

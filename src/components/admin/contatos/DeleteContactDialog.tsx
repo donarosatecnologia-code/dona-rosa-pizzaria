@@ -29,32 +29,31 @@ export function DeleteContactDialog({ contactId, contactName }: DeleteContactDia
   async function handleDelete() {
     try {
       await deleteContact.mutateAsync({ contactId, reason: reason.trim() || undefined });
-      toast.success("Contato excluído. Trilha registrada para LGPD.");
+      toast.success("Cliente removido da lista.");
       setOpen(false);
       setReason("");
     } catch {
-      toast.error("Não foi possível excluir o contato.");
+      toast.error("Não deu para excluir. Tente de novo.");
     }
   }
 
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
-        <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive">
+        <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive min-h-[44px] flex-1">
           <Trash2 className="h-4 w-4 mr-1" />
-          Excluir
+          Tirar da lista
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Excluir contato permanentemente?</AlertDialogTitle>
+          <AlertDialogTitle>Tirar da lista para sempre?</AlertDialogTitle>
           <AlertDialogDescription>
-            <strong>{contactName}</strong> será removido da base. Conversas anteriores permanecem com
-            indicador &quot;Removido da base&quot;. Esta ação é irreversível.
+            <strong>{contactName}</strong> sai da lista. Conversas antigas ficam guardadas. Não dá para desfazer.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <Textarea
-          placeholder="Motivo da exclusão (opcional, para auditoria LGPD)"
+          placeholder="Por que está tirando? (opcional)"
           value={reason}
           onChange={(e) => setReason(e.target.value)}
           rows={2}
@@ -70,7 +69,7 @@ export function DeleteContactDialog({ contactId, contactName }: DeleteContactDia
             disabled={deleteContact.isPending}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
-            Excluir permanentemente
+            Tirar da lista
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

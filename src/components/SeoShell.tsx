@@ -1,20 +1,12 @@
 import { useEffect, useMemo } from "react";
 import { useLocation } from "react-router-dom";
-
-const SITE_NAME = "Dona Rosa Pizzaria";
-
-const PAGE_TITLES: Record<string, string> = {
-  "/": `${SITE_NAME} | Pizza artesanal em São Paulo`,
-  "/quem-somos": `Quem somos | ${SITE_NAME}`,
-  "/cardapio": `Cardápio | ${SITE_NAME}`,
-  "/espacos": `Espaços e eventos | ${SITE_NAME}`,
-  "/cursos-e-eventos": `Cursos e eventos | ${SITE_NAME}`,
-  "/saude-e-sustentabilidade": `Saúde e sustentabilidade | ${SITE_NAME}`,
-  "/contato": `Contato | ${SITE_NAME}`,
-  "/politica-de-privacidade": `Política de privacidade | ${SITE_NAME}`,
-  "/termos-de-uso": `Termos de uso | ${SITE_NAME}`,
-  "/login": `Login | ${SITE_NAME}`,
-};
+import {
+  buildBreadcrumbJsonLd,
+  buildRestaurantJsonLd,
+  buildWebSiteJsonLd,
+  getCanonicalOrigin,
+  getPageSeo,
+} from "@/lib/siteSeo";
 
 function setMetaProperty(property: string, content: string) {
   let el = document.querySelector<HTMLMetaElement>(`meta[property="${property}"]`);
@@ -36,112 +28,96 @@ function setMetaName(name: string, content: string) {
   el.content = content;
 }
 
-function getOrigin(): string {
-  const env = import.meta.env.VITE_PUBLIC_SITE_URL?.replace(/\/$/, "");
-  if (env) {
-    return env;
+function setLinkRel(rel: string, href: string) {
+  let el = document.querySelector<HTMLLinkElement>(`link[rel="${rel}"]`);
+  if (!el) {
+    el = document.createElement("link");
+    el.rel = rel;
+    document.head.appendChild(el);
   }
-  if (typeof window !== "undefined") {
-    return window.location.origin;
-  }
-  return "";
+  el.href = href;
 }
 
 /**
- * Títulos por rota, JSON-LD (Restaurante), link canônico e noindex na área admin.
+ * SEO por rota: título, meta, Open Graph, Twitter, JSON-LD e noindex no admin.
  */
 export function SeoShell() {
   const { pathname } = useLocation();
-  const origin = getOrigin();
+  const origin = getCanonicalOrigin(import.meta.env.VITE_PUBLIC_SITE_URL);
+
+  const isPrivate = pathname.startsWith("/admin") || pathname === "/login";
+  const pageSeo = getPageSeo(pathname);
+  const baseTitle = pathname.startsWith("/admin")
+    ? `Admin | ${pageSeo.title.split(" | ").pop()}`
+    : pageSeo.title;
 
   useEffect(() => {
-    const isPrivate = pathname.startsWith("/admin") || pathname === "/login";
-    const baseTitle = pathname.startsWith("/admin")
-      ? `Admin | ${SITE_NAME}`
-      : PAGE_TITLES[pathname] ?? `Página não encontrada | ${SITE_NAME}`;
     document.title = baseTitle;
-
-    let canonical = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
-    if (!canonical) {
-      canonical = document.createElement("link");
-      canonical.rel = "canonical";
-      document.head.appendChild(canonical);
-    }
-    if (origin && !pathname.startsWith("/admin")) {
-      canonical.href = `${origin}${pathname === "/" ? "" : pathname}`;
-    } else {
-      canonical.removeAttribute("href");
-    }
-
-    let robots = document.querySelector<HTMLMetaElement>('meta[name="robots"]');
-    if (!robots) {
-      robots = document.createElement("meta");
-      robots.name = "robots";
-      document.head.appendChild(robots);
-    }
-    robots.content = isPrivate ? "noindex, nofollow" : "index, follow";
-
-    const desc =
-      "Pizza artesanal com massa leve e ingredientes locais sustentáveis em São Paulo. Cardápio, espaços para eventos e delivery.";
-    const ogImage = origin ? `${origin}/favicon.png` : "";
+    document.documentElement.lang = "pt-BR";
 
     if (origin && !isPrivate) {
       const pageUrl = `${origin}${pathname === "/" ? "" : pathname}`;
+      setLinkRel("canonical", pageUrl);
+
+      setMetaName("description", pageSeo.description);
+      setMetaName("keywords", pageSeo.keywords.join(", "));
+      setMetaName("author", "Janaina Guiotti");
+      setMetaName("robots", "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1");
+      setMetaName("googlebot", "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1");
+      setMetaName("ai:description", pageSeo.aiDescription);
+
+      setMetaProperty("og:site_name", "Dona Rosa Pizzaria");
+      setMetaProperty("og:locale", "pt_BR");
+      setMetaProperty("og:type", pathname === "/" ? "website" : "article");
       setMetaProperty("og:url", pageUrl);
       setMetaProperty("og:title", baseTitle);
-      setMetaProperty("og:description", desc);
-      if (ogImage) {
-        setMetaProperty("og:image", ogImage);
-      }
+      setMetaProperty("og:description", pageSeo.description);
+      setMetaProperty("og:image", `${origin}/favicon.png`);
+      setMetaProperty("og:image:alt", "Dona Rosa Pizzaria — pizza artesanal em São Paulo");
+
+      setMetaName("twitter:card", "summary_large_image");
       setMetaName("twitter:url", pageUrl);
       setMetaName("twitter:title", baseTitle);
-      setMetaName("twitter:description", desc);
-      if (ogImage) {
-        setMetaName("twitter:image", ogImage);
-      }
+      setMetaName("twitter:description", pageSeo.description);
+      setMetaName("twitter:image", `${origin}/favicon.png`);
+
+      setMetaName("geo.region", "BR-SP");
+      setMetaName("geo.placename", "São Paulo");
+    } else {
+      const canonical = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+      canonical?.removeAttribute("href");
+      setMetaName("robots", "noindex, nofollow");
     }
-  }, [pathname, origin]);
+  }, [pathname, origin, isPrivate, baseTitle, pageSeo]);
 
   const jsonLd = useMemo(() => {
-    if (!origin || pathname.startsWith("/admin") || pathname === "/login") {
+    if (!origin || isPrivate) {
       return null;
     }
-    return {
-      "@context": "https://schema.org",
-      "@type": "Restaurant",
-      "@id": `${origin}/#restaurant`,
-      name: SITE_NAME,
-      url: origin,
-      description:
-        "Pizza artesanal com massa leve e ingredientes locais. Ambiente acolhedor em São Paulo.",
-      servesCuisine: "Italian",
-      priceRange: "$$",
-      address: {
-        "@type": "PostalAddress",
-        streetAddress: "Rua Caminha de Amorim, 242",
-        addressLocality: "São Paulo",
-        addressRegion: "SP",
-        postalCode: "05451-020",
-        addressCountry: "BR",
-      },
-      potentialAction: {
-        "@type": "ReserveAction",
-        target: {
-          "@type": "EntryPoint",
-          urlTemplate: `${origin}/contato`,
-        },
-      },
-    };
-  }, [origin, pathname]);
+    const blocks: object[] = [
+      buildWebSiteJsonLd(origin),
+      buildRestaurantJsonLd(origin),
+    ];
+    const breadcrumb = buildBreadcrumbJsonLd(origin, pathname);
+    if (breadcrumb) {
+      blocks.push(breadcrumb);
+    }
+    return blocks;
+  }, [origin, pathname, isPrivate]);
 
   if (!jsonLd) {
     return null;
   }
 
   return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-    />
+    <>
+      {jsonLd.map((block, index) => (
+        <script
+          key={index}
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(block) }}
+        />
+      ))}
+    </>
   );
 }

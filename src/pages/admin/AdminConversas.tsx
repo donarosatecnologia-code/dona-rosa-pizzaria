@@ -3,19 +3,25 @@ import { Link } from "react-router-dom";
 import { MessageCircle, ChevronRight, Clock } from "lucide-react";
 import { WhatsappDevBanner } from "@/components/admin/whatsapp/WhatsappDevBanner";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   useWhatsappConversations,
   useWhatsappCrmRealtime,
-  useWhatsappConnectionStatus,
   useWhatsappBusinessHours,
 } from "@/hooks/whatsapp";
 import { formatPhoneDisplay, formatRelativeTime } from "@/lib/format-phone";
 import { isOutsideBusinessHours, isWaitingForReply } from "@/integrations/supabase/types/whatsapp-inbox";
+import { cn } from "@/lib/utils";
 
 type QueueTab = "waiting" | "all" | "closed";
+
+const TAB_OPTIONS: { id: QueueTab; label: string }[] = [
+  { id: "waiting", label: "Esperando resposta" },
+  { id: "all", label: "Todas" },
+  { id: "closed", label: "Já atendidas" },
+];
 
 function ConversasSkeleton() {
   return (
@@ -30,7 +36,6 @@ function ConversasSkeleton() {
 export default function AdminConversas() {
   useWhatsappCrmRealtime();
   const [tab, setTab] = useState<QueueTab>("waiting");
-  const { data: connection } = useWhatsappConnectionStatus();
   const { data: businessHours } = useWhatsappBusinessHours();
   const { data: conversations, isLoading, error } = useWhatsappConversations();
 
@@ -52,51 +57,50 @@ export default function AdminConversas() {
   const waitingCount = conversations?.filter(isWaitingForReply).length ?? 0;
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="max-w-3xl mx-auto w-full">
       <div className="flex items-center gap-2 mb-1">
-        <MessageCircle className="h-6 w-6 text-primary" />
-        <h1 className="text-2xl font-bold text-foreground">Conversas</h1>
+        <MessageCircle className="h-6 w-6 text-primary shrink-0" />
+        <h1 className="text-xl sm:text-2xl font-bold text-foreground">Mensagens</h1>
       </div>
       <p className="text-sm text-muted-foreground mb-4">
-        Fila de atendimento e histórico de mensagens WhatsApp.
+        Veja quem escreveu e responda pelo WhatsApp.
       </p>
 
-      <WhatsappDevBanner />
+      <WhatsappDevBanner compact />
 
       {outsideHours && (
         <div className="flex items-center gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4">
           <Clock className="h-3.5 w-3.5 shrink-0" />
-          Fora do horário de expediente — envio continua disponível.
+          Fora do horário da pizzaria — você ainda pode responder.
         </div>
       )}
 
-      {connection?.isConnected && (
-        <p className="text-xs text-muted-foreground mb-4">
-          Número conectado: {connection.config?.display_name ?? connection.config?.phone_number_id ?? "Meta"}
-        </p>
-      )}
-
-      <Tabs value={tab} onValueChange={(v) => setTab(v as QueueTab)} className="mb-4">
-        <TabsList>
-          <TabsTrigger value="waiting">
-            Aguardando
-            {waitingCount > 0 && (
-              <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-xs">
+      <div className="flex gap-2 overflow-x-auto pb-1 mb-4 -mx-1 px-1 scrollbar-none">
+        {TAB_OPTIONS.map((option) => (
+          <Button
+            key={option.id}
+            type="button"
+            size="sm"
+            variant={tab === option.id ? "default" : "outline"}
+            className={cn("shrink-0 min-h-[44px] rounded-full px-4")}
+            onClick={() => setTab(option.id)}
+          >
+            {option.label}
+            {option.id === "waiting" && waitingCount > 0 && (
+              <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-xs bg-background/20">
                 {waitingCount}
               </Badge>
             )}
-          </TabsTrigger>
-          <TabsTrigger value="all">Todas</TabsTrigger>
-          <TabsTrigger value="closed">Atendidas</TabsTrigger>
-        </TabsList>
-      </Tabs>
+          </Button>
+        ))}
+      </div>
 
       {isLoading && <ConversasSkeleton />}
 
       {error && (
         <Card className="border-destructive/30">
           <CardContent className="pt-6 text-sm text-destructive">
-            Não foi possível carregar as conversas. Tente novamente em instantes.
+            Não deu para carregar. Tente de novo em instantes.
           </CardContent>
         </Card>
       )}
@@ -105,12 +109,16 @@ export default function AdminConversas() {
         <Card>
           <CardContent className="pt-6 text-center text-sm text-muted-foreground">
             <p className="font-medium text-foreground mb-1">
-              {tab === "waiting" ? "Ninguém aguardando resposta" : "Nenhuma conversa nesta aba"}
+              {tab === "waiting"
+                ? "Ninguém esperando agora"
+                : tab === "closed"
+                  ? "Nenhuma conversa atendida ainda"
+                  : "Ainda não há mensagens"}
             </p>
             <p>
               {tab === "waiting"
                 ? "Quando alguém mandar mensagem, aparece aqui."
-                : "Troque de aba para ver outras conversas."}
+                : "Troque de filtro para ver outras conversas."}
             </p>
           </CardContent>
         </Card>
@@ -127,9 +135,9 @@ export default function AdminConversas() {
               <li key={conv.id}>
                 <Link
                   to={`/admin/conversas/${conv.id}`}
-                  className="flex items-center gap-3 rounded-xl border border-border bg-background p-4 shadow-sm hover:bg-muted/40 transition-colors"
+                  className="flex items-center gap-3 rounded-xl border border-border bg-background p-4 shadow-sm hover:bg-muted/40 transition-colors min-h-[72px]"
                 >
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-sm">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-sm">
                     {(conv.contact_name ?? conv.wa_id).slice(0, 2).toUpperCase()}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -145,12 +153,12 @@ export default function AdminConversas() {
                     <div className="mt-1 flex flex-wrap gap-2">
                       {waiting && (
                         <Badge variant="default" className="text-xs">
-                          Aguardando
+                          Esperando
                         </Badge>
                       )}
                       {conv.contact_removed_at && (
                         <Badge variant="outline" className="text-xs">
-                          Removido da base
+                          Saiu da lista
                         </Badge>
                       )}
                       {conv.status === "closed" && (

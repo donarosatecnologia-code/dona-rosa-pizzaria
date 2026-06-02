@@ -18,7 +18,7 @@ export function useWhatsappNotifications() {
         .from("whatsapp_admin_notifications")
         .select("*")
         .order("created_at", { ascending: false })
-        .limit(50);
+        .limit(100);
 
       if (error) {
         throw error;
@@ -29,12 +29,20 @@ export function useWhatsappNotifications() {
         .select("notification_id")
         .eq("user_id", user.id);
 
-      const readSet = new Set((reads ?? []).map((r) => r.notification_id));
+      const { data: dismissals } = await supabase
+        .from("whatsapp_notification_dismissals")
+        .select("notification_id")
+        .eq("user_id", user.id);
 
-      return (notifications ?? []).map((n) => ({
-        ...(n as WhatsappAdminNotification),
-        is_read: readSet.has(n.id),
-      }));
+      const readSet = new Set((reads ?? []).map((r) => r.notification_id));
+      const dismissedSet = new Set((dismissals ?? []).map((d) => d.notification_id));
+
+      return (notifications ?? [])
+        .filter((n) => !dismissedSet.has(n.id))
+        .map((n) => ({
+          ...(n as WhatsappAdminNotification),
+          is_read: readSet.has(n.id),
+        }));
     },
     refetchInterval: 60_000,
   });
@@ -51,6 +59,25 @@ export function useMarkNotificationsRead() {
   return useMutation({
     mutationFn: async (notificationIds?: string[]) => {
       const { data, error } = await supabase.rpc("mark_whatsapp_notifications_read", {
+        p_notification_ids: notificationIds ?? null,
+      });
+      if (error) {
+        throw error;
+      }
+      return data as number;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: NOTIFICATIONS_KEY });
+    },
+  });
+}
+
+export function useDismissWhatsappNotifications() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (notificationIds?: string[]) => {
+      const { data, error } = await supabase.rpc("dismiss_whatsapp_notifications", {
         p_notification_ids: notificationIds ?? null,
       });
       if (error) {

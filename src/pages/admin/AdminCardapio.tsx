@@ -8,6 +8,9 @@ import {
 } from "@/lib/pizzaPricing";
 import { toast } from "sonner";
 import { Plus, Trash2, Pencil, X, Check, ChevronDown, ChevronUp } from "lucide-react";
+import { ProductMobileCard } from "@/components/admin/cardapio/ProductMobileCard";
+import { ProductEditSheet } from "@/components/admin/cardapio/ProductEditSheet";
+import type { ProductEditSheetProduct } from "@/components/admin/cardapio/ProductEditSheet";
 
 const WINE_COUNTRY_OPTIONS = [
   "Argentina",
@@ -52,6 +55,12 @@ const AdminCardapio = () => {
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set());
+  const [mobileEditProduct, setMobileEditProduct] = useState<ProductEditSheetProduct | null>(null);
+  const [mobileEditMeta, setMobileEditMeta] = useState<{
+    categoryName: string;
+    hasPizzaSizePricing: boolean;
+    isWineCategory: boolean;
+  } | null>(null);
 
   const { data: categories } = useQuery({
     queryKey: ["admin-categories"],
@@ -238,11 +247,11 @@ const AdminCardapio = () => {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Gerenciar Cardápio</h1>
-        <button onClick={() => setShowCategoryForm(!showCategoryForm)} className="btn-primary-dr flex items-center gap-2 text-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold text-foreground">Cardápio</h1>
+        <button onClick={() => setShowCategoryForm(!showCategoryForm)} className="btn-primary-dr flex items-center justify-center gap-2 text-sm min-h-[44px] w-full sm:w-auto px-4">
           {showCategoryForm ? <X size={16} /> : <Plus size={16} />}
-          {showCategoryForm ? "Cancelar" : "Nova Categoria"}
+          {showCategoryForm ? "Cancelar" : "Nova seção"}
         </button>
       </div>
 
@@ -259,8 +268,8 @@ const AdminCardapio = () => {
             return (
               <div key={cat.id} className="bg-background rounded-xl border border-border overflow-hidden">
                 {/* Category header */}
-                <div className="flex items-center gap-3 px-4 py-3 bg-muted/50">
-                  <button onClick={() => toggleCategory(cat.id)} className="text-muted-foreground">
+                <div className="flex items-center gap-2 px-3 sm:px-4 py-3 bg-muted/50">
+                  <button onClick={() => toggleCategory(cat.id)} className="text-muted-foreground min-h-[44px] min-w-[44px] flex items-center justify-center">
                     {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                   </button>
                   {editingCategoryId === cat.id ? (
@@ -281,18 +290,18 @@ const AdminCardapio = () => {
                         )}
                         {cat.description && <p className="text-xs text-muted-foreground">{cat.description}</p>}
                       </div>
-                      <button onClick={() => setEditingCategoryId(cat.id)} className="text-primary p-1" title="Editar categoria">
-                        <Pencil size={14} />
+                      <button onClick={() => setEditingCategoryId(cat.id)} className="text-primary min-h-[44px] min-w-[44px] flex items-center justify-center p-2.5" title="Editar seção">
+                        <Pencil size={16} />
                       </button>
                       <button
                         onClick={() => {
-                          if (confirm(`Excluir a categoria "${cat.name}" e todos os seus ${catProducts.length} produtos?`))
+                          if (confirm(`Excluir a seção "${cat.name}" e todos os ${catProducts.length} itens?`))
                             deleteCategoryMutation.mutate(cat.id);
                         }}
-                        className="text-destructive p-1"
-                        title="Excluir categoria"
+                        className="text-destructive min-h-[44px] min-w-[44px] flex items-center justify-center p-2.5"
+                        title="Excluir seção"
                       >
-                        <Trash2 size={14} />
+                        <Trash2 size={16} />
                       </button>
                     </>
                   )}
@@ -300,8 +309,32 @@ const AdminCardapio = () => {
 
                 {/* Products table */}
                 {isExpanded && (
-                  <div>
-                    <table className="w-full text-sm">
+                  <>
+                    <div className="md:hidden">
+                      {catProducts.map((p) => (
+                        <ProductMobileCard
+                          key={p.id}
+                          product={p}
+                          category={cat}
+                          isWineCategory={isWineCategory(cat)}
+                          onEdit={() => {
+                            setMobileEditProduct(p);
+                            setMobileEditMeta({
+                              categoryName: cat.name,
+                              hasPizzaSizePricing: !!cat.has_pizza_size_pricing,
+                              isWineCategory: isWineCategory(cat),
+                            });
+                          }}
+                        />
+                      ))}
+                      {catProducts.length === 0 && (
+                        <p className="text-center text-muted-foreground py-4 text-xs px-4">
+                          Nenhum item nesta seção.
+                        </p>
+                      )}
+                    </div>
+                    <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full text-sm min-w-[640px]">
                       <thead className="bg-muted/30">
                         <tr>
                           <th className="text-left px-4 py-2 font-medium text-foreground text-xs">Nome</th>
@@ -327,7 +360,8 @@ const AdminCardapio = () => {
                       <p className="text-center text-muted-foreground py-4 text-xs">Nenhum produto nesta categoria.</p>
                     )}
                     <NewProductInlineForm category={cat} onSubmit={(p) => createProductMutation.mutate(p)} />
-                  </div>
+                    </div>
+                  </>
                 )}
               </div>
             );
@@ -338,6 +372,32 @@ const AdminCardapio = () => {
           )}
         </div>
       )}
+
+      <ProductEditSheet
+        open={!!mobileEditProduct}
+        onOpenChange={(open) => {
+          if (!open) {
+            setMobileEditProduct(null);
+            setMobileEditMeta(null);
+          }
+        }}
+        product={mobileEditProduct}
+        categoryName={mobileEditMeta?.categoryName ?? ""}
+        isWineCategory={mobileEditMeta?.isWineCategory ?? false}
+        hasPizzaSizePricing={mobileEditMeta?.hasPizzaSizePricing ?? false}
+        isSaving={updateProductMutation.isPending}
+        onSave={(data) => {
+          if (!mobileEditProduct) {
+            return Promise.resolve();
+          }
+          return updateProductMutation.mutateAsync({ id: mobileEditProduct.id, ...data });
+        }}
+        onDelete={() => {
+          if (mobileEditProduct) {
+            deleteProductMutation.mutate(mobileEditProduct.id);
+          }
+        }}
+      />
     </div>
   );
 };

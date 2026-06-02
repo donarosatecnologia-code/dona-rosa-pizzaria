@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { AppScrollArea } from "@/components/ui/app-scroll-area";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -102,15 +103,16 @@ export function TemplateEditorDialog({ open, onOpenChange, template }: TemplateE
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="flex sm:max-w-lg max-h-[90vh] flex-col gap-0 p-0 overflow-hidden">
+        <DialogHeader className="shrink-0 px-6 pt-6">
           <DialogTitle>{isEdit ? "Editar modelo" : "Novo modelo de mensagem"}</DialogTitle>
           <DialogDescription>
             Escreva a mensagem como aparecerá para o cliente. Use {"{{1}}"} para personalizar com o nome.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <AppScrollArea className="flex-1 min-h-0">
+          <div className="space-y-4 px-6 py-4">
           <div className="space-y-2">
             <Label htmlFor="display-name">Nome do modelo</Label>
             <Input
@@ -170,9 +172,10 @@ export function TemplateEditorDialog({ open, onOpenChange, template }: TemplateE
           )}
 
           <WhatsappMessagePreview body={body} variables={variables} />
-        </div>
+          </div>
+        </AppScrollArea>
 
-        <DialogFooter>
+        <DialogFooter className="shrink-0 px-6 pb-6">
           {!isLocked && (
             <Button onClick={handleSave} disabled={isPending || !displayName.trim() || !body.trim()}>
               {isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}

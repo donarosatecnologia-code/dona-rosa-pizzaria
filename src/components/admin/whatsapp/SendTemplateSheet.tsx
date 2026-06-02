@@ -10,9 +10,11 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { AppScrollArea } from "@/components/ui/app-scroll-area";
 import { WhatsappMessagePreview } from "@/components/admin/templates/WhatsappMessagePreview";
 import { useSendWhatsappMessage } from "@/hooks/whatsapp/useSendWhatsappMessage";
 import { useApprovedWhatsappTemplates } from "@/hooks/whatsapp/useWhatsappTemplates";
+import { toAdminUserMessage } from "@/lib/adminUserMessage";
 
 interface SendTemplateSheetProps {
   conversationId: string;
@@ -32,10 +34,10 @@ export function SendTemplateSheet({ conversationId }: SendTemplateSheetProps) {
         action: "template",
         template_id: templateId,
       });
-      toast.success(result.dry_run ? "Modelo simulado (dry-run)." : "Modelo enviado!");
+      toast.success(result.dry_run ? "Salvou no modo teste (não chegou no celular)." : "Enviou!");
       setOpen(false);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Não foi possível enviar.");
+      toast.error(toAdminUserMessage(err instanceof Error ? err.message : undefined));
     } finally {
       setSendingId(null);
     }
@@ -44,51 +46,53 @@ export function SendTemplateSheet({ conversationId }: SendTemplateSheetProps) {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="secondary">
+        <Button variant="secondary" className="min-h-[44px]">
           <Send className="h-4 w-4 mr-2" />
-          Enviar modelo
+          Enviar mensagem pronta
         </Button>
       </SheetTrigger>
-      <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle>Enviar modelo aprovado</SheetTitle>
+      <SheetContent className="flex w-full flex-col gap-0 p-0 sm:max-w-lg">
+        <SheetHeader className="shrink-0 px-6 pt-6">
+          <SheetTitle>Enviar mensagem pronta</SheetTitle>
           <SheetDescription>
-            Fora da janela de 24h, só é possível enviar modelos aprovados pela Meta.
+            Passou de 24h — só mensagens já aprovadas pelo WhatsApp.
           </SheetDescription>
         </SheetHeader>
-        <div className="mt-4 space-y-4">
-          {isLoading && <p className="text-sm text-muted-foreground">Carregando modelos...</p>}
-          {!isLoading && (!templates || templates.length === 0) && (
-            <p className="text-sm text-muted-foreground">
-              Nenhum modelo aprovado disponível. Crie e submeta um em Modelos.
-            </p>
-          )}
-          {templates?.map((template) => (
-            <div key={template.id} className="rounded-lg border p-3 space-y-2">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="font-medium text-sm">{template.display_name}</p>
-                  <p className="text-xs text-muted-foreground font-mono">{template.name}</p>
+        <AppScrollArea className="flex-1 min-h-0">
+          <div className="px-6 mt-4 pb-6 space-y-4">
+            {isLoading && <p className="text-sm text-muted-foreground">Carregando...</p>}
+            {!isLoading && (!templates || templates.length === 0) && (
+              <p className="text-sm text-muted-foreground">
+                Nenhuma mensagem pronta disponível. Crie uma em Mensagens prontas.
+              </p>
+            )}
+            {templates?.map((template) => (
+              <div key={template.id} className="rounded-lg border p-3 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-medium text-sm">{template.display_name}</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    className="min-h-[44px] shrink-0"
+                    disabled={sendingId === template.id}
+                    onClick={() => handleSend(template.id)}
+                  >
+                    {sendingId === template.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      "Enviar"
+                    )}
+                  </Button>
                 </div>
-                <Button
-                  size="sm"
-                  disabled={sendingId === template.id}
-                  onClick={() => handleSend(template.id)}
-                >
-                  {sendingId === template.id ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    "Enviar"
-                  )}
-                </Button>
+                <WhatsappMessagePreview
+                  body={template.body}
+                  variables={template.variables ?? []}
+                />
               </div>
-              <WhatsappMessagePreview
-                body={template.body}
-                variables={template.variables ?? []}
-              />
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </AppScrollArea>
       </SheetContent>
     </Sheet>
   );

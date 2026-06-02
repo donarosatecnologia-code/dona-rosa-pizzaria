@@ -1,3 +1,5 @@
+import { toAdminUserMessage } from "@/lib/adminUserMessage";
+
 /** Extrai mensagem legível de erros do supabase.functions.invoke. */
 export async function readFunctionInvokeError(
   error: unknown,
@@ -6,19 +8,11 @@ export async function readFunctionInvokeError(
   const payload = data as { error?: string; message?: string } | null;
 
   if (payload?.message) {
-    return payload.message;
+    return toAdminUserMessage(payload.message);
   }
 
-  if (payload?.error === "template_not_submittable") {
-    return "Este modelo já foi enviado. Aguarde a aprovação ou edite um rascunho/reprovado.";
-  }
-
-  if (payload?.error === "template_id_required") {
-    return "Modelo não identificado.";
-  }
-
-  if (payload?.error === "missing_meta_env") {
-    return "Configuração Meta incompleta no servidor.";
+  if (payload?.error) {
+    return toAdminUserMessage(payload.error);
   }
 
   if (error && typeof error === "object" && "context" in error) {
@@ -27,10 +21,10 @@ export async function readFunctionInvokeError(
       try {
         const body = (await response.json()) as { message?: string; error?: string };
         if (body.message) {
-          return body.message;
+          return toAdminUserMessage(body.message);
         }
-        if (body.error === "template_not_submittable") {
-          return "Este modelo já foi enviado. Aguarde a aprovação ou edite um rascunho/reprovado.";
+        if (body.error) {
+          return toAdminUserMessage(body.error);
         }
       } catch {
         /* ignore parse errors */
@@ -39,8 +33,8 @@ export async function readFunctionInvokeError(
   }
 
   if (error instanceof Error && error.message) {
-    return error.message;
+    return toAdminUserMessage(error.message);
   }
 
-  return "Não foi possível completar a operação.";
+  return "Algo deu errado. Tente de novo.";
 }

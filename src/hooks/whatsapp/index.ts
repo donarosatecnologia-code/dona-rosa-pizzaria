@@ -37,6 +37,7 @@ export {
   useWhatsappNotifications,
   useWhatsappUnreadCount,
   useMarkNotificationsRead,
+  useDismissWhatsappNotifications,
   useWhatsappNotificationsRealtime,
 } from "./useWhatsappNotifications";
 export {

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useLocation, useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Save, Rocket, Eye, Loader2 } from "lucide-react";
@@ -8,9 +8,14 @@ import { publishToProduction } from "@/lib/cmsPublish";
 import { useCmsUiStore } from "@/stores/cmsUiStore";
 import { Button } from "@/components/ui/button";
 import { isAdminPageSlug } from "@/pages/admin/adminPageComponents";
+import { cn } from "@/lib/utils";
 
-export function AdminEditToolbar() {
-  const location = useLocation();
+interface AdminEditToolbarProps {
+  align?: "start" | "end";
+}
+
+export function AdminEditToolbar({ align = "start" }: AdminEditToolbarProps) {
+  const navigate = useNavigate();
   const params = useParams();
   const queryClient = useQueryClient();
   const { requestSaveDraft } = useAdminEditor();
@@ -18,33 +23,18 @@ export function AdminEditToolbar() {
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
 
-  const visible = useMemo(() => {
-    const p = location.pathname;
-    if (p.startsWith("/admin/mirror/")) {
-      return true;
-    }
-    if (p.startsWith("/admin/header-footer")) {
-      return true;
-    }
-    return false;
-  }, [location.pathname]);
-
   const previewSlug = useMemo(() => {
-    if (location.pathname.startsWith("/admin/mirror/")) {
-      const slug = params.pageSlug;
-      return isAdminPageSlug(slug) ? slug : null;
-    }
-    return null;
-  }, [location.pathname, params.pageSlug]);
-
-  if (!visible) {
-    return null;
-  }
+    const slug = params.pageSlug;
+    return isAdminPageSlug(slug) ? slug : null;
+  }, [params.pageSlug]);
 
   async function handleSaveDraft(): Promise<void> {
     setSaving(true);
     try {
       await requestSaveDraft();
+      toast.success("Salvo!");
+    } catch {
+      toast.error("Não deu para salvar. Tente de novo.");
     } finally {
       setSaving(false);
     }
@@ -52,9 +42,9 @@ export function AdminEditToolbar() {
 
   function handlePublish(): void {
     openConfirmDialog({
-      title: "Publicar alterações",
-      message: "Deseja aplicar estas alterações ao site público? Os rascunhos serão copiados para a versão publicada.",
-      confirmLabel: "Publicar",
+      title: "Colocar no ar?",
+      message: "As mudanças vão aparecer no site para todo mundo.",
+      confirmLabel: "Sim, colocar no ar",
       cancelLabel: "Cancelar",
       variant: "default",
       onConfirm: async () => {
@@ -62,10 +52,9 @@ export function AdminEditToolbar() {
         try {
           await publishToProduction();
           await queryClient.invalidateQueries();
-          toast.success("Site público atualizado.");
-        } catch (e) {
-          console.error(e);
-          toast.error("Não foi possível publicar.");
+          toast.success("Site atualizado!");
+        } catch {
+          toast.error("Não deu para publicar. Tente de novo.");
         } finally {
           setPublishing(false);
         }
@@ -75,28 +64,46 @@ export function AdminEditToolbar() {
 
   function handlePreview(): void {
     if (previewSlug) {
-      window.open(`/admin/preview/${previewSlug}`, "_blank", "noopener,noreferrer");
+      navigate(`/admin/preview/${previewSlug}`);
       return;
     }
-    if (location.pathname.startsWith("/admin/header-footer")) {
-      window.open("/admin/preview/header-footer", "_blank", "noopener,noreferrer");
-    }
+    navigate("/admin/preview/header-footer");
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="mr-auto text-xs font-medium uppercase tracking-wide text-muted-foreground">Edição</span>
-      <Button type="button" variant="outline" size="sm" disabled={saving} onClick={() => void handleSaveDraft()}>
-        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-        Salvar rascunho
+    <div
+      className={cn(
+        "flex flex-wrap items-center gap-2",
+        align === "end" ? "justify-end w-full sm:w-auto" : "w-full",
+      )}
+    >
+      <Button
+        type="button"
+        variant="outline"
+        className="min-h-[44px] flex-1 sm:flex-none"
+        disabled={saving}
+        onClick={() => void handleSaveDraft()}
+      >
+        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-1.5" />}
+        Salvar
       </Button>
-      <Button type="button" size="sm" disabled={publishing} onClick={handlePublish}>
-        {publishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Rocket className="h-4 w-4" />}
-        Publicar
+      <Button
+        type="button"
+        className="min-h-[44px] flex-1 sm:flex-none"
+        disabled={publishing}
+        onClick={handlePublish}
+      >
+        {publishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Rocket className="h-4 w-4 mr-1.5" />}
+        Colocar no ar
       </Button>
-      <Button type="button" variant="secondary" size="sm" onClick={handlePreview}>
-        <Eye className="h-4 w-4" />
-        Visualizar
+      <Button
+        type="button"
+        variant="secondary"
+        className="min-h-[44px] flex-1 sm:flex-none"
+        onClick={handlePreview}
+      >
+        <Eye className="h-4 w-4 mr-1.5" />
+        Ver como fica
       </Button>
     </div>
   );

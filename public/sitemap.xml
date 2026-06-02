@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <!-- Substitua BASE pela URL absoluta do domínio de produção (ex.: https://www.seudominio.com.br) -->
-  <url><loc>https://www.donarosa.com.br/</loc><changefreq>weekly</changefreq><priority>1</priority></url>
-  <url><loc>https://www.donarosa.com.br/quem-somos</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://www.donarosa.com.br/cardapio</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
-  <url><loc>https://www.donarosa.com.br/espacos</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.donarosa.com.br/cursos-e-eventos</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.donarosa.com.br/saude-e-sustentabilidade</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://www.donarosa.com.br/contato</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://www.donarosa.com.br/politica-de-privacidade</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
-  <url><loc>https://www.donarosa.com.br/termos-de-uso</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://www.donarosa.com.br/</loc><lastmod>2026-05-27</lastmod><changefreq>weekly</changefreq><priority>1</priority></url>
+  <url><loc>https://www.donarosa.com.br/quem-somos</loc><lastmod>2026-05-27</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.donarosa.com.br/cardapio</loc><lastmod>2026-05-27</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.donarosa.com.br/espacos</loc><lastmod>2026-05-27</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.donarosa.com.br/cursos-e-eventos</loc><lastmod>2026-05-27</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://www.donarosa.com.br/saude-e-sustentabilidade</loc><lastmod>2026-05-27</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://www.donarosa.com.br/contato</loc><lastmod>2026-05-27</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.donarosa.com.br/politica-de-privacidade</loc><lastmod>2026-05-27</lastmod><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://www.donarosa.com.br/termos-de-uso</loc><lastmod>2026-05-27</lastmod><changefreq>yearly</changefreq><priority>0.3</priority></url>
 </urlset>

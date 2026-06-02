@@ -114,10 +114,10 @@ export default function AdminTemplates() {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <FileText className="h-6 w-6 text-primary" />
-            <h1 className="text-2xl font-bold">Modelos de Mensagem</h1>
+            <h1 className="text-xl sm:text-2xl font-bold">Mensagens prontas</h1>
           </div>
           <p className="text-sm text-muted-foreground">
-            Crie e envie modelos para aprovação da Meta — sem sair do painel.
+            Textos que o WhatsApp precisa aprovar antes de usar.
           </p>
         </div>
         <div className="flex flex-wrap gap-2 shrink-0">

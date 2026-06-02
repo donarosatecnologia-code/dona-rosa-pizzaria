@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { MessageCircle, X, Send } from "lucide-react";
-
-const WHATSAPP_NUMBER = "5511930617116";
+import { buildWhatsAppUrl, SITE_WHATSAPP } from "@/lib/siteConfig";
 
 const WhatsAppButton = () => {
   const [open, setOpen] = useState(false);
@@ -13,10 +12,8 @@ const WhatsAppButton = () => {
     e.preventDefault();
     if (!name.trim() || !phone.trim() || !message.trim()) return;
 
-    const text = encodeURIComponent(
-      `Olá! Meu nome é ${name.trim()}.\nTelefone: ${phone.trim()}\n\n${message.trim()}`
-    );
-    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${text}`, "_blank", "noopener,noreferrer");
+    const text = `Olá! Meu nome é ${name.trim()}.\nTelefone: ${phone.trim()}\n\n${message.trim()}`;
+    window.open(buildWhatsAppUrl(text), "_blank", "noopener,noreferrer");
     setOpen(false);
     setName("");
     setPhone("");
@@ -25,7 +22,6 @@ const WhatsAppButton = () => {
 
   return (
     <div className="fixed bottom-20 right-6 z-50 sm:bottom-24 sm:right-8">
-      {/* Popup */}
       {open && (
         <div className="absolute bottom-16 right-0 w-80 bg-background rounded-2xl shadow-2xl border border-border overflow-hidden animate-in slide-in-from-bottom-4 fade-in duration-300">
           <div className="bg-primary p-4 flex items-center justify-between">
@@ -55,7 +51,7 @@ const WhatsAppButton = () => {
               <input
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="(11) 99999-9999"
+                placeholder={SITE_WHATSAPP.display}
                 required
                 maxLength={20}
                 className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
@@ -84,7 +80,6 @@ const WhatsAppButton = () => {
         </div>
       )}
 
-      {/* FAB */}
       <button
         onClick={() => setOpen(!open)}
         className="w-14 h-14 rounded-full bg-[#25D366] hover:bg-[#1da851] text-white shadow-lg flex items-center justify-center transition-all hover:scale-110"

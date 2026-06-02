@@ -25,10 +25,10 @@ export function WhatsappBusinessHoursCard() {
       <CardHeader>
         <CardTitle className="text-base flex items-center gap-2">
           <Clock className="h-4 w-4" />
-          Horário de atendimento WhatsApp
+          Horário da pizzaria (WhatsApp)
         </CardTitle>
         <p className="text-xs text-muted-foreground">
-          Apenas informativo na fila de conversas — não bloqueia envio de mensagens.
+          Só um aviso na fila — não impede você de responder.
         </p>
       </CardHeader>
       <CardContent className="space-y-3">

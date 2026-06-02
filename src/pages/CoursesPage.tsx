@@ -18,7 +18,7 @@ import { useCmsCarousel } from "@/hooks/useCmsMedia";
 import { siteContainerClass } from "@/lib/siteLayout";
 import { cn } from "@/lib/utils";
 
-const WHATSAPP_REGISTRATION_PHONE = "5511930617116";
+import { buildWhatsAppUrl } from "@/lib/siteConfig";
 
 const EVENT_OPTIONS = [
   { value: "Espaco Gourmet", label: "Espaço Gourmet" },
@@ -26,9 +26,8 @@ const EVENT_OPTIONS = [
   { value: "Dona Rosa em Casa", label: "Dona Rosa em Casa" },
 ] as const;
 
-export function generateWhatsAppLink(phoneDigits: string, message: string): string {
-  const encoded = encodeURIComponent(message);
-  return `https://wa.me/${phoneDigits}?text=${encoded}`;
+export function generateWhatsAppLink(_phoneDigits: string, message: string): string {
+  return buildWhatsAppUrl(message);
 }
 
 interface RegistrationFormState {
@@ -86,7 +85,7 @@ function handleFormSubmit(values: RegistrationFormState): void {
     return;
   }
   const message = buildRegistrationMessage(values);
-  const url = generateWhatsAppLink(WHATSAPP_REGISTRATION_PHONE, message);
+  const url = generateWhatsAppLink("", message);
   window.open(url, "_blank", "noopener,noreferrer");
   toast.success("Redirecionando para o WhatsApp. Sua mensagem foi preparada!");
 }

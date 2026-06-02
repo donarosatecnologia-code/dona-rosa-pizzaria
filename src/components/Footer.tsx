@@ -13,6 +13,7 @@ import { useCmsContents } from "@/hooks/useCmsContent";
 import RichText from "@/components/RichText";
 import { siteContainerClass } from "@/lib/siteLayout";
 import { stripHtmlTags } from "@/lib/utils";
+import { AppScrollArea } from "@/components/ui/app-scroll-area";
 import type { Database } from "@/integrations/supabase/types";
 
 type NavLinkRow = Database["public"]["Tables"]["nav_links"]["Row"];
@@ -239,7 +240,8 @@ function SocialLinkManager() {
       {showForm && (
         <div className="absolute bottom-full left-0 mb-2 bg-background text-foreground rounded-lg shadow-xl border border-border p-4 w-72 z-50">
           <h4 className="text-sm font-semibold mb-3">Redes Sociais</h4>
-          <div className="space-y-2 mb-3 max-h-40 overflow-auto">
+          <AppScrollArea className="max-h-40">
+            <div className="space-y-2 mb-3 pr-2">
             {(allLinks ?? []).map((link: SocialLinkRow) => (
               <div key={link.id} className="flex items-center gap-2 text-xs">
                 {editing?.id === link.id ? (
@@ -260,7 +262,8 @@ function SocialLinkManager() {
                 )}
               </div>
             ))}
-          </div>
+            </div>
+          </AppScrollArea>
           <SocialAddForm onAdd={(data) => createMutation.mutate(data)} />
         </div>
       )}

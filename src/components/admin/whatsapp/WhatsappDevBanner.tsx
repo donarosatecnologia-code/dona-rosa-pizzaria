@@ -1,23 +1,31 @@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Info } from "lucide-react";
 import { useWhatsappConnectionStatus } from "@/hooks/whatsapp";
+import { cn } from "@/lib/utils";
 
-export function WhatsappDevBanner() {
+interface WhatsappDevBannerProps {
+  compact?: boolean;
+}
+
+export function WhatsappDevBanner({ compact = false }: WhatsappDevBannerProps) {
   const { data } = useWhatsappConnectionStatus();
 
   return (
-    <Alert className="mb-6 border-amber-200 bg-amber-50 text-amber-950">
+    <Alert
+      className={cn(
+        "border-amber-200 bg-amber-50 text-amber-950",
+        compact ? "mb-3 py-2" : "mb-6",
+      )}
+    >
       <Info className="h-4 w-4" />
-      <AlertTitle>Modo desenvolvimento — WhatsApp</AlertTitle>
-      <AlertDescription className="text-sm space-y-1">
+      <AlertTitle className={compact ? "text-sm" : undefined}>Modo teste</AlertTitle>
+      <AlertDescription className={cn("text-sm", compact && "text-xs")}>
         <p>
-          Recebimento (celular → Supabase) funciona. Disparos usam{" "}
-          <strong>simulação (dry-run)</strong> até conectar número brasileiro real.
+          Mensagens que você envia ainda não chegam no celular do cliente. Receber mensagens funciona normal.
         </p>
-        <p className="text-xs opacity-80">
-          Conexão Meta: {data?.isConnected ? "ativa" : "pendente"}
-          {data?.lastWebhookAt ? ` · último webhook ${new Date(data.lastWebhookAt).toLocaleString("pt-BR")}` : ""}
-        </p>
+        {!compact && data?.isConnected && (
+          <p className="text-xs opacity-80 mt-1">WhatsApp: conectado ✓</p>
+        )}
       </AlertDescription>
     </Alert>
   );

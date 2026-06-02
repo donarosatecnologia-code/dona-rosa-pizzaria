@@ -36,3 +36,14 @@ export const ADMIN_PAGE_COMPONENTS: Record<AdminPageSlug, ComponentType> = {
 export function isAdminPageSlug(value: string | undefined): value is AdminPageSlug {
   return !!value && value in ADMIN_PAGE_COMPONENTS;
 }
+
+export const ADMIN_PAGE_LABELS: Record<AdminPageSlug, string> = {
+  home: "Home",
+  "quem-somos": "Quem Somos",
+  espacos: "Espaços",
+  "cursos-e-eventos": "Cursos e Eventos",
+  "saude-e-sustentabilidade": "Saúde e Sustentabilidade",
+  contato: "Contato",
+  "politica-privacidade": "Política de Privacidade",
+  "termos-de-uso": "Termos de Uso",
+};

@@ -50,37 +50,37 @@ export default function AdminContatos() {
   async function handleOptOut(contactId: string) {
     try {
       await updateStatus.mutateAsync({ contactId, status: "opted_out" });
-      toast.success("Contato marcado como opt-out.");
+      toast.success("Cliente marcado como não quer receber.");
     } catch {
-      toast.error("Não foi possível atualizar o contato.");
+      toast.error("Não deu para atualizar. Tente de novo.");
     }
   }
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="max-w-5xl mx-auto w-full">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <Users className="h-6 w-6 text-primary" />
-            <h1 className="text-2xl font-bold">Contatos</h1>
+            <Users className="h-6 w-6 text-primary shrink-0" />
+            <h1 className="text-xl sm:text-2xl font-bold">Clientes</h1>
           </div>
           <p className="text-sm text-muted-foreground">
-            Importe sua lista de clientes para disparar campanhas pelo WhatsApp.
+            Lista para promoções e envios pelo WhatsApp.
           </p>
         </div>
-        <Button onClick={() => setImportOpen(true)} className="shrink-0">
+        <Button onClick={() => setImportOpen(true)} className="shrink-0 min-h-[44px] w-full sm:w-auto">
           <Upload className="h-4 w-4 mr-2" />
-          Importar CSV
+          Importar planilha
         </Button>
       </div>
 
-      <WhatsappDevBanner />
+      <WhatsappDevBanner compact />
 
       <div className="relative mb-4">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          className="pl-9"
-          placeholder="Buscar por nome ou telefone..."
+          className="pl-9 min-h-[44px]"
+          placeholder="Buscar nome ou telefone..."
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);
@@ -92,7 +92,7 @@ export default function AdminContatos() {
       {isLoading && (
         <div className="space-y-2">
           {[1, 2, 3, 4, 5].map((i) => (
-            <Skeleton key={i} className="h-12 w-full" />
+            <Skeleton key={i} className="h-16 w-full rounded-xl" />
           ))}
         </div>
       )}
@@ -100,7 +100,7 @@ export default function AdminContatos() {
       {error && (
         <Card className="border-destructive/30">
           <CardContent className="pt-6 text-sm text-destructive">
-            Não foi possível carregar os contatos. Tente novamente.
+            Não deu para carregar. Tente de novo.
           </CardContent>
         </Card>
       )}
@@ -108,10 +108,10 @@ export default function AdminContatos() {
       {!isLoading && !error && filtered.length === 0 && (
         <Card>
           <CardContent className="pt-6 text-center text-sm text-muted-foreground">
-            <p className="font-medium text-foreground mb-1">Nenhum contato ainda</p>
-            <p>Importe uma lista CSV para começar.</p>
-            <Button className="mt-4" variant="secondary" onClick={() => setImportOpen(true)}>
-              Importar CSV
+            <p className="font-medium text-foreground mb-1">Nenhum cliente ainda</p>
+            <p>Importe uma planilha para começar.</p>
+            <Button className="mt-4 min-h-[44px]" variant="secondary" onClick={() => setImportOpen(true)}>
+              Importar planilha
             </Button>
           </CardContent>
         </Card>
@@ -119,14 +119,46 @@ export default function AdminContatos() {
 
       {pageItems.length > 0 && (
         <>
-          <div className="overflow-x-auto rounded-xl border">
+          <div className="md:hidden space-y-3">
+            {pageItems.map((contact) => (
+              <Card key={contact.id}>
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium">{contact.name}</p>
+                      <p className="text-sm text-muted-foreground">{formatPhoneDisplay(contact.phone_number)}</p>
+                      <div className="mt-2">
+                        <ContactStatusBadge status={contact.status} />
+                      </div>
+                    </div>
+                  </div>
+                  {contact.status === "active" && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="min-h-[44px] flex-1"
+                        disabled={updateStatus.isPending}
+                        onClick={() => void handleOptOut(contact.id)}
+                      >
+                        Não quer receber
+                      </Button>
+                      <DeleteContactDialog contactId={contact.id} contactName={contact.name} />
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <div className="hidden md:block overflow-x-auto rounded-xl border">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Nome</TableHead>
                   <TableHead>Telefone</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="hidden sm:table-cell">Cadastro</TableHead>
+                  <TableHead>Cadastro</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -138,7 +170,7 @@ export default function AdminContatos() {
                     <TableCell>
                       <ContactStatusBadge status={contact.status} />
                     </TableCell>
-                    <TableCell className="hidden sm:table-cell text-xs text-muted-foreground">
+                    <TableCell className="text-xs text-muted-foreground">
                       {new Date(contact.created_at).toLocaleDateString("pt-BR")}
                     </TableCell>
                     <TableCell className="text-right space-x-1">
@@ -147,11 +179,11 @@ export default function AdminContatos() {
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="text-xs"
+                            className="text-xs min-h-[44px]"
                             disabled={updateStatus.isPending}
                             onClick={() => handleOptOut(contact.id)}
                           >
-                            Marcar opt-out
+                            Não quer receber
                           </Button>
                           <DeleteContactDialog contactId={contact.id} contactName={contact.name} />
                         </>
@@ -163,17 +195,18 @@ export default function AdminContatos() {
             </Table>
           </div>
 
-          <div className="flex items-center justify-between mt-4 text-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-4 text-sm">
             <p className="text-muted-foreground">
-              {filtered.length} contato(s) · página {page + 1} de {totalPages}
+              {filtered.length} cliente(s) · página {page + 1} de {totalPages}
             </p>
             <div className="flex gap-2">
-              <Button size="sm" variant="outline" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
+              <Button size="sm" variant="outline" className="min-h-[44px] flex-1 sm:flex-none" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
                 Anterior
               </Button>
               <Button
                 size="sm"
                 variant="outline"
+                className="min-h-[44px] flex-1 sm:flex-none"
                 disabled={page >= totalPages - 1}
                 onClick={() => setPage((p) => p + 1)}
               >

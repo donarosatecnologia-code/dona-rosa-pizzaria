@@ -17,11 +17,11 @@ export function ServiceWindowBanner({ lastInboundAt, isLoading }: ServiceWindowB
 
   if (open && expiresAt) {
     return (
-      <Alert className="mb-4 border-green-200 bg-green-50 text-green-950">
+      <Alert className="mb-0 border-green-200 bg-green-50 text-green-950">
         <Clock className="h-4 w-4" />
-        <AlertTitle>Janela de atendimento aberta</AlertTitle>
-        <AlertDescription>
-          Você pode responder com texto livre até{" "}
+        <AlertTitle className="text-sm">Pode responder normalmente</AlertTitle>
+        <AlertDescription className="text-xs">
+          Até{" "}
           {expiresAt.toLocaleString("pt-BR", {
             day: "2-digit",
             month: "short",
@@ -35,11 +35,11 @@ export function ServiceWindowBanner({ lastInboundAt, isLoading }: ServiceWindowB
   }
 
   return (
-    <Alert className="mb-4 border-amber-200 bg-amber-50 text-amber-950">
+    <Alert className="mb-0 border-amber-200 bg-amber-50 text-amber-950">
       <AlertTriangle className="h-4 w-4" />
-      <AlertTitle>Janela de 24h encerrada</AlertTitle>
-      <AlertDescription>
-        Para falar com este contato, envie um modelo aprovado pela Meta.
+      <AlertTitle className="text-sm">Passou de 24h</AlertTitle>
+      <AlertDescription className="text-xs">
+        Envie uma mensagem pronta aprovada pelo WhatsApp.
       </AlertDescription>
     </Alert>
   );

@@ -1,0 +1,66 @@
+import type { LucideIcon } from "lucide-react";
+import {
+  FileStack,
+  FileText,
+  LayoutDashboard,
+  LogOut,
+  MessageCircle,
+  Rows3,
+  Send,
+  Settings,
+  Users,
+  UtensilsCrossed,
+} from "lucide-react";
+
+export interface AdminNavItem {
+  to: string;
+  label: string;
+  icon: LucideIcon;
+  /** Prefixo de rota para marcar item ativo */
+  matchPrefix?: string;
+}
+
+export const ADMIN_BOTTOM_NAV: AdminNavItem[] = [
+  { to: "/admin/conversas", label: "Mensagens", icon: MessageCircle, matchPrefix: "/admin/conversas" },
+  { to: "/admin/dashboard", label: "Início", icon: LayoutDashboard, matchPrefix: "/admin/dashboard" },
+  { to: "/admin/cardapio", label: "Cardápio", icon: UtensilsCrossed, matchPrefix: "/admin/cardapio" },
+];
+
+export const ADMIN_MORE_NAV: AdminNavItem[] = [
+  { to: "/admin/contatos", label: "Clientes", icon: Users, matchPrefix: "/admin/contatos" },
+  { to: "/admin/disparos", label: "Promoções", icon: Send, matchPrefix: "/admin/disparos" },
+  { to: "/admin/templates", label: "Mensagens prontas", icon: FileText, matchPrefix: "/admin/templates" },
+  { to: "/admin/pages", label: "Páginas do site", icon: FileStack, matchPrefix: "/admin/pages" },
+  { to: "/admin/header-footer", label: "Topo e rodapé", icon: Rows3, matchPrefix: "/admin/header-footer" },
+  { to: "/admin/configuracoes", label: "Ajustes", icon: Settings, matchPrefix: "/admin/configuracoes" },
+];
+
+export const ADMIN_DESKTOP_NAV: AdminNavItem[] = [
+  { to: "/admin/dashboard", label: "Início", icon: LayoutDashboard, matchPrefix: "/admin/dashboard" },
+  { to: "/admin/conversas", label: "Mensagens", icon: MessageCircle, matchPrefix: "/admin/conversas" },
+  { to: "/admin/contatos", label: "Clientes", icon: Users, matchPrefix: "/admin/contatos" },
+  { to: "/admin/templates", label: "Mensagens prontas", icon: FileText, matchPrefix: "/admin/templates" },
+  { to: "/admin/disparos", label: "Promoções", icon: Send, matchPrefix: "/admin/disparos" },
+  { to: "/admin/pages", label: "Páginas do site", icon: FileStack, matchPrefix: "/admin/pages" },
+  { to: "/admin/cardapio", label: "Cardápio", icon: UtensilsCrossed, matchPrefix: "/admin/cardapio" },
+  { to: "/admin/header-footer", label: "Topo e rodapé", icon: Rows3, matchPrefix: "/admin/header-footer" },
+  { to: "/admin/configuracoes", label: "Ajustes", icon: Settings, matchPrefix: "/admin/configuracoes" },
+];
+
+export const ADMIN_SIGN_OUT = { label: "Sair", icon: LogOut };
+
+export function isAdminNavActive(pathname: string, item: AdminNavItem): boolean {
+  const prefix = item.matchPrefix ?? item.to;
+  if (prefix === "/admin/dashboard") {
+    return pathname === "/admin/dashboard" || pathname === "/admin";
+  }
+  return pathname === prefix || pathname.startsWith(`${prefix}/`);
+}
+
+export function isAdminChatRoute(pathname: string): boolean {
+  return /^\/admin\/conversas\/[^/]+$/.test(pathname);
+}
+
+export function isAdminMirrorRoute(pathname: string): boolean {
+  return pathname.startsWith("/admin/mirror/") || pathname.startsWith("/admin/header-footer");
+}
