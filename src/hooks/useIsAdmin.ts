@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
-/** Verifica role admin via RPC is_admin (mesma lógica do AdminEditorContext). */
+/** Verifica role admin via RPC am_i_admin (schema private, não expõe is_admin). */
 export function useIsAdmin() {
   const { user, loading: authLoading } = useAuth();
 
@@ -12,7 +12,7 @@ export function useIsAdmin() {
       if (!user) {
         return false;
       }
-      const { data, error } = await supabase.rpc("is_admin", { _user_id: user.id });
+      const { data, error } = await supabase.rpc("am_i_admin");
       if (error) {
         throw error;
       }

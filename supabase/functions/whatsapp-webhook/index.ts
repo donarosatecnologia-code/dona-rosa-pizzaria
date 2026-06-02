@@ -255,7 +255,7 @@ async function handleInboundMessage(
   console.info("inbound_received", { phone, type: message.type, messageId: message.id });
 
   const now = new Date().toISOString();
-  let contact = await ensureActiveContact(supabase, phone);
+  const contact = await ensureActiveContact(supabase, phone);
 
   await persistInboundCrmMessage(supabase, message, ctx, contact?.id ?? null);
 

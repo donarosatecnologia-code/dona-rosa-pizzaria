@@ -23,7 +23,7 @@ function getSiteUrl(): string {
 }
 
 async function assertCanManageUsers(userClient: ReturnType<typeof createServiceClient>, userId: string) {
-  const { data, error } = await userClient.rpc("admin_can_manage_users", { _user_id: userId });
+  const { data, error } = await userClient.rpc("can_i_manage_users");
   if (error || !data) {
     throw new AuthError("not_allowed", 403);
   }

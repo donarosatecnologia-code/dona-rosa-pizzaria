@@ -16,7 +16,7 @@ export interface AdminContext {
   userClient: SupabaseClient;
 }
 
-/** Valida JWT do caller e exige role admin via RPC is_admin. */
+/** Valida JWT do caller e exige role admin via RPC am_i_admin. */
 export async function requireAdmin(req: Request): Promise<AdminContext> {
   const authHeader = req.headers.get("Authorization");
   if (!authHeader?.startsWith("Bearer ")) {
@@ -40,9 +40,7 @@ export async function requireAdmin(req: Request): Promise<AdminContext> {
     throw new AuthError("invalid_auth", 401);
   }
 
-  const { data: isAdmin, error: adminError } = await userClient.rpc("is_admin", {
-    _user_id: userData.user.id,
-  });
+  const { data: isAdmin, error: adminError } = await userClient.rpc("am_i_admin");
 
   if (adminError || !isAdmin) {
     throw new AuthError("not_admin", 403);

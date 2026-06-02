@@ -947,7 +947,8 @@ export type Database = {
         Args: { p_campaign_id: string }
         Returns: undefined
       }
-      is_admin: { Args: { _user_id: string }; Returns: boolean }
+      am_i_admin: { Args: Record<string, never>; Returns: boolean }
+      can_i_manage_users: { Args: Record<string, never>; Returns: boolean }
       publish_broadcast_campaign: {
         Args: { p_campaign_id: string }
         Returns: undefined

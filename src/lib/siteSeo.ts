@@ -81,6 +81,24 @@ export const PAGE_SEO: Record<string, PageSeoMeta> = {
     keywords: ["termos de uso"],
     aiDescription: "Termos de uso do site da Dona Rosa Pizzaria.",
   },
+  "/login": {
+    title: `Login | ${SITE_NAME}`,
+    description: "Acesso ao painel administrativo da Dona Rosa Pizzaria.",
+    keywords: [],
+    aiDescription: "Login do painel administrativo Dona Rosa.",
+  },
+  "/recuperar-senha": {
+    title: `Recuperar senha | ${SITE_NAME}`,
+    description: "Recupere o acesso ao painel administrativo da Dona Rosa Pizzaria.",
+    keywords: [],
+    aiDescription: "Recuperação de senha do painel Dona Rosa.",
+  },
+  "/redefinir-senha": {
+    title: `Redefinir senha | ${SITE_NAME}`,
+    description: "Defina uma nova senha para o painel administrativo da Dona Rosa Pizzaria.",
+    keywords: [],
+    aiDescription: "Redefinição de senha do painel Dona Rosa.",
+  },
 };
 
 export function getPageSeo(pathname: string): PageSeoMeta {

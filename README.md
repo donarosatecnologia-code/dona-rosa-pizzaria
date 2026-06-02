@@ -21,6 +21,7 @@
 13. [WhatsApp — Disparos Ativos (infra Supabase)](#13-whatsapp--disparos-ativos-infra-supabase)
 14. [Regras de negócio — não quebre isso](#14-regras-de-negócio--não-quebre-isso)
 15. [Onde pedir ajuda / credenciais](#15-onde-pedir-ajuda--credenciais)
+16. [Checklist de QA — painel administrativo](#16-checklist-de-qa--painel-administrativo)
  
 ---
  
@@ -151,12 +152,39 @@ Todo o conteúdo público (textos, imagens, cardápio, etc.) vem do **Supabase**
 ---
  
 ## 8. Área administrativa
- 
-- Rota: `/admin` e `/login`
+
+- Rota base: `/admin` (redireciona para `/admin/dashboard`) e `/login`
 - **Autenticação via Supabase Auth** — não há usuário hardcoded.
-- Essas rotas são marcadas com `noindex` (não aparecem em buscadores).
-- Para criar ou resetar acesso admin, use o painel do Supabase (Authentication → Users).
- 
+- Rotas privadas usam `noindex` via `SeoShell` (`/admin`, `/login`, recuperar/redefinir senha).
+- Permissões por módulo em `src/lib/adminPermissions.ts` (super admin tem acesso total).
+- Autorização interna: funções `private.is_admin` / `private.admin_can_manage_users` (RLS); RPC exposta ao front: `am_i_admin` e `can_i_manage_users`.
+
+### Rotas do painel
+
+| Rota | Módulo | Observação |
+|---|---|---|
+| `/admin/dashboard` | Início | Métricas e gráficos |
+| `/admin/conversas` | Mensagens | Inbox WhatsApp |
+| `/admin/conversas/:id` | Mensagens | Thread |
+| `/admin/contatos` | Clientes | CRM |
+| `/admin/templates` | Mensagens prontas | Modelos Meta |
+| `/admin/disparos` | Promoções | Campanhas |
+| `/admin/disparos/:id` | Promoções | Detalhe da campanha |
+| `/admin/pages` | Páginas do site | Links para espelho/preview |
+| `/admin/mirror/:slug` | Páginas do site | Edição visual (rascunho) |
+| `/admin/cardapio` | Cardápio | Produtos e categorias |
+| `/admin/header-footer` | Topo e rodapé | Nav, redes, rodapé |
+| `/admin/equipe` | Equipe | Só super admin / gestor |
+| `/admin/equipe/convidar` | Equipe | Convite |
+| `/admin/equipe/editar/:id` | Equipe | Permissões |
+| `/admin/minha-conta` | — | Nome do usuário |
+| `/admin/trocar-senha` | — | Obrigatório após convite |
+| `/admin/configuracoes` | Ajustes | Horário WhatsApp, links |
+
+> ⚠️ **Publicar conteúdo** (`publish_page_contents_drafts`, botão Publicar no CMS) consolida rascunhos para o site público. Em QA ou homologação, prefira **Salvar rascunho** e **Preview** — nunca publicar cardápio/páginas/topo e rodapé sem autorização explícita da Rosa.
+
+Para criar ou resetar acesso admin, use o painel do Supabase (Authentication → Users) ou `/admin/equipe/convidar`.
+
 ---
  
 ## 9. SEO e metadados
@@ -539,7 +567,76 @@ Tabela `whatsapp_templates` · Edge Function `whatsapp-templates` (submit + sync
 | Migrations versionadas em `supabase/migrations/` | Rastreabilidade e reprodutibilidade do banco |
 | Nunca commitar `.env` ou service role key | Segurança — credenciais não vão para o repo |
 | `vercel.json` com rewrite SPA | Sem isso, rotas diretas (ex: `/cardapio`) retornam 404 |
- 
+| Helpers de auth no schema `private` | Não expor `is_admin(uuid)` via RPC — usar `am_i_admin()` |
+| Não publicar CMS em testes de QA | Rascunhos ≠ site público; publicar só com OK da Rosa |
+
+---
+
+## 16. Checklist de QA — painel administrativo
+
+Última rodada: **2026-06-02** · ambiente local `http://localhost:8080` · **nenhum conteúdo publicado** (cardápio, páginas, topo/rodapé intactos).
+
+### Automatizado (passou)
+
+| Teste | Resultado |
+|---|---|
+| `/admin/dashboard` sem sessão → tela de login | ✅ |
+| Cardápio público carrega produtos do Supabase | ✅ |
+| Home com guard de carregamento | ✅ |
+| `npm run test` (9 testes) | ✅ |
+| `npm run build` | ✅ (rodada anterior) |
+| Webhook sem assinatura HMAC → HTTP 403 | ✅ |
+| `whatsapp-send-message` sem JWT → HTTP 401 | ✅ |
+| `admin-users` sem JWT → HTTP 401 | ✅ |
+| RPC `is_admin` removida da API | ✅ |
+| RPC `am_i_admin` negada para anon | ✅ |
+
+### Segurança Supabase / WhatsApp
+
+| Item | Status |
+|---|---|
+| HMAC `X-Hub-Signature-256` antes de persistir | ✅ (`meta-webhook.ts`) |
+| Comparação timing-safe | ✅ |
+| RLS em tabelas WhatsApp | ✅ (migrations) |
+| Edge Functions sensíveis com `verify_jwt = true` | ✅ (`config.toml`) |
+| Secrets Meta só no Supabase (não `VITE_*`) | ✅ |
+
+### Manual — requer login admin (Rosa / super admin)
+
+Executar logado, **sem clicar em Publicar** em CMS/cardápio/topo e rodapé:
+
+1. [ ] Dashboard: cards e gráficos carregam sem erro 400 no console
+2. [ ] Header: nome da equipe ao lado do avatar (não e-mail)
+3. [ ] Mensagens: lista conversas; abrir thread; banner janela 24h se aplicável
+4. [ ] Clientes: listar, buscar, importar (cancelar antes de confirmar)
+5. [ ] Mensagens prontas: listar modelos; criar rascunho; **não** submeter à Meta
+6. [ ] Promoções: listar campanhas; abrir detalhe; **não** disparar
+7. [ ] Páginas do site: links espelho/preview abrem; **Salvar rascunho** ok; **não Publicar**
+8. [ ] Cardápio admin: editar produto em rascunho; **não Publicar**
+9. [ ] Topo e rodapé: visualizar; **não Publicar**
+10. [ ] Equipe: listar; editar permissões de teste; **não** excluir super admin
+11. [ ] Minha conta: alterar nome; refletir no header
+12. [ ] Notificações: abrir sheet; marcar lida / dispensar
+13. [ ] Logout → `/login`; voltar a `/admin` exige login
+
+### Findings desta rodada
+
+| # | Severidade | Descrição | Status |
+|---|---|---|---|
+| 1 | 🟡 minor | Título da aba em `/login` e `/recuperar-senha` mostra "Página não encontrada" (falta entrada em `PAGE_SEO`) | ✅ corrigido |
+| 2 | 🟡 minor | `npm run lint` — 5 erros pré-existentes (não bloqueiam build) | ✅ corrigido (0 erros) |
+| 3 | 🔵 obs | Commit histórico `db09cff` incluiu `.env` — revisar rotação de chaves se repo foi público | registrado |
+| 4 | 🔵 obs | HaveIBeenPwned: requer plano Pro + toggle no Dashboard Auth | pendente infra |
+| 5 | 🔴 blocker | `get_admin_dashboard_stats` 400 (`deleted_at` inexistente em `whatsapp_contacts`) | ✅ corrigido |
+
+### Sprint Review (QA)
+
+**Entregue neste ciclo:** painel admin com RBAC, dashboard, equipe, auth (convite/recuperar senha), templates de e-mail, hardening Security Advisor (schema `private`, storage, MFA TOTP).
+
+**Riscos:** fluxos autenticados dependem de validação manual com credencial real; lint com erores legados; histórico git com `.env`.
+
+**Próximo sprint:** corrigir SEO de rotas auth; rodada E2E logada com Playwright; habilitar HIBP se plano Pro.
+
 ---
  
 ## 15. Onde pedir ajuda / credenciais

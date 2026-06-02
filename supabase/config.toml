@@ -9,6 +9,10 @@ additional_redirect_urls = [
   "http://localhost:5173/admin",
 ]
 
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
+
 [auth.email.template.invite]
 subject = "Convite para a equipe Dona Rosa"
 content_path = "./supabase/templates/invite.html"
