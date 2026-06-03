@@ -95,6 +95,17 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ error: "unknown_action" }, 400);
   } catch (error) {
     if (error instanceof MetaApiError) {
+      const isNotRegistered =
+        error.metaCode === 133010 ||
+        error.message.toLowerCase().includes("account not registered");
+      if (isNotRegistered) {
+        return jsonResponse({
+          ok: false,
+          error: "whatsapp_not_registered",
+          message:
+            "Número não registrado na Cloud API. Conclua a coexistência (status CONNECTED) em Conectar WhatsApp.",
+        }, 400);
+      }
       return jsonResponse(
         { ok: false, error: "meta_api_error", message: error.message },
         error.status >= 400 && error.status < 600 ? error.status : 502,

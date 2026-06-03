@@ -1,5 +1,7 @@
 const ERROR_MAP: Record<string, string> = {
   service_window_closed: "Passou de 24h. Envie uma mensagem pronta.",
+  whatsapp_not_registered:
+    "O número ainda não está na API do WhatsApp. Conclua a conexão em Ajustes → Conectar WhatsApp.",
   meta_api_error: "WhatsApp fora do ar agora. Tente em alguns minutos.",
   missing_meta_env: "WhatsApp não configurado. Peça ajuda para reconectar.",
   conversation_not_found: "Conversa não encontrada.",

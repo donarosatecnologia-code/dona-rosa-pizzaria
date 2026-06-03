@@ -596,6 +596,35 @@ https://SEU_REF.supabase.co/functions/v1/whatsapp-webhook
 
 Configure no [Meta for Developers](https://developers.facebook.com) → WhatsApp → Webhook (Callback URL + Verify Token).
 
+### Coexistência sem Embedded Signup (recomendado quando o popup da Meta falha)
+
+Use quando o número **já existe** na Meta (`+55 11 93061-7116`) e o App Review do Embedded Signup ainda não liberou permissões.
+
+**No computador (Meta for Developers → app Dona Rosa Piuzza):**
+
+1. **WhatsApp → Configuração da API** — confirme **Phone Number ID** e **WABA ID** (iguais aos de `supabase/secrets.meta.env`).
+2. **Token** — gere um *Temporary access token* (ou token de System User permanente no Business Manager) e cole em `META_ACCESS_TOKEN`.
+3. **Webhook** — Callback URL: `https://pptgzavxpdltcuqpcovo.supabase.co/functions/v1/whatsapp-webhook`, mesmo `META_VERIFY_TOKEN`, campos `messages` (e demais que o projeto usar). Clique em **Verificar e salvar**.
+4. No terminal do projeto:
+
+```bash
+npm run meta:coexistence   # inscreve o app na WABA
+npm run secrets:meta       # se alterou o token
+npm run meta:verify        # deve mostrar CONNECTED + CLOUD_API
+```
+
+**No celular da pizzaria (WhatsApp Business):**
+
+1. **Configurações → Aparelhos conectados** — desconecte WhatsApp Web.
+2. **Configurações → Conta → Plataforma comercial → Conectar** (coexistência com o app no celular).
+3. Confirme no app **Meta Business** / notificação da Meta, se aparecer.
+
+**Se `meta:verify` ainda mostrar DISCONNECTED / ON_PREMISE:** a etapa do celular ainda não concluiu. Repita o passo 2 no aparelho e rode `npm run meta:verify` de novo.
+
+**Se a Meta pedir PIN no register:** Gerenciador WhatsApp → Telefones → número → verificação em duas etapas; depois `META_REGISTRATION_PIN=123456 npm run meta:coexistence`.
+
+**Teste:** envie uma mensagem de outro celular para +55 11 93061-7116 e confira `/admin/conversas`.
+
 ### Backoffice
 
 | Rota | Função |
