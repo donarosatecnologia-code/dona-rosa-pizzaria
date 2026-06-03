@@ -55,9 +55,9 @@ const STEPS = [
     link: { href: LINKS.developersApi, label: "Configuração WhatsApp" },
   },
   {
-    title: "Celular da pizzaria (principal)",
+    title: "Celular + QR no computador",
     body:
-      "WhatsApp Business → Configurações → Aparelhos conectados (desconecte Web) → Conta → Plataforma comercial → Conectar. Não use “verificar número” no Gerenciador do WhatsApp.",
+      "Rosa: Conta → Plataforma comercial → Conectar. Você: no PC, Gerar QR (popup Meta) — Rosa escaneia o monitor. Ou código numérico se a Meta mandar no chat Facebook Business.",
     link: { href: LINKS.whatsappManager, label: "Gerenciador (só consulta)" },
   },
   {
@@ -240,96 +240,119 @@ export default function AdminConectarWhatsapp() {
             </CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground space-y-2">
-            <p>Plataforma comercial → Conectar.</p>
+            <p>
+              <strong>1)</strong> Dispositivos conectados → desconecte todos os Chrome (4/4).
+            </p>
+            <p>
+              <strong>2)</strong> Voltar → Configurações → <strong>Conta</strong> → Plataforma
+              comercial (não use “Conectar dispositivo”).
+            </p>
             <p>Não apague a conta. Não use verificação SMS no Gerenciador.</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-amber-200 bg-amber-50/50">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Monitor className="h-4 w-4 text-muted-foreground" />
-              Popup no site (opcional)
+            <CardTitle className="text-sm flex items-center gap-2 text-amber-900">
+              <Monitor className="h-4 w-4" />
+              Popup no site — desativado
             </CardTitle>
           </CardHeader>
-          <CardContent className="text-sm text-muted-foreground space-y-2">
-            <p>Só se o celular não receber convite da Meta.</p>
-            <p>Portfólio Dona Rosa pode ficar cinza — use o celular.</p>
-            {currentStep && (
-              <p className="text-xs text-primary">Passo Meta: {currentStep}</p>
-            )}
+          <CardContent className="text-sm text-amber-900/90 space-y-2">
+            <p>Não abra o login da Meta pelo site. Use o celular (card ao lado).</p>
+            <p>Se Dona Rosa aparecer cinza no popup, fechar — é limitação da Meta, não bug do site.</p>
           </CardContent>
         </Card>
       </div>
 
+      {!cloudReady && (
+        <Alert className="mb-4 border-primary/30 bg-primary/5">
+          <Smartphone className="h-4 w-4 text-primary" />
+          <AlertTitle className="text-primary">QR para a Rosa escanear</AlertTitle>
+          <AlertDescription className="text-sm space-y-2">
+            <p>
+              O QR aparece no <strong>monitor do computador</strong> (popup Meta), não no celular. Rosa
+              abre Plataforma comercial → escanear → aponta para a tela do PC.
+            </p>
+            <p>
+              Ative no build: <code>VITE_META_ALLOW_EMBEDDED_SIGNUP_POPUP=true</code> e use o botão
+              abaixo. Login Facebook: conta <strong>admin Dona Rosa</strong> (evite Janaina Developer
+              no popup).
+            </p>
+            <p className="text-xs">
+              Se só houver portfólio cinza + Janaina: não clique Avançar; defina{" "}
+              <code>VITE_META_BUSINESS_ID</code> e refaça o build.
+            </p>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <Card className="mb-4 border-dashed">
         <CardContent className="pt-6 space-y-4">
-          <p className="text-sm text-muted-foreground">
-            <strong>Iniciar conexão</strong> — fluxo Meta no navegador (pode falhar se app e pizzaria
-            estão no mesmo portfólio). Prefira os passos 1–4 acima.
-          </p>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-medium">Webhook</p>
-              {statusLoading ? (
-                <p className="text-xs text-muted-foreground">Verificando…</p>
-              ) : cloudReady ? (
-                <p className="text-xs text-emerald-700 flex items-center gap-1">
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  Conectado
-                  {config?.display_name ? ` · ${config.display_name}` : ""}
-                </p>
-              ) : (
-                <p className="text-xs text-amber-700">
-                  {isConnected ? "Webhook ok" : "Aguardando"} · App {META_APP_ID}
-                </p>
-              )}
-              {lastWebhookAt && (
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Último evento: {new Date(lastWebhookAt).toLocaleString("pt-BR")}
-                </p>
-              )}
-            </div>
-
-            <Button
-              type="button"
-              variant="secondary"
-              size="lg"
-              className="min-h-[44px]"
-              disabled={!configured || !isReady || isBusy || tokenBroken}
-              onClick={launchSignup}
-            >
-              {isBusy ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Conectando…
-                </>
-              ) : (
-                "Iniciar conexão (opcional)"
-              )}
-            </Button>
+          <div>
+            <p className="text-sm font-medium">Webhook (servidor)</p>
+            {statusLoading ? (
+              <p className="text-xs text-muted-foreground">Verificando…</p>
+            ) : cloudReady ? (
+              <p className="text-xs text-emerald-700 flex items-center gap-1">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Conectado
+                {config?.display_name ? ` · ${config.display_name}` : ""}
+              </p>
+            ) : (
+              <p className="text-xs text-amber-700">
+                {isConnected ? "Webhook ok — falta ligar o celular" : "Aguardando"} · App {META_APP_ID}
+              </p>
+            )}
+            {lastWebhookAt && (
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Último evento: {new Date(lastWebhookAt).toLocaleString("pt-BR")}
+              </p>
+            )}
           </div>
 
-          {tokenBroken && (
-            <p className="text-xs text-amber-700">
-              Corrija o token (passo 2) antes de usar o popup.
-            </p>
-          )}
-
-          {phase === "success" && (
-            <Alert className="border-emerald-200 bg-emerald-50 text-emerald-950">
-              <CheckCircle2 className="h-4 w-4" />
-              <AlertDescription>
-                Popup concluído. Ainda confira o celular e Atualizar status.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {errorMessage && (
-            <Alert variant="destructive">
-              <AlertTitle>Popup Meta</AlertTitle>
-              <AlertDescription className="whitespace-pre-line text-sm">{errorMessage}</AlertDescription>
-            </Alert>
+          {(import.meta.env.VITE_META_ALLOW_EMBEDDED_SIGNUP_POPUP === "true" || !cloudReady) && (
+            <>
+              {import.meta.env.VITE_META_ALLOW_EMBEDDED_SIGNUP_POPUP !== "true" && (
+                <p className="text-xs text-amber-800">
+                  Para ver o botão em produção, adicione{" "}
+                  <code>VITE_META_ALLOW_EMBEDDED_SIGNUP_POPUP=true</code> no .env e rode o build de
+                  novo.
+                </p>
+              )}
+              <Button
+                type="button"
+                variant="default"
+                size="lg"
+                className="min-h-[44px] w-full sm:w-auto"
+                disabled={
+                  import.meta.env.VITE_META_ALLOW_EMBEDDED_SIGNUP_POPUP !== "true" ||
+                  !configured ||
+                  !isReady ||
+                  isBusy ||
+                  tokenBroken ||
+                  cloudReady
+                }
+                onClick={launchSignup}
+              >
+                {isBusy ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Abrindo Meta…
+                  </>
+                ) : (
+                  "Gerar QR no computador (popup Meta)"
+                )}
+              </Button>
+              {errorMessage && (
+                <Alert variant="destructive">
+                  <AlertTitle>Popup Meta</AlertTitle>
+                  <AlertDescription className="whitespace-pre-line text-sm">
+                    {errorMessage}
+                  </AlertDescription>
+                </Alert>
+              )}
+            </>
           )}
         </CardContent>
       </Card>

@@ -85,10 +85,52 @@ No **celular** (WhatsApp Business da pizzaria, +55 11 93061-7116):
 
 1. **Configurações** → **Aparelhos conectados** → desconecte **WhatsApp Web**.
 2. **Configurações** → **Conta** → **Plataforma comercial** (ou “Plataforma conectada”).
-3. Se aparecer **Dona Rosa Piuzza** / Meta / “Conectar” → toque e siga (QR ou confirmação).
-4. Se **não** aparecer nada em Plataforma comercial, aguarde até 15 min após `meta:coexistence` e abra a conversa da **Meta / Facebook Business** no WhatsApp.
+3. Toque **Conectar à Plataforma comercial** → o app pede **QR ou código**.
+4. O **QR fica no monitor do computador** (fluxo Meta no site — seção 3b abaixo). A Rosa **escaneia** apontando o celular para a tela do PC.
+5. **Alternativa:** mensagem da **Facebook Business** no WhatsApp com **código numérico** → no celular use “inserir código” em vez do QR.
+
+### 3b) Onde pegar o QR (computador — você / Janaina)
+
+O QR **não** está no Gerenciador do WhatsApp nem no Supabase. Ele aparece no **navegador**, no meio do **Embedded Signup** (como HubSpot/Wati):
+
+1. No `.env` do build (só para esta sessão): `VITE_META_ALLOW_EMBEDDED_SIGNUP_POPUP=true`
+2. `npm run build:hostgator` + upload, ou `npm run dev` em rede que a Rosa não precisa acessar.
+3. Abrir `/admin/conectar-whatsapp` → **Gerar QR no computador** (botão).
+4. Login Facebook com conta **admin de Dona Rosa Pizzaria** (ideal: **Rosa** no PC da pizzaria, não portfólio Janaina Developer).
+5. No popup Meta: **Conectar app WhatsApp Business existente** → número **+55 11 93061-7116**.
+6. Quando aparecer **“Compartilhar contatos e conversas”** com QR grande → Rosa escaneia no celular (tela que ela já abriu).
+
+Se travar em “Selecionar portfólio” com Dona Rosa cinza: feche; adicione `VITE_META_BUSINESS_ID` (ID do portfólio em business.facebook.com/settings, URL `business_id=`) e refaça o build. **Não** avance com Janaina/MentoraLab.
+
+Opcional no `.env`: `VITE_META_BUSINESS_ID=<id_portfolio_dona_rosa>` para preencher o portfólio no popup.
 
 Confirme compartilhar histórico, se pedir.
+
+### Cliente não acha “Plataforma comercial” (só vê “Dispositivos conectados”)
+
+A tela **Dispositivos conectados** / **4 de 4 dispositivos** (Chrome no Windows) é **outro menu**. Aí só se desliga WhatsApp Web — **não** é onde conecta o painel.
+
+| O que a Rosa vê | O que fazer |
+|-----------------|-------------|
+| Lista com **Google Chrome (Windows)** | Em **cada** linha → toque → **Desconectar** (liberar os 4 slots; ignore “Conectar dispositivo” por enquanto) |
+| Botão **Conectar dispositivo** | É **WhatsApp Web** (QR no PC) — **não** use para o painel Dona Rosa |
+| Depois de desconectar tudo | **Voltar** (seta) → **Configurações** → aba/menu **Conta** (não “Dispositivos”) |
+
+Em **Conta**, procurar (o nome varia por versão do app):
+
+- **Plataforma comercial**
+- **Plataforma conectada** / **Plataformas conectadas**
+- **Contas conectadas** (Meta)
+
+Se **não existir** nenhum item assim em Conta:
+
+1. Confirmar app **WhatsApp Business** (ícone com **B** ou nome “WhatsApp Business”), não o WhatsApp verde comum.
+2. Atualizar o app na loja (Meta pede versão recente para coexistência).
+3. Na lista de conversas, abrir chat da **Meta** / **Facebook Business** (conta oficial) e procurar botão **Conectar à plataforma comercial**.
+4. Instalar **Meta Business Suite** no celular, entrar com a conta Facebook **admin de Dona Rosa Pizzaria**, e ver se aparece convite de conexão WhatsApp.
+5. Aguardar até 24 h após `npm run meta:coexistence` no Mac; fechar e reabrir o WhatsApp Business.
+
+**Não** usar “Assinar Meta Verified” só para liberar mais dispositivos — isso não conecta o painel.
 
 ---
 
@@ -106,13 +148,18 @@ Teste: mensagem de outro celular para +55 11 93061-7116 → `/admin/conversas`.
 
 ---
 
-## 5) Botão “Iniciar conexão” no site (opcional)
+## 5) Popup “Iniciar conexão” no site — **não use** (armadilha)
 
-Use **só** se o passo 3 não trouxer convite no celular.
+Se aparecer **“Selecione os ativos de negócios”** com **Dona Rosa Pizzaria cinza** e texto *“O app Dona Rosa Piuzza pertence a este portfólio”*:
 
-Limitação da Meta: com o app no **mesmo** portfólio Dona Rosa, o popup pode mostrar **Dona Rosa cinza**. Nesse caso o caminho oficial é **seção 3 (celular)**, não o popup.
+| Ação | Resultado |
+|------|-----------|
+| Clicar **Avançar** com Janaina / MentoraLab / Odona | Portfólio errado, risco de pedir pagamento de novo, **não** é o QR de coexistência da pizzaria |
+| Tentar forçar Dona Rosa no popup | Meta **não permite** (limitação documentada para app e negócio no mesmo portfólio) |
 
-Se usar o popup: conta admin do app, portfólio **Dona Rosa** (se liberado) ou suporte Meta — **sem** mudar portfólio do app.
+**Saída do loop de portfólio errado:** feche o popup se só aparecer Janaina/MentoraLab. O QR correto sai no **computador** (seção 3b), e a Rosa escaneia no celular (seção 3).
+
+No admin do site o botão do popup foi **desligado** de propósito. Só desenvolvedores podem reabrir com `VITE_META_ALLOW_EMBEDDED_SIGNUP_POPUP=true` no build (não recomendado para a Rosa).
 
 ---
 
