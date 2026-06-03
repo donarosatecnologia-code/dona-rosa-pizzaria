@@ -10,6 +10,7 @@ import {
   Monitor,
   ArrowLeft,
   RefreshCw,
+  FileText,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AdminPageHeader, AdminPageShell } from "@/components/admin/AdminPageShell";
@@ -20,16 +21,52 @@ import {
   isEmbeddedSignupConfigured,
   META_APP_ID,
   META_EMBEDDED_SIGNUP_CONFIG_ID,
-  META_BUSINESS_ID,
 } from "@/lib/meta-embedded-signup";
 import { useMetaEmbeddedSignup } from "@/hooks/whatsapp/useMetaEmbeddedSignup";
 import { useWhatsappConnectionStatus, useWhatsappPhoneStatus } from "@/hooks/whatsapp";
 import { useWhatsappEmbeddedSignupComplete } from "@/hooks/whatsapp/useWhatsappEmbeddedSignupComplete";
 
-const META_WEBHOOK_FIELDS_URL =
-  "https://developers.facebook.com/apps/912159588512848/whatsapp-business/wa-settings/";
+const LINKS = {
+  developersApi:
+    "https://developers.facebook.com/apps/912159588512848/whatsapp-business/wa-settings/",
+  whatsappManager: "https://business.facebook.com/wa/manage/phone-numbers/",
+  businessUsers: "https://business.facebook.com/latest/settings/system_users",
+  transferHelp: "https://www.facebook.com/business/help/236817717885919",
+  guideDoc: "/docs/COEXISTENCIA-WHATSAPP.md",
+};
 
-const META_BUSINESS_SETTINGS_URL = "https://business.facebook.com/latest/settings/whatsapp_account";
+const STEPS = [
+  {
+    title: "App e pagamento ficam em Dona Rosa Pizzaria",
+    body:
+      "Não mova o app Dona Rosa Piuzza para outro portfólio (evita pedir cartão/pagamento de novo). Se já moveu para Janaina Developer, reverta: remova o app lá e conecte o ID 912159588512848 de volta em Dona Rosa.",
+    link: { href: LINKS.transferHelp, label: "Como transferir app (Meta)" },
+  },
+  {
+    title: "Token no servidor (portfólio Dona Rosa)",
+    body:
+      "Gere token no Business Suite → Usuários do sistema (Dona Rosa Pizzaria), com acesso ao app e à conta WhatsApp. Cole em supabase/secrets.meta.env e rode: npm run secrets:meta",
+    link: { href: LINKS.businessUsers, label: "Usuários do sistema" },
+  },
+  {
+    title: "Webhook e WABA",
+    body:
+      "No terminal: npm run meta:coexistence e npm run meta:verify (token_valid deve ser true). Webhook: messages + smb_message_echoes.",
+    link: { href: LINKS.developersApi, label: "Configuração WhatsApp" },
+  },
+  {
+    title: "Celular da pizzaria (principal)",
+    body:
+      "WhatsApp Business → Configurações → Aparelhos conectados (desconecte Web) → Conta → Plataforma comercial → Conectar. Não use “verificar número” no Gerenciador do WhatsApp.",
+    link: { href: LINKS.whatsappManager, label: "Gerenciador (só consulta)" },
+  },
+  {
+    title: "Validar no painel",
+    body:
+      "Atualizar status abaixo até “Pronto”. Envie mensagem de teste para +55 11 93061-7116 e veja em Mensagens.",
+    link: null,
+  },
+];
 
 export default function AdminConectarWhatsapp() {
   const queryClient = useQueryClient();
@@ -41,7 +78,7 @@ export default function AdminConectarWhatsapp() {
   const handleComplete = useCallback(
     async (payload: Parameters<typeof completeSignup.mutateAsync>[0]) => {
       const result = await completeSignup.mutateAsync(payload);
-      toast.success(result.message ?? "WhatsApp conectado! Confira no celular se a Meta pediu para tocar em Conectar.");
+      toast.success(result.message ?? "Etapa no site concluída. Confira o celular.");
       await queryClient.invalidateQueries({ queryKey: ["whatsapp", "phone-status"] });
       await queryClient.invalidateQueries({ queryKey: ["whatsapp", "connection-status"] });
     },
@@ -54,7 +91,7 @@ export default function AdminConectarWhatsapp() {
   const configured = isEmbeddedSignupConfigured();
   const isBusy = isLaunching || completeSignup.isPending;
   const cloudReady = phoneStatus.data?.phone?.is_cloud_ready ?? false;
-  const needsCoexistence = phoneStatus.data?.phone?.needs_coexistence ?? true;
+  const tokenBroken = phoneStatus.data?.ok === false;
 
   return (
     <AdminPageShell width="md">
@@ -67,16 +104,31 @@ export default function AdminConectarWhatsapp() {
 
       <AdminPageHeader
         title="Conectar WhatsApp"
-        description="Ligue o número da pizzaria ao painel. O app no celular continua funcionando."
+        description="Coexistência: celular da pizzaria + painel. Sem mudar cobrança de portfólio."
       />
+
+      <Alert className="mb-4 border-emerald-200 bg-emerald-50 text-emerald-950">
+        <CheckCircle2 className="h-4 w-4 text-emerald-700" />
+        <AlertTitle className="text-emerald-900">Caminho recomendado (sem Janaina Developer)</AlertTitle>
+        <AlertDescription className="text-emerald-900/90 text-sm space-y-2">
+          <p>
+            O passo principal é no <strong>celular</strong> (Plataforma comercial), depois do token no
+            portfólio <strong>Dona Rosa Pizzaria</strong>. O botão &quot;Iniciar conexão&quot; é{" "}
+            <strong>opcional</strong> e costuma falhar se o app e a pizzaria estão no mesmo portfólio —
+            isso é limitação da Meta, não do site.
+          </p>
+          <p className="text-xs">
+            Guia completo no repositório: <code>docs/COEXISTENCIA-WHATSAPP.md</code>
+          </p>
+        </AlertDescription>
+      </Alert>
 
       {!configured && (
         <Alert variant="destructive" className="mb-4">
           <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Falta configurar o site</AlertTitle>
+          <AlertTitle>Deploy do site</AlertTitle>
           <AlertDescription>
-            Peça para colocar <code>VITE_META_EMBEDDED_SIGNUP_CONFIG_ID</code> no deploy (valor atual da
-            configuração Meta) e publicar de novo o site.
+            Defina <code>VITE_META_EMBEDDED_SIGNUP_CONFIG_ID</code> no build (opcional para o popup).
           </AlertDescription>
         </Alert>
       )}
@@ -102,7 +154,7 @@ export default function AdminConectarWhatsapp() {
                 ) : (
                   <span className="inline-flex items-center gap-1 text-amber-700 font-medium">
                     <AlertTriangle className="h-4 w-4" />
-                    Falta concluir a conexão
+                    Falta ligar o celular à API (passo 4)
                   </span>
                 )}
               </div>
@@ -113,16 +165,25 @@ export default function AdminConectarWhatsapp() {
                   : ""}
               </p>
               <p className="text-xs text-muted-foreground">
-                API: {phoneStatus.data.phone.status} / {phoneStatus.data.phone.platform_type}
-                {phoneStatus.data.phone.is_on_biz_app ? " · app no celular" : ""}
+                {phoneStatus.data.phone.status} / {phoneStatus.data.phone.platform_type}
               </p>
               <p>{phoneStatus.data.user_hint}</p>
-              <p className="font-medium text-foreground">{phoneStatus.data.next_step}</p>
+              <p className="font-medium">{phoneStatus.data.next_step}</p>
             </>
+          ) : tokenBroken ? (
+            <div className="space-y-2 text-amber-800">
+              <p className="font-medium">Atualize o token no Supabase (portfólio Dona Rosa)</p>
+              <p className="text-sm">{phoneStatus.data?.user_hint ?? phoneStatus.data?.message}</p>
+              <p className="text-sm">{phoneStatus.data?.next_step}</p>
+              {phoneStatus.data?.message?.includes("does not belong") && (
+                <p className="text-xs">
+                  Isso aparece quando o app foi movido de portfólio. Reverta para Dona Rosa e gere token
+                  novo no <strong>Usuário do sistema</strong> desse portfólio.
+                </p>
+              )}
+            </div>
           ) : (
-            <p className="text-destructive">
-              {phoneStatus.data?.message ?? phoneStatus.error?.message ?? "Não foi possível verificar."}
-            </p>
+            <p className="text-muted-foreground">Não foi possível consultar. Tente Atualizar status.</p>
           )}
           <Button
             type="button"
@@ -137,111 +198,91 @@ export default function AdminConectarWhatsapp() {
         </CardContent>
       </Card>
 
-      <Alert className="mb-4 border-amber-200 bg-amber-50 text-amber-950">
-        <AlertTriangle className="h-4 w-4 text-amber-700" />
-        <AlertTitle className="text-amber-900">Antes de clicar em Iniciar conexão</AlertTitle>
-        <AlertDescription className="text-amber-900/90 space-y-2 text-sm">
-          <ol className="list-decimal pl-5 space-y-1">
-            <li>
-              No celular: <strong>WhatsApp Business</strong> → Configurações → Aparelhos conectados →
-              desconecte o WhatsApp Web.
-            </li>
-            <li>
-              Use no computador a <strong>mesma conta Facebook</strong> que é administradora do app{" "}
-              <strong>Dona Rosa Piuzza</strong> na Meta.
-            </li>
-            <li>
-              No popup, escolha o portfólio <strong>Dona Rosa Pizzaria</strong> (sua pizzaria).{" "}
-              <strong>Não</strong> escolha MentoraLab — isso ativa modo parceiro e gera erro de permissão.
-            </li>
-            <li>
-              Escolha <strong>Conectar app WhatsApp Business</strong> e informe +55 11 93061-7116.
-            </li>
-            <li>
-              Quando o QR aparecer nesta tela, no celular abra a <strong>mensagem da Meta</strong> e toque
-              em Conectar à plataforma comercial → escaneie o QR.
-            </li>
-          </ol>
-        </AlertDescription>
-      </Alert>
-
-      {needsCoexistence && (
-        <Alert className="mb-4 border-blue-200 bg-blue-50 text-blue-950">
-          <AlertTitle className="text-blue-900 text-sm">Se o portfólio Dona Rosa estiver cinza no popup</AlertTitle>
-          <AlertDescription className="text-blue-900/90 text-sm space-y-2">
-            <p>
-              Vincule o app à conta WhatsApp antes:{" "}
-              <a
-                href={META_BUSINESS_SETTINGS_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline font-medium inline-flex items-center gap-1"
-              >
-                Configurações do negócio
-                <ExternalLink className="h-3 w-3" />
-              </a>
-            </p>
-            <p className="text-xs">
-              App ID: <code>{META_APP_ID}</code>
-              {META_EMBEDDED_SIGNUP_CONFIG_ID ? ` · Config: ${META_EMBEDDED_SIGNUP_CONFIG_ID}` : ""}
-              {META_BUSINESS_ID ? ` · Business: ${META_BUSINESS_ID}` : " · (opcional: VITE_META_BUSINESS_ID no deploy)"}
-            </p>
-          </AlertDescription>
-        </Alert>
-      )}
+      <Card className="mb-4">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Passo a passo (ordem)
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 text-sm">
+          {STEPS.map((step, index) => (
+            <div key={step.title} className="flex gap-3">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">
+                {index + 1}
+              </span>
+              <div>
+                <p className="font-medium">{step.title}</p>
+                <p className="text-muted-foreground mt-0.5">{step.body}</p>
+                {step.link && (
+                  <a
+                    href={step.link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary underline inline-flex items-center gap-1 mt-1 text-xs"
+                  >
+                    {step.link.label}
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                )}
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 sm:grid-cols-2 mb-6">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
-              <Monitor className="h-4 w-4 text-primary" />
-              Neste computador
+              <Smartphone className="h-4 w-4 text-primary" />
+              Celular (obrigatório)
             </CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground space-y-2">
-            <p>1. Clique em <strong>Iniciar conexão</strong>.</p>
-            <p>2. Portfólio <strong>Dona Rosa Pizzaria</strong> → Conectar app WhatsApp Business.</p>
-            <p>3. Número +55 11 93061-7116.</p>
-            <p>4. Quando aparecer o QR, avise quem está com o celular.</p>
-            {currentStep && (
-              <p className="text-xs text-primary">Passo Meta: {currentStep}</p>
-            )}
+            <p>Plataforma comercial → Conectar.</p>
+            <p>Não apague a conta. Não use verificação SMS no Gerenciador.</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
-              <Smartphone className="h-4 w-4 text-primary" />
-              No celular da pizzaria
+              <Monitor className="h-4 w-4 text-muted-foreground" />
+              Popup no site (opcional)
             </CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground space-y-2">
-            <p>1. Abra a conversa da <strong>Meta / Facebook Business</strong>.</p>
-            <p>2. Toque em <strong>Conectar à plataforma comercial</strong>.</p>
-            <p>3. Escaneie o QR que está no popup do computador.</p>
-            <p>4. Confirme compartilhar conversas, se pedir (mantém histórico no painel).</p>
+            <p>Só se o celular não receber convite da Meta.</p>
+            <p>Portfólio Dona Rosa pode ficar cinza — use o celular.</p>
+            {currentStep && (
+              <p className="text-xs text-primary">Passo Meta: {currentStep}</p>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      <Card className="mb-4">
+      <Card className="mb-4 border-dashed">
         <CardContent className="pt-6 space-y-4">
+          <p className="text-sm text-muted-foreground">
+            <strong>Iniciar conexão</strong> — fluxo Meta no navegador (pode falhar se app e pizzaria
+            estão no mesmo portfólio). Prefira os passos 1–4 acima.
+          </p>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-sm font-medium">Painel e webhook</p>
+              <p className="text-sm font-medium">Webhook</p>
               {statusLoading ? (
                 <p className="text-xs text-muted-foreground">Verificando…</p>
               ) : cloudReady ? (
                 <p className="text-xs text-emerald-700 flex items-center gap-1">
                   <CheckCircle2 className="h-3.5 w-3.5" />
-                  Número na Cloud API
+                  Conectado
                   {config?.display_name ? ` · ${config.display_name}` : ""}
                 </p>
-              ) : isConnected ? (
-                <p className="text-xs text-amber-700">Webhook ok, número ainda não na API</p>
               ) : (
-                <p className="text-xs text-amber-700">Aguardando primeira conexão</p>
+                <p className="text-xs text-amber-700">
+                  {isConnected ? "Webhook ok" : "Aguardando"} · App {META_APP_ID}
+                </p>
               )}
               {lastWebhookAt && (
                 <p className="text-xs text-muted-foreground mt-0.5">
@@ -252,9 +293,10 @@ export default function AdminConectarWhatsapp() {
 
             <Button
               type="button"
+              variant="secondary"
               size="lg"
               className="min-h-[44px]"
-              disabled={!configured || !isReady || isBusy}
+              disabled={!configured || !isReady || isBusy || tokenBroken}
               onClick={launchSignup}
             >
               {isBusy ? (
@@ -262,60 +304,33 @@ export default function AdminConectarWhatsapp() {
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Conectando…
                 </>
-              ) : phase === "loading_sdk" ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Carregando Meta…
-                </>
               ) : (
-                "Iniciar conexão"
+                "Iniciar conexão (opcional)"
               )}
             </Button>
           </div>
 
+          {tokenBroken && (
+            <p className="text-xs text-amber-700">
+              Corrija o token (passo 2) antes de usar o popup.
+            </p>
+          )}
+
           {phase === "success" && (
             <Alert className="border-emerald-200 bg-emerald-50 text-emerald-950">
               <CheckCircle2 className="h-4 w-4" />
-              <AlertTitle>Etapa no computador concluída</AlertTitle>
-              <AlertDescription className="space-y-2">
-                <p>
-                  Confirme no celular a mensagem da Meta e escaneie o QR se ainda não fez. Depois toque em{" "}
-                  <strong>Atualizar status</strong> até aparecer &quot;Pronto&quot;.
-                </p>
-                <Link to="/admin/conversas" className="underline font-medium text-sm">
-                  Ir para Mensagens
-                </Link>
+              <AlertDescription>
+                Popup concluído. Ainda confira o celular e Atualizar status.
               </AlertDescription>
             </Alert>
           )}
 
           {errorMessage && (
             <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Não foi possível conectar</AlertTitle>
+              <AlertTitle>Popup Meta</AlertTitle>
               <AlertDescription className="whitespace-pre-line text-sm">{errorMessage}</AlertDescription>
             </Alert>
           )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Para quem configura a Meta (uma vez)</CardTitle>
-        </CardHeader>
-        <CardContent className="text-xs text-muted-foreground space-y-2">
-          <p>
-            Webhook com campos <strong>messages</strong> e <strong>smb_message_echoes</strong> (mensagens
-            enviadas pelo celular aparecem no painel):{" "}
-            <a href={META_WEBHOOK_FIELDS_URL} target="_blank" rel="noopener noreferrer" className="underline">
-              abrir configuração
-            </a>
-          </p>
-          <p>
-            Facebook Login for Business: modelo <strong>WhatsApp 60 dias</strong>, só ativos WhatsApp (sem
-            Instagram nem anúncios).
-          </p>
-          <p>App em modo <strong>Desenvolvimento</strong> + você como <strong>Administradora</strong> — uso da própria pizzaria, sem App Review de parceiro.</p>
         </CardContent>
       </Card>
     </AdminPageShell>

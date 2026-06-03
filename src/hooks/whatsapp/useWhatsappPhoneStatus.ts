@@ -30,16 +30,27 @@ export function useWhatsappPhoneStatus(enabled = true) {
         { method: "GET" },
       );
 
-      if (error) {
-        throw new Error(error.message || "Não foi possível verificar o número.");
+      if (data) {
+        return data;
       }
 
-      return data ?? { ok: false, message: "Resposta vazia." };
+      if (error) {
+        return {
+          ok: false,
+          message: error.message || "Não foi possível verificar o número.",
+        };
+      }
+
+      return { ok: false, message: "Resposta vazia." };
     },
     staleTime: 15_000,
+    retry: 1,
     refetchInterval: (query) => {
+      if (query.state.error || query.state.data?.ok === false) {
+        return false;
+      }
       const ready = query.state.data?.phone?.is_cloud_ready;
-      return ready ? false : 20_000;
+      return ready ? false : 30_000;
     },
   });
 }

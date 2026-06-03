@@ -43,17 +43,47 @@ Deno.serve(async (req: Request) => {
   const url =
     `https://graph.facebook.com/${apiVersion}/${phoneNumberId}?fields=display_phone_number,verified_name,status,platform_type,is_on_biz_app`;
 
-  const graphRes = await fetch(url, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  const body = (await graphRes.json()) as PhoneGraphFields;
+  let graphRes: Response;
+  let body: PhoneGraphFields;
+  try {
+    graphRes = await fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    body = (await graphRes.json()) as PhoneGraphFields;
+  } catch (error) {
+    console.error("phone_status_graph_fetch_failed", error);
+    return jsonWithCors({
+      ok: false,
+      error: "meta_graph_unreachable",
+      message: "Não foi possível falar com a Meta agora. Tente de novo em instantes.",
+    }, 200);
+  }
 
   if (!graphRes.ok || body.error) {
+    const metaMessage = body.error?.message ?? "Não foi possível consultar o número na Meta.";
+    const metaCode = body.error?.code;
+    console.error("phone_status_graph_error", { metaCode, metaMessage });
+
+    let user_hint =
+      "O token do WhatsApp no servidor precisa ser atualizado.";
+    let next_step =
+      "Meta for Developers → WhatsApp → Configuração da API → gere um token novo → npm run secrets:meta";
+
+    if (metaCode === 190 || metaMessage.includes("does not belong")) {
+      user_hint =
+        "Depois de mover o app de portfólio, o token antigo deixou de valer.";
+      next_step =
+        "Gere um token novo (API Setup ou Usuário do sistema no portfólio certo) e rode npm run secrets:meta no projeto.";
+    }
+
     return jsonWithCors({
       ok: false,
       error: "meta_graph_error",
-      message: body.error?.message ?? "Não foi possível consultar o número na Meta.",
-    }, 502);
+      message: metaMessage,
+      meta_code: metaCode ?? null,
+      user_hint,
+      next_step,
+    }, 200);
   }
 
   const status = body.status ?? "UNKNOWN";
@@ -67,12 +97,12 @@ Deno.serve(async (req: Request) => {
 
   if (needsCoexistence) {
     user_hint =
-      "O celular da pizzaria ainda não está ligado à API. Use o botão abaixo e siga o passo a passo no popup e no WhatsApp Business.";
+      "O celular da pizzaria ainda não está ligado à API Cloud (coexistência).";
     next_step =
-      "No popup: escolha o portfólio Dona Rosa Pizzaria (sua pizzaria), depois Conectar app WhatsApp Business e o número +55 11 93061-7116. No celular: abra a mensagem da Meta e toque em Conectar à plataforma comercial.";
+      "No celular: WhatsApp Business → Conta → Plataforma comercial → Conectar. Não use verificação SMS no Gerenciador. Depois: Atualizar status no admin.";
   } else if (!isCloudReady) {
-    user_hint = "Status incomum na Meta. Tente conectar de novo ou aguarde alguns minutos.";
-    next_step = "Clique em Iniciar conexão novamente.";
+    user_hint = "Status incomum na Meta. Aguarde alguns minutos ou repita Plataforma comercial no celular.";
+    next_step = "Consulte docs/COEXISTENCIA-WHATSAPP.md (passo 3).";
   }
 
   return jsonWithCors({

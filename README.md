@@ -596,45 +596,20 @@ https://SEU_REF.supabase.co/functions/v1/whatsapp-webhook
 
 Configure no [Meta for Developers](https://developers.facebook.com) → WhatsApp → Webhook (Callback URL + Verify Token).
 
-### Coexistência (celular + painel) — uso da própria pizzaria
+### Coexistência WhatsApp (celular + painel)
 
-**Importante:** não escolha outro portfólio (ex.: MentoraLab) no popup — isso ativa modo **parceiro** e gera erro `#2655111`. Use **Dona Rosa Pizzaria** + conta **administradora** do app Dona Rosa Piuzza. Em modo **Desenvolvimento**, a Meta permite teste sem App Review de parceiro ([documentação](https://developers.facebook.com/docs/whatsapp/embedded-signup/app-review/)).
+**Guia completo:** [`docs/COEXISTENCIA-WHATSAPP.md`](docs/COEXISTENCIA-WHATSAPP.md)
 
-1. `/admin/conectar-whatsapp` → **Iniciar conexão** → Conectar app WhatsApp Business → `+55 11 93061-7116`.
-2. Quando aparecer o **QR no popup**, no celular abra a mensagem da Meta → **Conectar à plataforma comercial** → escanear QR.
-3. Webhook Meta: campos `messages` + `smb_message_echoes` (mensagens enviadas pelo celular no painel).
-4. Status na tela até **Pronto** (`CONNECTED` + `CLOUD_API`).
+**Não** mover o app Dona Rosa Piuzza para outro portfólio (ex.: Janaina Developer) — a cobrança do WhatsApp permanece na conta **Dona Rosa Pizzaria** no Gerenciador.
 
-Opcional no deploy: `VITE_META_BUSINESS_ID` = ID do portfólio em business.facebook.com/settings (prefill do popup).
+1. Token do portfólio **Dona Rosa** (Usuário do sistema) → `supabase/secrets.meta.env` → `npm run secrets:meta`
+2. `npm run meta:coexistence` e `npm run meta:verify`
+3. Celular: WhatsApp Business → **Plataforma comercial** → Conectar (não use verificação SMS no Gerenciador)
+4. Até `CONNECTED` + `CLOUD_API` em `meta:verify`
 
-### Coexistência — fallback técnico (terminal)
+Popup **Iniciar conexão** no admin é opcional; com app e pizzaria no mesmo portfólio a Meta costuma bloquear — use o celular.
 
-Use quando o número **já existe** na Meta (`+55 11 93061-7116`) e precisa validar webhook sem UI.
-
-**No computador (Meta for Developers → app Dona Rosa Piuzza):**
-
-1. **WhatsApp → Configuração da API** — confirme **Phone Number ID** e **WABA ID** (iguais aos de `supabase/secrets.meta.env`).
-2. **Token** — gere um *Temporary access token* (ou token de System User permanente no Business Manager) e cole em `META_ACCESS_TOKEN`.
-3. **Webhook** — Callback URL: `https://pptgzavxpdltcuqpcovo.supabase.co/functions/v1/whatsapp-webhook`, mesmo `META_VERIFY_TOKEN`, campos `messages` (e demais que o projeto usar). Clique em **Verificar e salvar**.
-4. No terminal do projeto:
-
-```bash
-npm run meta:coexistence   # inscreve o app na WABA
-npm run secrets:meta       # se alterou o token
-npm run meta:verify        # deve mostrar CONNECTED + CLOUD_API
-```
-
-**No celular da pizzaria (WhatsApp Business):**
-
-1. **Configurações → Aparelhos conectados** — desconecte WhatsApp Web.
-2. **Configurações → Conta → Plataforma comercial → Conectar** (coexistência com o app no celular).
-3. Confirme no app **Meta Business** / notificação da Meta, se aparecer.
-
-**Se `meta:verify` ainda mostrar DISCONNECTED / ON_PREMISE:** a etapa do celular ainda não concluiu. Repita o passo 2 no aparelho e rode `npm run meta:verify` de novo.
-
-**Se a Meta pedir PIN no register:** Gerenciador WhatsApp → Telefones → número → verificação em duas etapas; depois `META_REGISTRATION_PIN=123456 npm run meta:coexistence`.
-
-**Teste:** envie uma mensagem de outro celular para +55 11 93061-7116 e confira `/admin/conversas`.
+Se o app foi movido por engano, reverta para Dona Rosa: [ajuda Meta](https://www.facebook.com/business/help/236817717885919).
 
 ### Backoffice
 

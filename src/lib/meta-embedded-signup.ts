@@ -53,13 +53,24 @@ export function mapMetaSignupUserMessage(
   const code = errorCode?.trim() ?? "";
   const msg = errorMessage?.trim() ?? "";
 
+  if (
+    msg.includes("pertence a este portfólio") ||
+    msg.includes("owns Developer") ||
+    msg.includes("cinza")
+  ) {
+    return [
+      "A Meta não permite este popup quando o app e a pizzaria estão no mesmo portfólio.",
+      "Não mova o app para outro portfólio (evita cobrança/pagamento duplicado).",
+      "Use o passo principal: celular → WhatsApp Business → Conta → Plataforma comercial → Conectar.",
+      "Antes: token do portfólio Dona Rosa em secrets + npm run secrets:meta e meta:coexistence.",
+    ].join(" ");
+  }
+
   if (code.includes("2655111") || msg.includes("2655111") || msg.includes("parceiro")) {
     return [
-      "A Meta entendeu este app como parceiro de outras empresas.",
-      "Use a conta que é administradora do app Dona Rosa Piuzza.",
-      "No popup, escolha o portfólio Dona Rosa Pizzaria (não MentoraLab nem outro).",
-      "Se Dona Rosa estiver cinza: em business.facebook.com vincule o app à conta WhatsApp da pizzaria e tente de novo.",
-      "Confirme no Developers que o app não está como Provedor de tecnologia — é uso da própria pizzaria.",
+      "O popup entrou em modo parceiro. Para a Dona Rosa (uso próprio), ignore o popup.",
+      "Siga: token no portfólio Dona Rosa → meta:coexistence → celular Plataforma comercial.",
+      "Se precisar do popup no futuro: App Review ou app só em Desenvolvimento como administradora.",
     ].join(" ");
   }
 
