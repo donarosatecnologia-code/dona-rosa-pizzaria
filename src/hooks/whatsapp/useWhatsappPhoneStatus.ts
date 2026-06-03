@@ -1,0 +1,45 @@
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+
+export interface WhatsappPhoneStatus {
+  display_phone_number: string | null;
+  verified_name: string | null;
+  status: string;
+  platform_type: string;
+  is_on_biz_app: boolean;
+  is_cloud_ready: boolean;
+  needs_coexistence: boolean;
+}
+
+export interface WhatsappPhoneStatusResponse {
+  ok: boolean;
+  phone?: WhatsappPhoneStatus;
+  user_hint?: string;
+  next_step?: string;
+  message?: string;
+}
+
+/** Status Cloud API / coexistência (consulta Graph API via Edge Function). */
+export function useWhatsappPhoneStatus(enabled = true) {
+  return useQuery({
+    queryKey: ["whatsapp", "phone-status"],
+    enabled,
+    queryFn: async (): Promise<WhatsappPhoneStatusResponse> => {
+      const { data, error } = await supabase.functions.invoke<WhatsappPhoneStatusResponse>(
+        "whatsapp-phone-status",
+        { method: "GET" },
+      );
+
+      if (error) {
+        throw new Error(error.message || "Não foi possível verificar o número.");
+      }
+
+      return data ?? { ok: false, message: "Resposta vazia." };
+    },
+    staleTime: 15_000,
+    refetchInterval: (query) => {
+      const ready = query.state.data?.phone?.is_cloud_ready;
+      return ready ? false : 20_000;
+    },
+  });
+}

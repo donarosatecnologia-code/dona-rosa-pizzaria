@@ -6,6 +6,9 @@ export const META_APP_ID =
 export const META_EMBEDDED_SIGNUP_CONFIG_ID =
   import.meta.env.VITE_META_EMBEDDED_SIGNUP_CONFIG_ID?.trim() || "";
 
+/** ID do portfólio Meta Business (business.facebook.com/settings) — preenche o popup. */
+export const META_BUSINESS_ID = import.meta.env.VITE_META_BUSINESS_ID?.trim() || "";
+
 export const META_SDK_URL = "https://connect.facebook.net/pt_BR/sdk.js";
 
 export type EmbeddedSignupEvent =
@@ -40,4 +43,46 @@ export interface EmbeddedSignupCompletePayload {
 
 export function isEmbeddedSignupConfigured(): boolean {
   return Boolean(META_APP_ID && META_EMBEDDED_SIGNUP_CONFIG_ID);
+}
+
+/** Mensagens amigáveis para erros conhecidos do popup Meta (uso próprio, não parceiro). */
+export function mapMetaSignupUserMessage(
+  errorMessage?: string | null,
+  errorCode?: string | null,
+): string {
+  const code = errorCode?.trim() ?? "";
+  const msg = errorMessage?.trim() ?? "";
+
+  if (code.includes("2655111") || msg.includes("2655111") || msg.includes("parceiro")) {
+    return [
+      "A Meta entendeu este app como parceiro de outras empresas.",
+      "Use a conta que é administradora do app Dona Rosa Piuzza.",
+      "No popup, escolha o portfólio Dona Rosa Pizzaria (não MentoraLab nem outro).",
+      "Se Dona Rosa estiver cinza: em business.facebook.com vincule o app à conta WhatsApp da pizzaria e tente de novo.",
+      "Confirme no Developers que o app não está como Provedor de tecnologia — é uso da própria pizzaria.",
+    ].join(" ");
+  }
+
+  if (msg.includes("Instagram") || code.includes("1772090")) {
+    return "A configuração do Facebook Login ainda pede Instagram. Remova esse ativo na configuração do app (modelo só WhatsApp 60 dias).";
+  }
+
+  if (msg) {
+    return msg.length > 200 ? "Não foi possível conectar. Tente de novo ou fale com o suporte." : msg;
+  }
+
+  return "Conexão cancelada. Tente de novo quando estiver pronta.";
+}
+
+export function buildEmbeddedSignupExtras(): Record<string, unknown> {
+  const setup: Record<string, unknown> = {};
+  if (META_BUSINESS_ID) {
+    setup.business = { id: META_BUSINESS_ID };
+  }
+
+  return {
+    setup,
+    featureType: "whatsapp_business_app_onboarding",
+    sessionInfoVersion: "4",
+  };
 }

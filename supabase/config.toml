@@ -75,3 +75,6 @@ verify_jwt = true
 
 [functions.whatsapp-embedded-signup]
 verify_jwt = true
+
+[functions.whatsapp-phone-status]
+verify_jwt = true

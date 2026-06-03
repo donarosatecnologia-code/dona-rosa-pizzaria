@@ -66,6 +66,18 @@ export interface MetaWebhookStatus {
   errors?: Array<{ code?: number; title?: string; message?: string; error_data?: { details?: string } }>;
 }
 
+/** Mensagem enviada pelo app WhatsApp Business no celular (coexistência). */
+export interface MetaWebhookMessageEcho {
+  from: string;
+  to: string;
+  id: string;
+  timestamp: string;
+  type: string;
+  text?: { body: string };
+  button?: { text: string; payload: string };
+  interactive?: MetaWebhookMessage["interactive"];
+}
+
 export interface MetaWebhookPayload {
   object?: string;
   entry?: Array<{
@@ -77,6 +89,7 @@ export interface MetaWebhookPayload {
         metadata?: { phone_number_id?: string; display_phone_number?: string };
         contacts?: Array<{ profile?: { name?: string }; wa_id?: string }>;
         messages?: MetaWebhookMessage[];
+        message_echoes?: MetaWebhookMessageEcho[];
         statuses?: MetaWebhookStatus[];
       };
     }>;

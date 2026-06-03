@@ -596,9 +596,20 @@ https://SEU_REF.supabase.co/functions/v1/whatsapp-webhook
 
 Configure no [Meta for Developers](https://developers.facebook.com) → WhatsApp → Webhook (Callback URL + Verify Token).
 
-### Coexistência sem Embedded Signup (recomendado quando o popup da Meta falha)
+### Coexistência (celular + painel) — uso da própria pizzaria
 
-Use quando o número **já existe** na Meta (`+55 11 93061-7116`) e o App Review do Embedded Signup ainda não liberou permissões.
+**Importante:** não escolha outro portfólio (ex.: MentoraLab) no popup — isso ativa modo **parceiro** e gera erro `#2655111`. Use **Dona Rosa Pizzaria** + conta **administradora** do app Dona Rosa Piuzza. Em modo **Desenvolvimento**, a Meta permite teste sem App Review de parceiro ([documentação](https://developers.facebook.com/docs/whatsapp/embedded-signup/app-review/)).
+
+1. `/admin/conectar-whatsapp` → **Iniciar conexão** → Conectar app WhatsApp Business → `+55 11 93061-7116`.
+2. Quando aparecer o **QR no popup**, no celular abra a mensagem da Meta → **Conectar à plataforma comercial** → escanear QR.
+3. Webhook Meta: campos `messages` + `smb_message_echoes` (mensagens enviadas pelo celular no painel).
+4. Status na tela até **Pronto** (`CONNECTED` + `CLOUD_API`).
+
+Opcional no deploy: `VITE_META_BUSINESS_ID` = ID do portfólio em business.facebook.com/settings (prefill do popup).
+
+### Coexistência — fallback técnico (terminal)
+
+Use quando o número **já existe** na Meta (`+55 11 93061-7116`) e precisa validar webhook sem UI.
 
 **No computador (Meta for Developers → app Dona Rosa Piuzza):**
 

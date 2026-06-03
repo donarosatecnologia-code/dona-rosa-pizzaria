@@ -9,6 +9,8 @@ interface ImportMetaEnv {
   readonly VITE_META_APP_ID?: string;
   /** Configuration ID do Facebook Login for Business */
   readonly VITE_META_EMBEDDED_SIGNUP_CONFIG_ID?: string;
+  /** Portfólio Meta Business (prefill Embedded Signup — uso próprio). */
+  readonly VITE_META_BUSINESS_ID?: string;
 }
 
 interface ImportMeta {

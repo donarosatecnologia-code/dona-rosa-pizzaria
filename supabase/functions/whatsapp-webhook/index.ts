@@ -3,6 +3,7 @@ import {
   logWebhookEvent,
   markWebhookEventProcessed,
   persistInboundCrmMessage,
+  persistOutboundCrmMessage,
   touchWhatsappConfig,
   updateCrmMessageStatus,
   type WebhookChangeContext,
@@ -14,6 +15,7 @@ import {
   resolveResponseType,
   verifyMetaWebhookSignature,
   type MetaWebhookMessage,
+  type MetaWebhookMessageEcho,
   type MetaWebhookPayload,
 } from "../_shared/meta-webhook.ts";
 import {
@@ -175,6 +177,12 @@ async function processWebhookPayload(
           await handleInboundMessage(supabase, message, ctx);
         }
 
+        if (change.field === "smb_message_echoes") {
+          for (const echo of value.message_echoes ?? []) {
+            await handleMessageEcho(supabase, echo, ctx);
+          }
+        }
+
         await markWebhookEventProcessed(supabase, eventId);
       } catch (error) {
         const message = error instanceof Error ? error.message : "processing_failed";
@@ -253,6 +261,41 @@ async function handleDeliveryStatus(
   if (normalizedPhone) {
     console.info("delivery_status", { metaMessageId, status, normalizedPhone });
   }
+}
+
+/** Mensagem enviada pelo celular (WhatsApp Business app) — espelha no painel. */
+async function handleMessageEcho(
+  supabase: ReturnType<typeof createClient>,
+  echo: MetaWebhookMessageEcho,
+  ctx: WebhookChangeContext,
+): Promise<void> {
+  const waId = normalizePhoneNumber(echo.to);
+  if (!waId || !echo.id) {
+    return;
+  }
+
+  const asInboundShape: MetaWebhookMessage = {
+    from: waId,
+    id: echo.id,
+    timestamp: echo.timestamp,
+    type: echo.type,
+    text: echo.text,
+    button: echo.button,
+    interactive: echo.interactive,
+  };
+
+  const bodyText = extractResponseValue(asInboundShape);
+
+  await persistOutboundCrmMessage(supabase, {
+    waId,
+    metaMessageId: echo.id,
+    messageType: echo.type,
+    bodyText,
+    content: { source: "smb_message_echo", echo },
+    isAutomated: false,
+  });
+
+  console.info("message_echo_stored", { waId, messageId: echo.id });
 }
 
 async function handleInboundMessage(

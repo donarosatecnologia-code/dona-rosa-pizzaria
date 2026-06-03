@@ -75,18 +75,26 @@ Deno.serve(async (req: Request) => {
     token_valid: boolean;
     display_phone_number: string | null;
     verified_name: string | null;
+    status: string | null;
+    platform_type: string | null;
+    is_on_biz_app: boolean | null;
+    is_cloud_ready: boolean;
     error: string | null;
   } = {
     token_valid: false,
     display_phone_number: null,
     verified_name: null,
+    status: null,
+    platform_type: null,
+    is_on_biz_app: null,
+    is_cloud_ready: false,
     error: null,
   };
 
   if (accessToken && phoneNumberId) {
     const apiVersion = getMetaApiVersion();
     const graphUrl =
-      `https://graph.facebook.com/${apiVersion}/${phoneNumberId}?fields=display_phone_number,verified_name,quality_rating`;
+      `https://graph.facebook.com/${apiVersion}/${phoneNumberId}?fields=display_phone_number,verified_name,quality_rating,status,platform_type,is_on_biz_app`;
 
     try {
       const graphRes = await fetch(graphUrl, {
@@ -95,10 +103,16 @@ Deno.serve(async (req: Request) => {
       const graphBody = await graphRes.json();
 
       if (graphRes.ok && graphBody.display_phone_number) {
+        const status = (graphBody.status as string | undefined) ?? null;
+        const platformType = (graphBody.platform_type as string | undefined) ?? null;
         metaStatus = {
           token_valid: true,
           display_phone_number: graphBody.display_phone_number as string,
           verified_name: (graphBody.verified_name as string | undefined) ?? null,
+          status,
+          platform_type: platformType,
+          is_on_biz_app: (graphBody.is_on_biz_app as boolean | undefined) ?? null,
+          is_cloud_ready: status === "CONNECTED" && platformType === "CLOUD_API",
           error: null,
         };
       } else {

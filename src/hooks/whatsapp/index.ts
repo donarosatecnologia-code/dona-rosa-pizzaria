@@ -11,6 +11,8 @@ export type { BroadcastSendResult } from "./useBroadcastSend";
 export { useWhatsappBroadcastRealtime } from "./useWhatsappBroadcastRealtime";
 export { useWhatsappConnectionStatus } from "./useWhatsappConnectionStatus";
 export type { WhatsappConnectionStatus } from "./useWhatsappConnectionStatus";
+export { useWhatsappPhoneStatus } from "./useWhatsappPhoneStatus";
+export type { WhatsappPhoneStatus, WhatsappPhoneStatusResponse } from "./useWhatsappPhoneStatus";
 export { useWhatsappQueues } from "./useWhatsappQueues";
 export { useImportContacts } from "./useImportContacts";
 export { useWhatsappImportBatches } from "./useWhatsappImportBatches";

@@ -4,6 +4,8 @@ import {
   META_EMBEDDED_SIGNUP_CONFIG_ID,
   META_GRAPH_API_VERSION,
   META_SDK_URL,
+  buildEmbeddedSignupExtras,
+  mapMetaSignupUserMessage,
   type EmbeddedSignupCompletePayload,
   type EmbeddedSignupMessage,
 } from "@/lib/meta-embedded-signup";
@@ -54,6 +56,7 @@ function loadFacebookSdk(): Promise<void> {
 export function useMetaEmbeddedSignup({ onComplete }: UseMetaEmbeddedSignupOptions) {
   const [phase, setPhase] = useState<SignupPhase>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [currentStep, setCurrentStep] = useState<string | null>(null);
   const pendingCodeRef = useRef<string | null>(null);
   const pendingSessionRef = useRef<EmbeddedSignupCompletePayload | null>(null);
 
@@ -116,11 +119,17 @@ export function useMetaEmbeddedSignup({ onComplete }: UseMetaEmbeddedSignupOptio
         return;
       }
 
+      if (payload.data.current_step) {
+        setCurrentStep(payload.data.current_step);
+      }
+
       if (payload.event === "CANCEL" || payload.event === "ERROR") {
         setPhase("error");
         setErrorMessage(
-          payload.data.error_message ||
-            "Conexão cancelada. Tente de novo quando estiver pronto.",
+          mapMetaSignupUserMessage(
+            payload.data.error_message,
+            payload.data.error_code,
+          ),
         );
         pendingCodeRef.current = null;
         pendingSessionRef.current = null;
@@ -129,7 +138,8 @@ export function useMetaEmbeddedSignup({ onComplete }: UseMetaEmbeddedSignupOptio
 
       if (
         payload.event === "FINISH" ||
-        payload.event === "FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING"
+        payload.event === "FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING" ||
+        payload.event === "FINISH_ONLY_WABA"
       ) {
         pendingSessionRef.current = {
           code: "",
@@ -163,6 +173,7 @@ export function useMetaEmbeddedSignup({ onComplete }: UseMetaEmbeddedSignupOptio
     }
 
     setErrorMessage(null);
+    setCurrentStep(null);
     setPhase("popup_open");
     pendingCodeRef.current = null;
     pendingSessionRef.current = null;
@@ -181,17 +192,13 @@ export function useMetaEmbeddedSignup({ onComplete }: UseMetaEmbeddedSignupOptio
           }
           return "error";
         });
-        setErrorMessage("Login cancelado ou não concluído.");
+        setErrorMessage("Login cancelado ou não concluído. Use a mesma conta que administra o app na Meta.");
       },
       {
         config_id: META_EMBEDDED_SIGNUP_CONFIG_ID,
         response_type: "code",
         override_default_response_type: true,
-        extras: {
-          setup: {},
-          featureType: "whatsapp_business_app_onboarding",
-          sessionInfoVersion: "3",
-        },
+        extras: buildEmbeddedSignupExtras(),
       },
     );
   }, [flushCompletion]);
@@ -199,6 +206,7 @@ export function useMetaEmbeddedSignup({ onComplete }: UseMetaEmbeddedSignupOptio
   return {
     phase,
     errorMessage,
+    currentStep,
     launchSignup,
     isReady: phase === "ready" || phase === "success" || phase === "error",
     isLaunching: phase === "popup_open" || phase === "completing",
