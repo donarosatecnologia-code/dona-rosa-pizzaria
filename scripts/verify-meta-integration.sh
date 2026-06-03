@@ -120,7 +120,7 @@ if echo "$GRAPH" | python3 -c "import sys,json; d=json.load(sys.stdin); exit(0 i
     echo ""
     echo "  → No celular da pizzaria (WhatsApp Business):"
     echo "    Configurações → Conta → Plataforma comercial → Conectar"
-    echo "  → Ou refaça o Embedded Signup escolhendo \"Conectar app WhatsApp Business\""
+    echo "  → Popup com erro #2655111? Veja docs/META-ERRO-2655111.md (App Review ou nova config Embedded Signup)"
     echo "  → Esperado após reconectar: status=CONNECTED, platform_type=CLOUD_API"
   else
     warn "Status inesperado: ${PHONE_STATUS} / ${PLATFORM_TYPE} (is_on_biz_app=${IS_ON_BIZ_APP})"

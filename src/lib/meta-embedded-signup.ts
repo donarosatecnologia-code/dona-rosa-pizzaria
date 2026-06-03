@@ -68,9 +68,10 @@ export function mapMetaSignupUserMessage(
 
   if (code.includes("2655111") || msg.includes("2655111") || msg.includes("parceiro")) {
     return [
-      "O popup entrou em modo parceiro. Para a Dona Rosa (uso próprio), ignore o popup.",
-      "Siga: token no portfólio Dona Rosa → meta:coexistence → celular Plataforma comercial.",
-      "Se precisar do popup no futuro: App Review ou app só em Desenvolvimento como administradora.",
+      "Erro #2655111: o app está como PARCEIRO e falta Acesso avançado na Meta — o popup não vai avançar.",
+      "O WhatsApp no celular da pizzaria segue funcionando; só o painel fica sem mensagens.",
+      "Pare de usar este popup. Veja docs/META-ERRO-2655111.md: nova configuração Embedded Signup (uso próprio) ou App Review.",
+      "No celular: Plataforma comercial → código da Meta (chat Facebook Business), se aparecer.",
     ].join(" ");
   }
 

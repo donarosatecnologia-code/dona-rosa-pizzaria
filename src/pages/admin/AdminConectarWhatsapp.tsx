@@ -29,6 +29,10 @@ import { useWhatsappEmbeddedSignupComplete } from "@/hooks/whatsapp/useWhatsappE
 const LINKS = {
   developersApi:
     "https://developers.facebook.com/apps/912159588512848/whatsapp-business/wa-settings/",
+  appReview:
+    "https://developers.facebook.com/apps/912159588512848/app-review/",
+  embeddedSignupConfig:
+    "https://developers.facebook.com/apps/912159588512848/business-login/settings/",
   whatsappManager: "https://business.facebook.com/wa/manage/phone-numbers/",
   businessUsers: "https://business.facebook.com/latest/settings/system_users",
   transferHelp: "https://www.facebook.com/business/help/236817717885919",
@@ -92,6 +96,19 @@ export default function AdminConectarWhatsapp() {
   const isBusy = isLaunching || completeSignup.isPending;
   const cloudReady = phoneStatus.data?.phone?.is_cloud_ready ?? false;
   const tokenBroken = phoneStatus.data?.ok === false;
+  const qrButtonDisabled =
+    cloudReady || tokenBroken || !configured || !isReady || isBusy;
+  const qrButtonDisabledReason = cloudReady
+    ? "Número já está CONNECTED na Cloud API."
+    : tokenBroken
+      ? "Corrija o token Meta (passo 2) antes do QR."
+      : !configured
+        ? "Falta VITE_META_EMBEDDED_SIGNUP_CONFIG_ID no build."
+        : !isReady
+          ? "Aguardando login da Meta (recarregue a página em alguns segundos)."
+          : isBusy
+            ? "Popup aberto…"
+            : null;
 
   return (
     <AdminPageShell width="md">
@@ -251,37 +268,42 @@ export default function AdminConectarWhatsapp() {
           </CardContent>
         </Card>
 
-        <Card className="border-amber-200 bg-amber-50/50">
+        <Card className="border-primary/20 bg-primary/5">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2 text-amber-900">
-              <Monitor className="h-4 w-4" />
-              Popup no site — desativado
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Monitor className="h-4 w-4 text-primary" />
+              Computador (QR no monitor)
             </CardTitle>
           </CardHeader>
-          <CardContent className="text-sm text-amber-900/90 space-y-2">
-            <p>Não abra o login da Meta pelo site. Use o celular (card ao lado).</p>
-            <p>Se Dona Rosa aparecer cinza no popup, fechar — é limitação da Meta, não bug do site.</p>
+          <CardContent className="text-sm text-muted-foreground space-y-2">
+            <p>Use o botão abaixo. Rosa escaneia o QR na tela do PC.</p>
+            <p>Login Facebook: admin Dona Rosa. Se Dona Rosa estiver cinza no popup, não use Janaina.</p>
           </CardContent>
         </Card>
       </div>
 
       {!cloudReady && (
-        <Alert className="mb-4 border-primary/30 bg-primary/5">
-          <Smartphone className="h-4 w-4 text-primary" />
-          <AlertTitle className="text-primary">QR para a Rosa escanear</AlertTitle>
+        <Alert variant="destructive" className="mb-4">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Bloqueio Meta #2655111 — pare de configurar no painel da Meta</AlertTitle>
           <AlertDescription className="text-sm space-y-2">
             <p>
-              O QR aparece no <strong>monitor do computador</strong> (popup Meta), não no celular. Rosa
-              abre Plataforma comercial → escanear → aponta para a tela do PC.
+              Permissões <strong>Pronto para teste</strong> já estão ok. O popup não avança por modo{" "}
+              <strong>parceiro</strong> no cadastro incorporado — não há botão útil em &quot;Ações&quot;.
             </p>
             <p>
-              Ative no build: <code>VITE_META_ALLOW_EMBEDDED_SIGNUP_POPUP=true</code> e use o botão
-              abaixo. Login Facebook: conta <strong>admin Dona Rosa</strong> (evite Janaina Developer
-              no popup).
+              <strong>Celular da Rosa:</strong> atendimento normal. <strong>Painel:</strong> aguardando
+              Meta. Guia único: <code>docs/SAIR-DO-LOOP-META.md</code> (ticket + código no WhatsApp).
             </p>
-            <p className="text-xs">
-              Se só houver portfólio cinza + Janaina: não clique Avançar; defina{" "}
-              <code>VITE_META_BUSINESS_ID</code> e refaça o build.
+            <p>
+              <a
+                href="https://developers.facebook.com/support/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline text-sm"
+              >
+                Abrir suporte Meta (uma vez)
+              </a>
             </p>
           </AlertDescription>
         </Alert>
@@ -311,42 +333,25 @@ export default function AdminConectarWhatsapp() {
             )}
           </div>
 
-          {(import.meta.env.VITE_META_ALLOW_EMBEDDED_SIGNUP_POPUP === "true" || !cloudReady) && (
+          {!cloudReady && (
             <>
-              {import.meta.env.VITE_META_ALLOW_EMBEDDED_SIGNUP_POPUP !== "true" && (
-                <p className="text-xs text-amber-800">
-                  Para ver o botão em produção, adicione{" "}
-                  <code>VITE_META_ALLOW_EMBEDDED_SIGNUP_POPUP=true</code> no .env e rode o build de
-                  novo.
-                </p>
-              )}
+              <p className="text-sm text-amber-900">
+                O botão do popup está <strong>desligado</strong> enquanto o erro #2655111 não for
+                corrigido na Meta (evita mais tentativas que não avançam).
+              </p>
               <Button
                 type="button"
-                variant="default"
+                variant="outline"
                 size="lg"
                 className="min-h-[44px] w-full sm:w-auto"
-                disabled={
-                  import.meta.env.VITE_META_ALLOW_EMBEDDED_SIGNUP_POPUP !== "true" ||
-                  !configured ||
-                  !isReady ||
-                  isBusy ||
-                  tokenBroken ||
-                  cloudReady
-                }
-                onClick={launchSignup}
+                disabled
+                title="Corrija #2655111 na Meta antes (docs/META-ERRO-2655111.md)"
               >
-                {isBusy ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Abrindo Meta…
-                  </>
-                ) : (
-                  "Gerar QR no computador (popup Meta)"
-                )}
+                Gerar QR (bloqueado — erro #2655111)
               </Button>
               {errorMessage && (
                 <Alert variant="destructive">
-                  <AlertTitle>Popup Meta</AlertTitle>
+                  <AlertTitle>Último erro do popup Meta</AlertTitle>
                   <AlertDescription className="whitespace-pre-line text-sm">
                     {errorMessage}
                   </AlertDescription>
