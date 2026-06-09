@@ -18,6 +18,8 @@ import {
   type MetaWebhookMessageEcho,
   type MetaWebhookPayload,
 } from "../_shared/meta-webhook.ts";
+import { findCampaignIdForInboundResponse } from "../_shared/broadcast-response-link.ts";
+import { handleSurveyInbound } from "../_shared/survey-orchestrator.ts";
 import {
   handleTermsConsentFlow,
   type ContactConsentRow,
@@ -359,6 +361,22 @@ async function handleInboundMessage(
 
   await supabase.rpc("refresh_contact_engagement", { p_contact_id: contact.id });
 
+  const surveyHandled = await handleSurveyInbound(
+    supabase,
+    message,
+    contact.id,
+    phone,
+    {
+      accessToken: Deno.env.get("META_ACCESS_TOKEN") ?? "",
+      phoneNumberId: Deno.env.get("META_PHONE_NUMBER_ID") ?? "",
+      isDryRun: Deno.env.get("BROADCAST_DRY_RUN") === "true",
+    },
+  );
+
+  if (surveyHandled) {
+    return;
+  }
+
   const responseValue = extractResponseValue(message);
   if (!responseValue) {
     console.info("inbound_stored_engagement_only", { phone, type: message.type });
@@ -367,22 +385,23 @@ async function handleInboundMessage(
 
   const responseType = resolveResponseType(message);
 
-  const { data: recipient } = await supabase
-    .from("broadcast_campaign_recipients")
-    .select("campaign_id")
-    .eq("contact_id", contact.id)
-    .in("send_status", ["sent", "delivered", "read"])
-    .order("sent_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const campaignId = await findCampaignIdForInboundResponse(
+    supabase,
+    contact.id,
+    message.context?.id,
+  );
 
-  if (!recipient) {
-    console.info("inbound_no_campaign_recipient", { phone, responseValue });
+  if (!campaignId) {
+    console.info("inbound_no_campaign_recipient", {
+      phone,
+      responseValue,
+      contextMessageId: message.context?.id ?? null,
+    });
     return;
   }
 
   const { error } = await supabase.from("broadcast_responses").insert({
-    campaign_id: recipient.campaign_id,
+    campaign_id: campaignId,
     contact_id: contact.id,
     response_value: responseValue,
     response_type: responseType,
@@ -390,7 +409,16 @@ async function handleInboundMessage(
     received_at: now,
   });
 
-  if (error && error.code !== "23505") {
+  if (error?.code === "23505") {
+    console.info("broadcast_response_deduped", {
+      phone,
+      campaignId,
+      contextMessageId: message.context?.id ?? null,
+    });
+    return;
+  }
+
+  if (error) {
     console.error("broadcast_response_insert_failed", error.message);
   }
 }

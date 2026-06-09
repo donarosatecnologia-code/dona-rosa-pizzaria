@@ -3,6 +3,9 @@ const ERROR_MAP: Record<string, string> = {
   whatsapp_not_registered:
     "O número ainda não está na API do WhatsApp. Conclua a conexão em Ajustes → Conectar WhatsApp.",
   meta_api_error: "WhatsApp fora do ar agora. Tente em alguns minutos.",
+  meta_template_permission_denied:
+    "A Meta ainda não liberou envio de modelos. Aguarde o App Review e a conexão do WhatsApp no painel.",
+  template_not_submittable: "Só é possível enviar rascunhos ou modelos reprovados pela Meta.",
   missing_meta_env: "WhatsApp não configurado. Peça ajuda para reconectar.",
   conversation_not_found: "Conversa não encontrada.",
   template_not_found_or_not_approved: "Mensagem pronta não disponível.",
@@ -27,11 +30,20 @@ export function toAdminUserMessage(input: string | undefined | null): string {
     return "Não deu para salvar. Tente de novo.";
   }
 
+  if (
+    trimmed.includes("App Review") ||
+    trimmed.includes("coexistência") ||
+    trimmed.includes("permissão para criar") ||
+    trimmed.includes("permissão para gerenciar modelos")
+  ) {
+    return trimmed;
+  }
+
   if (trimmed.includes("Meta") || trimmed.includes("webhook") || trimmed.includes("API")) {
     return "WhatsApp fora do ar agora. Tente em alguns minutos.";
   }
 
-  if (trimmed.length > 120) {
+  if (trimmed.length > 200) {
     return "Algo deu errado. Tente de novo.";
   }
 

@@ -22,7 +22,8 @@ export type WhatsappTermsSource =
   | "site_widget"
   | "site_contact_form"
   | "site_reserve"
-  | "whatsapp";
+  | "whatsapp"
+  | "csv_import";
 
 export interface ContactImportProfile {
   logr?: string;
@@ -77,6 +78,8 @@ export interface BroadcastCampaign {
   content_type_draft: BroadcastContentType | null;
   queue_id: string | null;
   queue_id_draft: string | null;
+  survey_flow_id: string | null;
+  survey_flow_id_draft: string | null;
   status: BroadcastCampaignStatus;
   total_sent: number;
   total_delivered: number;
@@ -134,6 +137,7 @@ export interface BroadcastCampaignRecipient {
   send_status: BroadcastRecipientSendStatus;
   sent_at: string | null;
   delivered_at: string | null;
+  failure_reason: string | null;
   created_at: string;
 }
 

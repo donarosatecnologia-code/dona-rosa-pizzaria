@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   useSubmitWhatsappTemplate,
   useSyncWhatsappTemplates,
+  useWhatsappPhoneStatus,
   useWhatsappTemplates,
   useArchiveWhatsappTemplate,
   useDeleteWhatsappTemplateDraft,
@@ -24,6 +25,8 @@ export default function AdminTemplates() {
   const sync = useSyncWhatsappTemplates();
   const archive = useArchiveWhatsappTemplate();
   const deleteDraft = useDeleteWhatsappTemplateDraft();
+  const { data: phoneStatus } = useWhatsappPhoneStatus();
+  const templatesBlockedByMeta = !phoneStatus?.phone?.is_cloud_ready;
 
   const [editorOpen, setEditorOpen] = useState(false);
   const [editing, setEditing] = useState<WhatsappTemplate | null>(null);
@@ -137,6 +140,20 @@ export default function AdminTemplates() {
         </div>
       </div>
 
+      {templatesBlockedByMeta && (
+        <Alert className="mb-4 border-amber-300 bg-amber-50 text-amber-950">
+          <AlertTitle>Envio à Meta temporariamente bloqueado</AlertTitle>
+          <AlertDescription>
+            A conta WhatsApp ainda não tem permissão para criar modelos (App Review + coexistência
+            pendente). Você pode salvar rascunhos aqui; o botão &quot;Enviar para aprovação&quot; só
+            funcionará depois que a Meta aprovar o app e o número estiver em Cloud API.{" "}
+            <Link to="/admin/conectar-whatsapp" className="underline font-medium">
+              Ver status da conexão
+            </Link>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {pendingCount > 0 && (
         <Alert className="mb-4 border-blue-200 bg-blue-50 text-blue-950">
           <AlertTitle>{pendingCount} modelo(s) aguardando aprovação</AlertTitle>
@@ -208,7 +225,12 @@ export default function AdminTemplates() {
                     </Button>
                     <Button
                       size="sm"
-                      disabled={actionId === template.id}
+                      disabled={actionId === template.id || templatesBlockedByMeta}
+                      title={
+                        templatesBlockedByMeta
+                          ? "Aguarde App Review e coexistência Cloud API"
+                          : undefined
+                      }
                       onClick={() => handleSubmit(template.id)}
                     >
                       {actionId === template.id ? (

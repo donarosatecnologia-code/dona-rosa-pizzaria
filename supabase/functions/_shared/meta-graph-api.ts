@@ -207,6 +207,74 @@ export async function sendWhatsAppInteractiveButtons(
   return { messageId: data.messages[0].id };
 }
 
+export interface InteractiveListRowOption {
+  id: string;
+  title: string;
+  description?: string;
+}
+
+export interface InteractiveListSendOptions {
+  to: string;
+  body: string;
+  buttonLabel: string;
+  rows: InteractiveListRowOption[];
+}
+
+/** Envia lista interativa (até 10 opções, janela 24h). */
+export async function sendWhatsAppInteractiveList(
+  accessToken: string,
+  phoneNumberId: string,
+  options: InteractiveListSendOptions,
+): Promise<{ messageId: string }> {
+  const apiVersion = getMetaApiVersion();
+  const url = `https://graph.facebook.com/${apiVersion}/${phoneNumberId}/messages`;
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      to: options.to.replace(/\D/g, ""),
+      type: "interactive",
+      interactive: {
+        type: "list",
+        body: { text: options.body },
+        action: {
+          button: options.buttonLabel.slice(0, 20),
+          sections: [
+            {
+              title: "Opções",
+              rows: options.rows.slice(0, 10).map((row) => ({
+                id: row.id,
+                title: row.title.slice(0, 24),
+                description: row.description?.slice(0, 72),
+              })),
+            },
+          ],
+        },
+      },
+    }),
+  });
+
+  const data = (await response.json()) as GraphMessagesResponse;
+
+  if (!response.ok || !data.messages?.[0]?.id) {
+    const message = formatMetaGraphErrorMessage(
+      data.error as MetaGraphErrorDetails | undefined,
+      "meta_interactive_list_send_failed",
+    );
+    throw new MetaApiError(message, response.status, {
+      code: data.error?.code,
+      type: data.error?.type,
+    });
+  }
+
+  return { messageId: data.messages[0].id };
+}
+
 export type MetaTemplateStatus = "APPROVED" | "PENDING" | "REJECTED" | "PAUSED" | "DISABLED" | "IN_APPEAL";
 
 export interface MetaTemplateVariable {
@@ -227,8 +295,37 @@ export interface MetaTemplateRecord {
   rejection_reason: string | null;
 }
 
+interface MetaGraphErrorDetails {
+  message?: string;
+  code?: number;
+  type?: string;
+  error_subcode?: number;
+  error_user_title?: string;
+  error_user_msg?: string;
+}
+
 interface GraphErrorBody {
-  error?: { message: string; code?: number; type?: string };
+  error?: MetaGraphErrorDetails;
+}
+
+/** Mensagem amigável a partir do payload de erro da Graph API. */
+export function formatMetaGraphErrorMessage(
+  error: MetaGraphErrorDetails | undefined,
+  fallback = "meta_api_error",
+): string {
+  if (!error) {
+    return fallback;
+  }
+
+  if (
+    error.error_subcode === 2494160 ||
+    error.error_user_msg?.toLowerCase().includes("permissão") ||
+    error.error_user_msg?.toLowerCase().includes("permission")
+  ) {
+    return "A Meta ainda não liberou criação de modelos nesta conta. Aguarde o App Review e conclua a coexistência (Cloud API).";
+  }
+
+  return error.error_user_msg?.trim() || error.message?.trim() || fallback;
 }
 
 interface WabaResponse {
@@ -311,8 +408,10 @@ export async function resolveWabaId(
   )?.id;
 
   if (!response.ok || !wabaId) {
-    const message = data.error?.message ??
-      "waba_id_not_found — defina META_WABA_ID em supabase/secrets.meta.env (WhatsApp → API Setup)";
+    const message = formatMetaGraphErrorMessage(
+      data.error,
+      "waba_id_not_found — defina META_WABA_ID em supabase/secrets.meta.env (WhatsApp → API Setup)",
+    );
     throw new MetaApiError(message, response.status || 400, {
       code: data.error?.code,
       type: data.error?.type,
@@ -365,7 +464,7 @@ export async function createMetaMessageTemplate(
   const data = (await response.json()) as CreateTemplateResponse;
 
   if (!response.ok || !data.id) {
-    const message = data.error?.message ?? "meta_template_create_failed";
+    const message = formatMetaGraphErrorMessage(data.error, "meta_template_create_failed");
     throw new MetaApiError(message, response.status, {
       code: data.error?.code,
       type: data.error?.type,

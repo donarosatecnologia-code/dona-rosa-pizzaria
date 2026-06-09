@@ -36,6 +36,9 @@ import AdminConversas from "./pages/admin/AdminConversas";
 import AdminConversaDetail from "./pages/admin/AdminConversaDetail";
 import AdminDisparoDetail from "./pages/admin/AdminDisparoDetail";
 import AdminDisparos from "./pages/admin/AdminDisparos";
+import AdminEtiquetas from "./pages/admin/AdminEtiquetas";
+import AdminPesquisas from "./pages/admin/AdminPesquisas";
+import AdminSegmentos from "./pages/admin/AdminSegmentos";
 import AdminTemplates from "./pages/admin/AdminTemplates";
 import AdminMirrorPage from "./pages/admin/AdminMirrorPage";
 import AdminPreviewPage from "./pages/admin/AdminPreviewPage";
@@ -84,6 +87,9 @@ const App = () => (
                 <Route path="equipe/convidar" element={<AdminEquipeConvidar />} />
                 <Route path="equipe/editar/:id" element={<AdminEquipeEditar />} />
                 <Route path="contatos" element={<AdminContatos />} />
+                <Route path="etiquetas" element={<AdminEtiquetas />} />
+                <Route path="segmentos" element={<AdminSegmentos />} />
+                <Route path="pesquisas" element={<AdminPesquisas />} />
                 <Route path="templates" element={<AdminTemplates />} />
                 <Route path="conversas" element={<AdminConversas />} />
                 <Route path="conversas/:id" element={<AdminConversaDetail />} />

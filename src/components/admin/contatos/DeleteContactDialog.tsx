@@ -40,7 +40,7 @@ export function DeleteContactDialog({ contactId, contactName }: DeleteContactDia
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
-        <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive min-h-[44px] flex-1">
+        <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive min-h-[44px] w-full">
           <Trash2 className="h-4 w-4 mr-1" />
           Tirar da lista
         </Button>

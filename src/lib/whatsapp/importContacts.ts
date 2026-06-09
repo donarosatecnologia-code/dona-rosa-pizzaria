@@ -25,6 +25,8 @@ export interface ImportContactsResult {
 
 export interface ImportContactsOptions {
   onProgress?: (percent: number) => void;
+  /** Marca consentimento LGPD para contatos novos (necessário para disparos). */
+  confirmTermsConsent?: boolean;
 }
 
 const BATCH_SIZE = 100;
@@ -149,6 +151,14 @@ export async function importContactsFromFile(
   let imported = 0;
   const totalBatches = Math.max(1, Math.ceil(toInsert.length / BATCH_SIZE));
 
+  const nowIso = new Date().toISOString();
+  const termsFields = options?.confirmTermsConsent
+    ? {
+        terms_accepted_at: nowIso,
+        terms_accepted_source: "csv_import" as const,
+      }
+    : {};
+
   try {
     for (let i = 0; i < toInsert.length; i += BATCH_SIZE) {
       const batch = toInsert.slice(i, i + BATCH_SIZE).map((r) => ({
@@ -156,6 +166,7 @@ export async function importContactsFromFile(
         phone_number: r.phone,
         status: "active" as const,
         import_batch_id: batchId,
+        ...termsFields,
         ...(hasImportProfileData(r.profile) ? { import_profile: r.profile } : {}),
       }));
 

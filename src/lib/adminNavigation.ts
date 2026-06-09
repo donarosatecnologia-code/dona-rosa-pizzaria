@@ -1,13 +1,16 @@
 import type { LucideIcon } from "lucide-react";
 import {
+  ClipboardList,
   FileStack,
   FileText,
+  Filter,
   LayoutDashboard,
   LogOut,
   MessageCircle,
   Rows3,
   Send,
   Settings,
+  Tag,
   UserCog,
   Users,
   UtensilsCrossed,
@@ -29,6 +32,9 @@ export const ADMIN_BOTTOM_NAV: AdminNavItem[] = [
 
 export const ADMIN_MORE_NAV: AdminNavItem[] = [
   { to: "/admin/contatos", label: "Clientes", icon: Users, matchPrefix: "/admin/contatos" },
+  { to: "/admin/etiquetas", label: "Etiquetas", icon: Tag, matchPrefix: "/admin/etiquetas" },
+  { to: "/admin/segmentos", label: "Segmentos", icon: Filter, matchPrefix: "/admin/segmentos" },
+  { to: "/admin/pesquisas", label: "Pesquisas", icon: ClipboardList, matchPrefix: "/admin/pesquisas" },
   { to: "/admin/disparos", label: "Promoções", icon: Send, matchPrefix: "/admin/disparos" },
   { to: "/admin/templates", label: "Mensagens prontas", icon: FileText, matchPrefix: "/admin/templates" },
   { to: "/admin/pages", label: "Páginas do site", icon: FileStack, matchPrefix: "/admin/pages" },
@@ -41,6 +47,9 @@ export const ADMIN_DESKTOP_NAV: AdminNavItem[] = [
   { to: "/admin/dashboard", label: "Início", icon: LayoutDashboard, matchPrefix: "/admin/dashboard" },
   { to: "/admin/conversas", label: "Mensagens", icon: MessageCircle, matchPrefix: "/admin/conversas" },
   { to: "/admin/contatos", label: "Clientes", icon: Users, matchPrefix: "/admin/contatos" },
+  { to: "/admin/etiquetas", label: "Etiquetas", icon: Tag, matchPrefix: "/admin/etiquetas" },
+  { to: "/admin/segmentos", label: "Segmentos", icon: Filter, matchPrefix: "/admin/segmentos" },
+  { to: "/admin/pesquisas", label: "Pesquisas", icon: ClipboardList, matchPrefix: "/admin/pesquisas" },
   { to: "/admin/templates", label: "Mensagens prontas", icon: FileText, matchPrefix: "/admin/templates" },
   { to: "/admin/disparos", label: "Promoções", icon: Send, matchPrefix: "/admin/disparos" },
   { to: "/admin/pages", label: "Páginas do site", icon: FileStack, matchPrefix: "/admin/pages" },

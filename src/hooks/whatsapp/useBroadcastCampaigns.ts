@@ -97,6 +97,7 @@ export function useCreateBroadcastCampaignDraft() {
       template_params_draft?: Record<string, unknown>;
       content_type_draft?: string;
       queue_id_draft?: string;
+      survey_flow_id_draft?: string | null;
     }) => {
       const { data, error } = await supabase
         .from("broadcast_campaigns")
@@ -105,6 +106,7 @@ export function useCreateBroadcastCampaignDraft() {
           template_params_draft: input.template_params_draft ?? { language: "en_US" },
           content_type_draft: input.content_type_draft ?? "informational",
           queue_id_draft: input.queue_id_draft ?? null,
+          survey_flow_id_draft: input.survey_flow_id_draft ?? null,
           status: "draft",
         })
         .select("*")

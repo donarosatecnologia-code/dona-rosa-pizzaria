@@ -5,9 +5,13 @@ import {
   parseTemplateParams,
   sendWhatsAppTemplate,
 } from "../_shared/meta-graph-api.ts";
+import { startSurveySession } from "../_shared/survey-orchestrator.ts";
 import { AuthError, createServiceClient, requireAdmin } from "../_shared/supabase-auth.ts";
 
 const DEFAULT_BATCH_LIMIT = 50;
+const MESSAGES_PER_SECOND = 50;
+const MIN_SEND_INTERVAL_MS = Math.ceil(1000 / MESSAGES_PER_SECOND);
+const MAX_RATE_LIMIT_RETRIES = 3;
 
 interface BroadcastSendRequest {
   campaign_id?: string;
@@ -19,6 +23,7 @@ interface CampaignRow {
   template_name: string | null;
   template_params: Record<string, unknown> | null;
   queue_id: string | null;
+  survey_flow_id: string | null;
   status: string;
   published_at: string | null;
   total_sent: number;
@@ -80,7 +85,7 @@ async function handleBroadcastSend(req: Request): Promise<Response> {
 
   const { data: campaign, error: campaignError } = await supabase
     .from("broadcast_campaigns")
-    .select("id, template_name, template_params, queue_id, status, published_at, total_sent")
+    .select("id, template_name, template_params, queue_id, survey_flow_id, status, published_at, total_sent")
     .eq("id", campaignId)
     .maybeSingle();
 
@@ -225,18 +230,50 @@ async function processPendingRecipients(
   }
 
   const templateConfig = parseTemplateParams(campaign.template_params);
+  let surveyFlow: {
+    id: string;
+    slug: string;
+    name: string;
+    intro_message: string;
+    steps: unknown;
+  } | null = null;
+
+  if (campaign.survey_flow_id) {
+    const { data: flowRow } = await supabase
+      .from("survey_flows")
+      .select("id, slug, name, intro_message, steps")
+      .eq("id", campaign.survey_flow_id)
+      .eq("is_active", true)
+      .maybeSingle();
+    surveyFlow = flowRow;
+  }
+
+  const sendContext = {
+    accessToken,
+    phoneNumberId,
+    isDryRun,
+  };
+
   let sent = 0;
   let failed = 0;
+  let processed = 0;
   const now = new Date().toISOString();
 
   for (const row of pendingRows ?? []) {
+    if (!isDryRun && processed > 0) {
+      await sleep(MIN_SEND_INTERVAL_MS);
+    }
+    processed += 1;
     const phone = phoneByContactId.get(row.contact_id);
     const hasTerms = termsAcceptedByContactId.get(row.contact_id);
 
     if (!phone || !hasTerms) {
+      const failureReason = !phone
+        ? "Telefone do contato não encontrado."
+        : "Contato sem consentimento LGPD (terms_accepted_at).";
       await supabase
         .from("broadcast_campaign_recipients")
-        .update({ send_status: "failed" })
+        .update({ send_status: "failed", failure_reason: failureReason })
         .eq("id", row.id);
       failed += 1;
       continue;
@@ -245,12 +282,14 @@ async function processPendingRecipients(
     try {
       const messageId = isDryRun
         ? `dry_run_${crypto.randomUUID()}`
-        : (await sendWhatsAppTemplate(accessToken, phoneNumberId, {
-            to: phone,
-            templateName: campaign.template_name!,
-            languageCode: templateConfig.languageCode,
-            components: templateConfig.components,
-          })).messageId;
+        : (
+            await sendWhatsAppTemplateWithRetry(accessToken, phoneNumberId, {
+              to: phone,
+              templateName: campaign.template_name!,
+              languageCode: templateConfig.languageCode,
+              components: templateConfig.components,
+            })
+          ).messageId;
 
       await supabase
         .from("broadcast_campaign_recipients")
@@ -278,17 +317,38 @@ async function processPendingRecipients(
         .update({ last_outbound_at: now, updated_at: now })
         .eq("id", row.contact_id);
 
+      if (surveyFlow) {
+        try {
+          await startSurveySession(supabase, {
+            flow: surveyFlow,
+            campaignId: campaign.id,
+            contactId: row.contact_id,
+            phone,
+            send: sendContext,
+          });
+        } catch (surveyError) {
+          console.error("survey_session_start_failed", {
+            contactId: row.contact_id,
+            message: surveyError instanceof Error ? surveyError.message : String(surveyError),
+          });
+        }
+      }
+
       sent += 1;
     } catch (error) {
+      const failureReason = error instanceof MetaApiError
+        ? formatMetaSendFailure(error)
+        : String(error);
+
       console.error("broadcast_send_failed", {
         recipientId: row.id,
         phone,
-        message: error instanceof MetaApiError ? error.message : String(error),
+        message: failureReason,
       });
 
       await supabase
         .from("broadcast_campaign_recipients")
-        .update({ send_status: "failed" })
+        .update({ send_status: "failed", failure_reason: failureReason })
         .eq("id", row.id);
 
       failed += 1;
@@ -326,6 +386,58 @@ async function processPendingRecipients(
     pending_remaining: pendingRemaining ?? 0,
     status,
   };
+}
+
+function formatMetaSendFailure(error: MetaApiError): string {
+  const message = error.message;
+
+  if (message.includes("does not exist") || error.metaCode === 132001) {
+    return "Template não encontrado ou não aprovado na Meta — crie e submeta em /admin/templates.";
+  }
+
+  if (error.status === 403 || error.metaCode === 10 || error.metaCode === 190) {
+    return "Permissão negada pela Meta (App Review ou token inválido).";
+  }
+
+  if (error.status === 429 || error.metaCode === 130429) {
+    return "Rate limit da Meta — tente novamente em alguns minutos.";
+  }
+
+  return message;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function sendWhatsAppTemplateWithRetry(
+  accessToken: string,
+  phoneNumberId: string,
+  options: Parameters<typeof sendWhatsAppTemplate>[2],
+): Promise<{ messageId: string }> {
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt <= MAX_RATE_LIMIT_RETRIES; attempt++) {
+    try {
+      return await sendWhatsAppTemplate(accessToken, phoneNumberId, options);
+    } catch (error) {
+      lastError = error;
+      const isRateLimited = error instanceof MetaApiError && error.status === 429;
+      if (!isRateLimited || attempt === MAX_RATE_LIMIT_RETRIES) {
+        throw error;
+      }
+
+      const backoffMs = Math.min(1000 * 2 ** attempt, 8000);
+      console.warn("broadcast_send_rate_limited", {
+        attempt: attempt + 1,
+        backoffMs,
+        phone: options.to,
+      });
+      await sleep(backoffMs);
+    }
+  }
+
+  throw lastError;
 }
 
 function jsonResponse(body: Record<string, unknown>, status: number): Response {

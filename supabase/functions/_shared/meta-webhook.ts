@@ -49,6 +49,11 @@ export interface MetaWebhookMessage {
   id: string;
   timestamp: string;
   type: string;
+  /** Mensagem original quando o cliente responde a um template/disparo (context.message_id). */
+  context?: {
+    from?: string;
+    id?: string;
+  };
   text?: { body: string };
   button?: { text: string; payload: string };
   interactive?: {

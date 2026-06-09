@@ -10,6 +10,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { ImportSummary } from "@/components/admin/contatos/ImportSummary";
 import { useImportContacts } from "@/hooks/whatsapp";
@@ -30,12 +32,14 @@ export function ImportContactsModal({ open, onOpenChange }: ImportContactsModalP
   const [result, setResult] = useState<ImportContactsResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
+  const [confirmTermsConsent, setConfirmTermsConsent] = useState(false);
 
   function resetState() {
     setFile(null);
     setResult(null);
     setErrorMessage(null);
     setProgress(0);
+    setConfirmTermsConsent(false);
     importMutation.reset();
   }
 
@@ -47,7 +51,7 @@ export function ImportContactsModal({ open, onOpenChange }: ImportContactsModalP
   }
 
   async function handleImport() {
-    if (!file) {
+    if (!file || !confirmTermsConsent) {
       return;
     }
     setErrorMessage(null);
@@ -56,6 +60,7 @@ export function ImportContactsModal({ open, onOpenChange }: ImportContactsModalP
       const summary = await importMutation.mutateAsync({
         file,
         onProgress: setProgress,
+        confirmTermsConsent: true,
       });
       setResult(summary);
     } catch (error) {
@@ -124,6 +129,18 @@ export function ImportContactsModal({ open, onOpenChange }: ImportContactsModalP
               </Alert>
             )}
 
+            <div className="flex items-start gap-3 rounded-lg border border-border p-3">
+              <Checkbox
+                id="import-terms-consent"
+                checked={confirmTermsConsent}
+                onCheckedChange={(checked) => setConfirmTermsConsent(checked === true)}
+              />
+              <Label htmlFor="import-terms-consent" className="text-sm leading-snug cursor-pointer">
+                Confirmo que esta lista tem autorização para receber mensagens da Dona Rosa (LGPD).
+                Contatos importados sem essa confirmação não entram em disparos.
+              </Label>
+            </div>
+
             <details className="text-xs text-muted-foreground">
               <summary className="cursor-pointer font-medium text-foreground">
                 Como formatar o arquivo?
@@ -155,7 +172,7 @@ export function ImportContactsModal({ open, onOpenChange }: ImportContactsModalP
 
         <DialogFooter>
           {!result ? (
-            <Button onClick={handleImport} disabled={!file || isProcessing}>
+            <Button onClick={handleImport} disabled={!file || !confirmTermsConsent || isProcessing}>
               {isProcessing ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />

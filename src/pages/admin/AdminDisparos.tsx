@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Send, Plus, Loader2, ChevronRight } from "lucide-react";
+import { BroadcastSendConfirmDialog } from "@/components/admin/disparos/BroadcastSendConfirmDialog";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,8 @@ import {
   useApprovedWhatsappTemplates,
   useWhatsappContacts,
   useWhatsappQueues,
+  useQueueContactCount,
+  useSurveyFlows,
 } from "@/hooks/whatsapp";
 import type { BroadcastCampaign } from "@/integrations/supabase/types/whatsapp-broadcast";
 
@@ -48,6 +51,7 @@ export default function AdminDisparos() {
   const { data: campaigns, isLoading, error } = useBroadcastCampaigns();
   const { data: queues } = useWhatsappQueues();
   const { data: contacts } = useWhatsappContacts();
+  const { data: surveyFlows } = useSurveyFlows();
   const createDraft = useCreateBroadcastCampaignDraft();
   const publish = usePublishBroadcastCampaign();
   const send = useBroadcastSend();
@@ -56,12 +60,37 @@ export default function AdminDisparos() {
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [queueId, setQueueId] = useState("");
   const [contentType, setContentType] = useState("informational");
+  const [surveyFlowId, setSurveyFlowId] = useState("");
   const [sendingId, setSendingId] = useState<string | null>(null);
+  const [confirmCampaignId, setConfirmCampaignId] = useState<string | null>(null);
+
+  const confirmCampaign = campaigns?.find((c) => c.id === confirmCampaignId);
+  const { data: confirmContactCount, isLoading: loadingConfirmCount } = useQueueContactCount(
+    confirmCampaign?.queue_id ?? confirmCampaign?.queue_id_draft,
+  );
+
+  useEffect(() => {
+    if (contentType !== "survey" || !surveyFlowId || !queues?.length) {
+      return;
+    }
+    const flow = surveyFlows?.find((f) => f.id === surveyFlowId);
+    if (!flow?.suggested_queue_slug) {
+      return;
+    }
+    const suggested = queues.find((q) => q.slug === flow.suggested_queue_slug);
+    if (suggested) {
+      setQueueId(suggested.id);
+    }
+  }, [contentType, surveyFlowId, surveyFlows, queues]);
 
   async function handleCreate() {
     const template = approvedTemplates?.find((t) => t.id === selectedTemplateId);
     if (!template || !queueId) {
-      toast.error("Selecione um modelo aprovado e a fila.");
+      toast.error("Selecione um modelo aprovado e o segmento.");
+      return;
+    }
+    if (contentType === "survey" && !surveyFlowId) {
+      toast.error("Selecione qual pesquisa enviar.");
       return;
     }
     try {
@@ -73,6 +102,7 @@ export default function AdminDisparos() {
         },
         content_type_draft: contentType,
         queue_id_draft: queueId,
+        survey_flow_id_draft: contentType === "survey" ? surveyFlowId : null,
       });
       toast.success("Campanha criada como rascunho.");
       setDialogOpen(false);
@@ -96,6 +126,7 @@ export default function AdminDisparos() {
       const result = await send.mutateAsync({ campaign_id: campaignId });
       const failedSuffix = result.failed > 0 ? `, ${result.failed} falha(s).` : ".";
       toast.success(`${result.sent} mensagem(ns) enviada(s)${failedSuffix}`);
+      setConfirmCampaignId(null);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Disparo falhou.";
       toast.error(message.includes("Failed to fetch") ? "Erro de conexão. Tente novamente." : "Disparo falhou. Campanha publicada?");
@@ -174,8 +205,33 @@ export default function AdminDisparos() {
                   </SelectContent>
                 </Select>
               </div>
+              {contentType === "survey" && (
+                <div className="space-y-2">
+                  <Label>Pesquisa</Label>
+                  <Select value={surveyFlowId} onValueChange={setSurveyFlowId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione a pesquisa" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {surveyFlows?.map((flow) => (
+                        <SelectItem key={flow.id} value={flow.id}>
+                          {flow.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {(!surveyFlows || surveyFlows.length === 0) && (
+                    <p className="text-xs text-muted-foreground">
+                      Nenhuma pesquisa carregada.{" "}
+                      <Link to="/admin/pesquisas" className="text-primary hover:underline">
+                        Ver pesquisas
+                      </Link>
+                    </p>
+                  )}
+                </div>
+              )}
               <div className="space-y-2">
-                <Label>Fila de destinatários</Label>
+                <Label>Segmento de destinatários</Label>
                 <Select value={queueId} onValueChange={setQueueId}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione a fila" />
@@ -275,7 +331,7 @@ export default function AdminDisparos() {
                     <Button
                       size="sm"
                       disabled={sendingId === campaign.id}
-                      onClick={() => handleSend(campaign.id)}
+                      onClick={() => setConfirmCampaignId(campaign.id)}
                     >
                       {sendingId === campaign.id ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -300,6 +356,23 @@ export default function AdminDisparos() {
           );
         })}
       </div>
+
+      <BroadcastSendConfirmDialog
+        open={Boolean(confirmCampaignId)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmCampaignId(null);
+          }
+        }}
+        contactCount={confirmContactCount ?? 0}
+        isLoadingCount={loadingConfirmCount}
+        isSending={Boolean(sendingId && sendingId === confirmCampaignId)}
+        onConfirm={() => {
+          if (confirmCampaignId) {
+            handleSend(confirmCampaignId);
+          }
+        }}
+      />
     </div>
   );
 }

@@ -627,7 +627,7 @@ Se o app foi movido por engano, reverta para Dona Rosa: [ajuda Meta](https://www
 | `/admin/contatos` | Lista paginada, busca, opt-out, coluna último envio |
 | Importação CSV | Parse no cliente, normalização BR, lotes de até 5.000 linhas |
 | `whatsapp_import_batches` | Histórico de importações com resumo (importados / duplicados / erros) |
-| Consentimento termos | Opt-in do site grava contato + aceite; WhatsApp pergunta na 1ª mensagem se faltar aceite |
+| Consentimento termos | Opt-in do site grava contato + aceite; importação CSV exige checkbox LGPD; WhatsApp pergunta na 1ª mensagem se faltar aceite |
 | `opted_out_at` | Registro de quando o cliente parou de receber |
 
 **Pendente:** upload da planilha da cliente (~2.000 contatos) para validação em produção.
@@ -645,6 +645,16 @@ Colunas aceitas para telefone: `telefone`, `phone`, `cel`, `celular`, `numero`, 
 Realtime usa canais privados (`private: true`) — ver migrations e hooks em `src/hooks/`.
 
 > ⚠️ Não submeta templates à Meta nem dispare campanhas reais em ambientes de teste sem autorização explícita.
+
+**Documentação operacional:**
+
+| Doc | Público |
+|---|---|
+| [docs/GUIA-ROSA-WHATSAPP.md](docs/GUIA-ROSA-WHATSAPP.md) | Rosa — uso do painel sem jargão |
+| [docs/HOMOLOGACAO-T01-T30.md](docs/HOMOLOGACAO-T01-T30.md) | QA — checklist antes do go-live |
+| [docs/COEXISTENCIA-ROSA-E-PC.md](docs/COEXISTENCIA-ROSA-E-PC.md) | Coexistência celular + PC (após Meta aprovar) |
+
+**Testes:** `npm run test` (unit) · `npm run test:e2e:smoke` (login/disparos sem auth) · `npm run homologacao:post-deploy` (roteiro pós-deploy)
 
 ## 14. Convenções técnicas — não quebre isso
 

@@ -52,7 +52,7 @@ export const ADMIN_MODULES: AdminModuleDefinition[] = [
     key: "contatos",
     label: "Clientes",
     description: "Lista de contatos e importação",
-    routePrefixes: ["/admin/contatos"],
+    routePrefixes: ["/admin/contatos", "/admin/etiquetas", "/admin/segmentos"],
   },
   {
     key: "templates",
@@ -64,7 +64,7 @@ export const ADMIN_MODULES: AdminModuleDefinition[] = [
     key: "disparos",
     label: "Promoções",
     description: "Campanhas de disparo em massa",
-    routePrefixes: ["/admin/disparos"],
+    routePrefixes: ["/admin/disparos", "/admin/pesquisas"],
   },
   {
     key: "pages",

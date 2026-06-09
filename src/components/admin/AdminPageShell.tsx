@@ -22,7 +22,7 @@ export function AdminPageShell({
   width = "lg",
 }: AdminPageShellProps) {
   return (
-    <div className={cn(WIDTH_CLASS[width], "mx-auto w-full", className)}>
+    <div className={cn(WIDTH_CLASS[width], "mx-auto w-full min-w-0 max-w-full box-border", className)}>
       {children}
     </div>
   );
@@ -42,17 +42,19 @@ export function AdminPageHeader({
   actions,
 }: AdminPageHeaderProps) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
-      <div>
-        <div className="flex items-center gap-2 mb-1">
+    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4 min-w-0 w-full">
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2 mb-1 min-w-0">
           {Icon && <Icon className="h-6 w-6 text-primary shrink-0" />}
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground">{title}</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">{title}</h1>
         </div>
         {description && (
-          <p className="text-sm text-muted-foreground">{description}</p>
+          <p className="text-sm text-muted-foreground break-words">{description}</p>
         )}
       </div>
-      {actions && <div className="flex flex-wrap gap-2 shrink-0">{actions}</div>}
+      {actions && (
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto sm:shrink-0 min-w-0">{actions}</div>
+      )}
     </div>
   );
 }

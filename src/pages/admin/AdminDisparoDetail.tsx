@@ -1,5 +1,7 @@
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Send, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { ArrowLeft, Download, Send, Loader2 } from "lucide-react";
+import { BroadcastSendConfirmDialog } from "@/components/admin/disparos/BroadcastSendConfirmDialog";
 import { toast } from "sonner";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts";
 import { Badge } from "@/components/ui/badge";
@@ -19,25 +21,39 @@ import {
   useBroadcastCampaignRecipients,
   useBroadcastResponses,
   useBroadcastSend,
+  useSurveyCampaignResults,
+  useSurveyFlows,
   useWhatsappBroadcastRealtime,
   useWhatsappContacts,
 } from "@/hooks/whatsapp";
+import { useQueueContactCount } from "@/hooks/whatsapp/useQueueContactCount";
+import { buildBroadcastResponsesCsv, downloadCsvFile } from "@/lib/whatsapp/exportBroadcastCsv";
+import { buildSurveyResultsCsv } from "@/lib/whatsapp/exportSurveyCsv";
+import type { SurveyStep } from "@/integrations/supabase/types/survey-flows";
 import { maskPhone } from "@/lib/whatsapp/normalizePhone";
 
 const CHART_COLORS = ["#16a34a", "#2563eb", "#ca8a04", "#dc2626", "#9333ea"];
 
 export default function AdminDisparoDetail() {
   const { id } = useParams<{ id: string }>();
+  const [confirmSendOpen, setConfirmSendOpen] = useState(false);
   useWhatsappBroadcastRealtime();
 
   const { data: campaigns } = useBroadcastCampaigns();
   const campaign = campaigns?.find((c) => c.id === id);
   const { data: recipients, isLoading: loadingRecipients } = useBroadcastCampaignRecipients(id);
   const { data: responses, isLoading: loadingResponses } = useBroadcastResponses(id);
+  const { data: surveySessions, isLoading: loadingSurvey } = useSurveyCampaignResults(id);
+  const { data: surveyFlows } = useSurveyFlows();
   const { data: contacts } = useWhatsappContacts();
   const send = useBroadcastSend();
+  const { data: queueContactCount, isLoading: loadingQueueCount } = useQueueContactCount(
+    campaign?.queue_id ?? campaign?.queue_id_draft,
+  );
 
   const contactById = new Map(contacts?.map((c) => [c.id, c]) ?? []);
+  const campaignLabel =
+    campaign?.template_name ?? campaign?.template_name_draft ?? "campanha";
 
   const responseDistribution = (responses ?? []).reduce<Record<string, number>>((acc, r) => {
     acc[r.response_value] = (acc[r.response_value] ?? 0) + 1;
@@ -46,9 +62,17 @@ export default function AdminDisparoDetail() {
 
   const chartData = Object.entries(responseDistribution).map(([name, value]) => ({ name, value }));
 
+  const surveyFlowId = campaign?.survey_flow_id ?? campaign?.survey_flow_id_draft;
+  const surveyFlow = surveyFlows?.find((f) => f.id === surveyFlowId);
+  const surveySteps = (surveyFlow?.steps ?? []) as SurveyStep[];
+  const isSurveyCampaign = (campaign?.content_type ?? campaign?.content_type_draft) === "survey" && surveySteps.length > 0;
+
+  const completedSurveys = (surveySessions ?? []).filter((s) => s.status === "completed").length;
+  const responseCount = isSurveyCampaign ? completedSurveys : (responses?.length ?? 0);
+
   const responseRate =
     campaign && campaign.total_delivered > 0
-      ? Math.round(((responses?.length ?? 0) / campaign.total_delivered) * 100)
+      ? Math.round((responseCount / campaign.total_delivered) * 100)
       : 0;
 
   async function handleSend() {
@@ -58,9 +82,33 @@ export default function AdminDisparoDetail() {
     try {
       const result = await send.mutateAsync({ campaign_id: id });
       toast.success(`${result.sent} mensagem(ns) enviada(s).`);
+      setConfirmSendOpen(false);
     } catch {
       toast.error("Disparo falhou.");
     }
+  }
+
+  function handleExportCsv() {
+    if (isSurveyCampaign) {
+      if (!surveySessions?.length) {
+        toast.error("Não há respostas para exportar.");
+        return;
+      }
+      const csv = buildSurveyResultsCsv(surveySessions, contactById, campaignLabel, surveySteps);
+      const safeName = campaignLabel.replace(/[^\w-]+/g, "_").slice(0, 40);
+      downloadCsvFile(`pesquisa_${safeName}_${id?.slice(0, 8)}.csv`, csv);
+      toast.success("CSV exportado.");
+      return;
+    }
+
+    if (!responses?.length) {
+      toast.error("Não há respostas para exportar.");
+      return;
+    }
+    const csv = buildBroadcastResponsesCsv(responses, contactById, campaignLabel);
+    const safeName = campaignLabel.replace(/[^\w-]+/g, "_").slice(0, 40);
+    downloadCsvFile(`respostas_${safeName}_${id?.slice(0, 8)}.csv`, csv);
+    toast.success("CSV exportado.");
   }
 
   if (!campaign && campaigns) {
@@ -94,7 +142,7 @@ export default function AdminDisparoDetail() {
           </p>
         </div>
         {campaign?.published_at && (
-          <Button size="sm" disabled={send.isPending} onClick={handleSend}>
+          <Button size="sm" disabled={send.isPending} onClick={() => setConfirmSendOpen(true)}>
             {send.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
@@ -111,7 +159,7 @@ export default function AdminDisparoDetail() {
         {[
           { label: "Enviadas", value: campaign?.total_sent ?? 0 },
           { label: "Entregues", value: campaign?.total_delivered ?? 0 },
-          { label: "Respostas", value: responses?.length ?? 0 },
+          { label: "Respostas", value: responseCount },
           { label: "Taxa resposta", value: `${responseRate}%` },
         ].map((metric) => (
           <Card key={metric.label}>
@@ -123,7 +171,69 @@ export default function AdminDisparoDetail() {
         ))}
       </div>
 
-      {chartData.length > 0 && (
+      {isSurveyCampaign && surveySteps.length > 0 && (
+        <Card className="mb-6">
+          <CardHeader className="flex flex-row items-center justify-between gap-2">
+            <CardTitle className="text-base">Respostas por pergunta — {surveyFlow?.name}</CardTitle>
+            {surveySessions && surveySessions.length > 0 && (
+              <Button size="sm" variant="outline" onClick={handleExportCsv}>
+                <Download className="h-4 w-4 mr-1" />
+                Exportar CSV
+              </Button>
+            )}
+          </CardHeader>
+          <CardContent>
+            {loadingSurvey && <Skeleton className="h-24 w-full" />}
+            {!loadingSurvey && (!surveySessions || surveySessions.length === 0) && (
+              <p className="text-sm text-muted-foreground">Aguardando respostas dos clientes...</p>
+            )}
+            {surveySessions && surveySessions.length > 0 && (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Telefone</TableHead>
+                      <TableHead>Status</TableHead>
+                      {surveySteps.map((step, index) => (
+                        <TableHead key={step.id} className="min-w-[120px]">
+                          {index + 1}. {step.question.slice(0, 40)}
+                          {step.question.length > 40 ? "…" : ""}
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {surveySessions.map((session) => {
+                      const contact = contactById.get(session.contact_id);
+                      const answerByStep = new Map(session.answers.map((a) => [a.step_index, a]));
+                      return (
+                        <TableRow key={session.id}>
+                          <TableCell>{contact ? maskPhone(contact.phone_number) : "—"}</TableCell>
+                          <TableCell>
+                            <Badge variant={session.status === "completed" ? "outline" : "secondary"}>
+                              {session.status === "completed" ? "Concluída" : "Em andamento"}
+                            </Badge>
+                          </TableCell>
+                          {surveySteps.map((_, index) => {
+                            const answer = answerByStep.get(index);
+                            return (
+                              <TableCell key={index} className="text-xs">
+                                {answer?.response_label ?? answer?.response_value ?? "—"}
+                              </TableCell>
+                            );
+                          })}
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {!isSurveyCampaign && chartData.length > 0 && (
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="text-base">Resultados da pesquisa</CardTitle>
@@ -159,6 +269,7 @@ export default function AdminDisparoDetail() {
                   <TableRow>
                     <TableHead>Contato</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Motivo</TableHead>
                     <TableHead>Enviado em</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -171,7 +282,16 @@ export default function AdminDisparoDetail() {
                           {contact ? maskPhone(contact.phone_number) : r.contact_id.slice(0, 8)}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline">{r.send_status}</Badge>
+                          <Badge
+                            variant={r.send_status === "failed" ? "destructive" : "outline"}
+                          >
+                            {r.send_status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground max-w-[220px]">
+                          {r.send_status === "failed" && r.failure_reason
+                            ? r.failure_reason
+                            : "—"}
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
                           {r.sent_at ? new Date(r.sent_at).toLocaleString("pt-BR") : "—"}
@@ -187,15 +307,26 @@ export default function AdminDisparoDetail() {
       </Card>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between gap-2">
           <CardTitle className="text-base">Respostas recebidas</CardTitle>
+          {!isSurveyCampaign && responses && responses.length > 0 && (
+            <Button size="sm" variant="outline" onClick={handleExportCsv}>
+              <Download className="h-4 w-4 mr-1" />
+              Exportar CSV
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
           {loadingResponses && <Skeleton className="h-24 w-full" />}
-          {!loadingResponses && (!responses || responses.length === 0) && (
+          {!isSurveyCampaign && !loadingResponses && (!responses || responses.length === 0) && (
             <p className="text-sm text-muted-foreground">Aguardando respostas dos clientes...</p>
           )}
-          {responses && responses.length > 0 && (
+          {isSurveyCampaign && (
+            <p className="text-sm text-muted-foreground">
+              Pesquisa sequencial — veja o quadro &quot;Respostas por pergunta&quot; acima.
+            </p>
+          )}
+          {!isSurveyCampaign && responses && responses.length > 0 && (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -224,6 +355,15 @@ export default function AdminDisparoDetail() {
           )}
         </CardContent>
       </Card>
+
+      <BroadcastSendConfirmDialog
+        open={confirmSendOpen}
+        onOpenChange={setConfirmSendOpen}
+        contactCount={queueContactCount ?? 0}
+        isLoadingCount={loadingQueueCount}
+        isSending={send.isPending}
+        onConfirm={handleSend}
+      />
     </div>
   );
 }

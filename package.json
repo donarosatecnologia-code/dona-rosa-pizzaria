@@ -14,6 +14,10 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:e2e:smoke": "playwright test e2e/admin-smoke.spec.ts",
+    "test:e2e:regression": "playwright test e2e/public-readonly.spec.ts e2e/whatsapp-admin-readonly.spec.ts",
+    "test:regression": "bash scripts/run-regression-e2e.sh",
     "db:status": "supabase migration list",
     "db:push": "supabase db push",
     "db:push:yes": "supabase db push --yes --include-all",
@@ -35,6 +39,9 @@
     "secrets:meta": "bash scripts/supabase-set-meta-secrets.sh",
     "meta:coexistence": "bash scripts/meta-coexistence-setup.sh",
     "meta:verify": "bash scripts/verify-meta-integration.sh",
+    "homologacao:post-deploy": "bash scripts/run-homologacao-post-deploy.sh",
+    "homologacao:simulate-response": "bash scripts/simulate-survey-response.sh",
+    "homologacao:test-hmac": "bash scripts/test-webhook-invalid-hmac.sh",
     "broadcast:send": "bash scripts/invoke-broadcast-send.sh"
   },
   "dependencies": {

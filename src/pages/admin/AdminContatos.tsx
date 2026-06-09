@@ -1,6 +1,9 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { Users, Upload, Search } from "lucide-react";
 import { toast } from "sonner";
+import { ContactHomologacaoControls } from "@/components/admin/contatos/ContactHomologacaoControls";
+import { ContactTagsEditor } from "@/components/admin/contatos/ContactTagsEditor";
 import { ContactStatusBadge } from "@/components/admin/contatos/ContactStatusBadge";
 import { DeleteContactDialog } from "@/components/admin/contatos/DeleteContactDialog";
 import { ImportContactsModal } from "@/components/admin/contatos/ImportContactsModal";
@@ -65,10 +68,10 @@ export default function AdminContatos() {
   }
 
   return (
-    <AdminPageShell width="lg">
+    <AdminPageShell width="lg" className="max-md:pb-2">
       <AdminPageHeader
         title="Contatos"
-        description="Importe sua lista de clientes para disparar campanhas pelo WhatsApp."
+        description="Importe sua lista e organize com etiquetas e segmentos para campanhas."
         icon={Users}
         actions={
           <Button onClick={() => setImportOpen(true)} className="shrink-0 min-h-[44px] w-full sm:w-auto">
@@ -78,9 +81,18 @@ export default function AdminContatos() {
         }
       />
 
+      <div className="mb-4 grid max-md:grid-cols-2 gap-2 w-full min-w-0 md:flex md:flex-wrap text-sm">
+        <Button variant="outline" size="sm" className="min-h-[44px] max-md:w-full" asChild>
+          <Link to="/admin/etiquetas">Etiquetas</Link>
+        </Button>
+        <Button variant="outline" size="sm" className="min-h-[44px] max-md:w-full" asChild>
+          <Link to="/admin/segmentos">Segmentos</Link>
+        </Button>
+      </div>
+
       <ImportHistoryCard />
 
-      <div className="relative mb-4">
+      <div className="relative mb-4 w-full min-w-0">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           className="pl-9 min-h-[44px]"
@@ -123,34 +135,54 @@ export default function AdminContatos() {
 
       {pageItems.length > 0 && (
         <>
-          <div className="md:hidden space-y-3">
+          <div className="md:hidden space-y-3 w-full min-w-0">
             {pageItems.map((contact) => (
-              <Card key={contact.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium">{contact.name}</p>
-                      <p className="text-sm text-muted-foreground">{formatPhoneDisplay(contact.phone_number)}</p>
-                      <div className="mt-2 flex flex-wrap items-center gap-2">
-                        <ContactStatusBadge status={contact.status} />
-                        <span className="text-xs text-muted-foreground">
-                          Último envio: {formatLastCampaign(contact.last_outbound_at)}
-                        </span>
+              <Card key={contact.id} className="w-full min-w-0 overflow-hidden rounded-xl max-md:shadow-sm">
+                <CardContent className="p-0 min-w-0">
+                  <div className="p-4 pb-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-base leading-snug truncate">{contact.name}</p>
+                        <p className="text-sm text-muted-foreground mt-0.5">
+                          {formatPhoneDisplay(contact.phone_number)}
+                        </p>
                       </div>
+                      <ContactStatusBadge status={contact.status} />
                     </div>
+                    <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+                      <div>
+                        <dt className="text-muted-foreground">Último envio</dt>
+                        <dd className="font-medium text-foreground mt-0.5">
+                          {formatLastCampaign(contact.last_outbound_at)}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-muted-foreground">Cadastro</dt>
+                        <dd className="font-medium text-foreground mt-0.5">
+                          {new Date(contact.created_at).toLocaleDateString("pt-BR")}
+                        </dd>
+                      </div>
+                    </dl>
                   </div>
                   {contact.status === "active" && (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="min-h-[44px] flex-1"
-                        disabled={updateStatus.isPending}
-                        onClick={() => void handleOptOut(contact.id)}
-                      >
-                        Não quer receber
-                      </Button>
-                      <DeleteContactDialog contactId={contact.id} contactName={contact.name} />
+                    <div className="border-t bg-muted/25 px-4 py-3 pb-4 space-y-2.5">
+                      <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                        Classificar
+                      </p>
+                      <ContactTagsEditor contact={contact} compact fullWidth />
+                      <ContactHomologacaoControls contact={contact} compact fullWidth />
+                      <div className="flex flex-col gap-2 pt-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="min-h-[44px] w-full"
+                          disabled={updateStatus.isPending}
+                          onClick={() => void handleOptOut(contact.id)}
+                        >
+                          Não quer receber mensagens
+                        </Button>
+                        <DeleteContactDialog contactId={contact.id} contactName={contact.name} />
+                      </div>
                     </div>
                   )}
                 </CardContent>
@@ -167,6 +199,8 @@ export default function AdminContatos() {
                   <TableHead>Status</TableHead>
                   <TableHead>Cadastro</TableHead>
                   <TableHead>Último envio</TableHead>
+                  <TableHead>Etiquetas</TableHead>
+                  <TableHead>Homologação</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -183,6 +217,20 @@ export default function AdminContatos() {
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {formatLastCampaign(contact.last_outbound_at)}
+                    </TableCell>
+                    <TableCell>
+                      {contact.status === "active" ? (
+                        <ContactTagsEditor contact={contact} compact />
+                      ) : (
+                        "—"
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {contact.status === "active" ? (
+                        <ContactHomologacaoControls contact={contact} compact />
+                      ) : (
+                        "—"
+                      )}
                     </TableCell>
                     <TableCell className="text-right space-x-1">
                       {contact.status === "active" && (
@@ -206,7 +254,7 @@ export default function AdminContatos() {
             </Table>
           </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-4 text-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-4 text-sm max-md:pb-1">
             <p className="text-muted-foreground">
               {filtered.length} contato(s) · página {page + 1} de {totalPages}
             </p>

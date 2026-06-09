@@ -20,13 +20,11 @@ O bloqueio é **#2655111** (app em modo **parceiro** no Cadastro incorporado). A
 
 ## Faça só isto (ordem)
 
-### 1) Rosa — celular (hoje)
+### 1) Rosa — celular (só junto com o PC)
 
-1. WhatsApp Business → **Conta** → **Plataforma comercial**.
-2. Se pedir QR → **cancele** (não escaneie popup do site).
-3. Abra conversas → procure **Facebook Business** / **Meta** (conta oficial).
-4. Se houver **Conectar** + **código** → use **inserir código** no app.
-5. Se não houver mensagem em 48 h → passo 2.
+O celular **sozinho** não gera código nem chat da Meta. Rosa só escaneia o **QR do monitor** ou digita **código que aparece no PC** — ver `docs/COEXISTENCIA-ROSA-E-PC.md`.
+
+Enquanto #2655111 não for resolvido, **não peça** para Rosa ficar tentando Plataforma comercial.
 
 ### 2) Você — ticket Meta (30 min, uma vez)
 

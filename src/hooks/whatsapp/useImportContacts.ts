@@ -9,8 +9,8 @@ export function useImportContacts() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ file, onProgress }: ImportContactsInput) =>
-      importContactsFromFile(file, { onProgress }),
+    mutationFn: ({ file, onProgress, confirmTermsConsent }: ImportContactsInput) =>
+      importContactsFromFile(file, { onProgress, confirmTermsConsent }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["whatsapp", "contacts"] });
       queryClient.invalidateQueries({ queryKey: ["whatsapp", "import-batches"] });

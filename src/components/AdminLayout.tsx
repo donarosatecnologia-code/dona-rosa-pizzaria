@@ -103,7 +103,7 @@ const AdminLayout = () => {
         <main
           className={cn(
             "flex min-h-0 flex-1 flex-col overflow-hidden",
-            fullBleedMobile ? "p-0 pt-14 lg:p-6 lg:pt-6" : "p-4 pt-[calc(3.5rem+1rem)] lg:p-6 lg:pt-6",
+            fullBleedMobile ? "p-0 pt-14 lg:p-6 lg:pt-6" : "p-4 pt-[calc(3.5rem+1rem)] max-lg:overflow-x-hidden lg:p-6 lg:pt-6",
             !hideBottomNav && "pb-[calc(4rem+env(safe-area-inset-bottom))] lg:pb-6",
             hideMobileHeader && fullBleedMobile && "pt-0 lg:pt-6",
           )}
@@ -112,15 +112,17 @@ const AdminLayout = () => {
 
           <div
             className={cn(
-              "admin-outlet-scroll relative z-0 min-h-0 flex-1",
+              "admin-outlet-scroll relative z-0 min-h-0 flex-1 min-w-0 max-w-full",
               fullBleedMobile && "overflow-hidden",
             )}
           >
             {fullBleedMobile ? (
               <Outlet />
             ) : (
-              <AppScrollArea className="h-full">
-                <Outlet />
+              <AppScrollArea className="h-full w-full min-w-0 max-w-full overflow-x-hidden">
+                <div className="w-full min-w-0 max-w-full box-border">
+                  <Outlet />
+                </div>
               </AppScrollArea>
             )}
           </div>

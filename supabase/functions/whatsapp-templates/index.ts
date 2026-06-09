@@ -71,8 +71,12 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ error: "unknown_action" }, 400);
   } catch (error) {
     if (error instanceof MetaApiError) {
+      const errorCode = error.message.includes("App Review") ||
+          error.message.includes("coexistência")
+        ? "meta_template_permission_denied"
+        : "meta_api_error";
       return jsonResponse(
-        { ok: false, error: "meta_api_error", message: error.message },
+        { ok: false, error: errorCode, message: error.message },
         error.status >= 400 && error.status < 600 ? error.status : 502,
       );
     }
