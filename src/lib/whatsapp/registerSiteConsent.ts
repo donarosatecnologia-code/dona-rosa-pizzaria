@@ -1,10 +1,15 @@
 import { supabase } from "@/integrations/supabase/client";
-import type {
-  RegisterSiteConsentResult,
-  WhatsappTermsSource,
-} from "@/lib/whatsapp/registerSiteConsent";
+import type { WhatsappTermsSource } from "@/integrations/supabase/types/whatsapp-broadcast";
 
-export type { RegisterSiteConsentResult, WhatsappTermsSource };
+export interface RegisterSiteConsentResult {
+  ok: boolean;
+  contact_id?: string;
+  phone_number?: string;
+  terms_accepted?: boolean;
+  error?: string;
+}
+
+export type { WhatsappTermsSource };
 
 /** Grava contato + aceite de termos quando o visitante confirma opt-in no site. */
 export async function registerWhatsappSiteConsent(input: {
@@ -13,22 +18,25 @@ export async function registerWhatsappSiteConsent(input: {
   email?: string | null;
   source?: WhatsappTermsSource;
 }): Promise<RegisterSiteConsentResult> {
-  const { data, error } = await supabase.rpc("register_whatsapp_site_consent", {
-    p_name: input.name.trim(),
-    p_phone: input.phone.trim(),
-    p_email: input.email?.trim() || null,
-    p_source: input.source ?? "site_widget",
-  });
+  const { data, error } = await supabase.functions.invoke<RegisterSiteConsentResult>(
+    "register-site-consent",
+    {
+      body: {
+        name: input.name.trim(),
+        phone: input.phone.trim(),
+        email: input.email?.trim() || null,
+        source: input.source ?? "site_widget",
+      },
+    },
+  );
 
   if (error) {
     throw error;
   }
 
-  const result = data as RegisterSiteConsentResult;
-
-  if (!result?.ok) {
-    throw new Error(result?.error ?? "consent_failed");
+  if (!data?.ok) {
+    throw new Error(data?.error ?? "consent_failed");
   }
 
-  return result;
+  return data;
 }

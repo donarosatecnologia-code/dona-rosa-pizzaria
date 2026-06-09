@@ -21,7 +21,8 @@
 13. [WhatsApp — integração (infra Supabase)](#13-whatsapp--integração-infra-supabase)
 14. [Convenções técnicas — não quebre isso](#14-convenções-técnicas--não-quebre-isso)
 15. [Checklist de QA — painel administrativo](#15-checklist-de-qa--painel-administrativo)
-16. [Onde pedir ajuda / credenciais](#16-onde-pedir-ajuda--credenciais)
+16. [Segurança e autenticação](#16-segurança-e-autenticação)
+17. [Onde pedir ajuda / credenciais](#17-onde-pedir-ajuda--credenciais)
  
 ---
  
@@ -88,6 +89,9 @@ npm run build:hostgator  # Build para upload na HostGator (fixa URL canônica)
 npm run preview          # Serve o build localmente para teste
 npm run lint             # Verifica qualidade do código com ESLint
 npm run test             # Roda os testes com Vitest
+npm run test:regression  # Regressão E2E (site + admin read-only)
+npm run db:deploy        # Aplica migrations pendentes + regen types
+npm run functions:deploy:whatsapp  # Todas as Edge Functions WhatsApp + site-consent
 ```
  
 ---
@@ -179,10 +183,13 @@ Todo o conteúdo público (textos, imagens, cardápio, etc.) vem do **Supabase**
 | `/admin/dashboard` | Início | Métricas e gráficos |
 | `/admin/conversas` | Mensagens | Inbox WhatsApp |
 | `/admin/conversas/:id` | Mensagens | Thread |
-| `/admin/contatos` | Clientes | CRM |
+| `/admin/contatos` | Clientes | CRM + importação |
+| `/admin/etiquetas` | Etiquetas | Tags de contatos |
+| `/admin/segmentos` | Segmentos | Filtros para campanhas |
+| `/admin/pesquisas` | Pesquisas | Fluxos multi-pergunta WhatsApp |
 | `/admin/templates` | Mensagens prontas | Modelos Meta |
 | `/admin/disparos` | Promoções | Campanhas |
-| `/admin/disparos/:id` | Promoções | Detalhe da campanha |
+| `/admin/disparos/:id` | Promoções | Detalhe/relatório da campanha |
 | `/admin/pages` | Páginas do site | Links para espelho/preview |
 | `/admin/mirror/:slug` | Páginas do site | Edição visual (rascunho) |
 | `/admin/cardapio` | Cardápio | Produtos e categorias |
@@ -620,41 +627,38 @@ Se o app foi movido por engano, reverta para Dona Rosa: [ajuda Meta](https://www
 | `/admin/disparos` | Campanhas |
 | `/admin/contatos` | Importação CSV + lista de contatos |
 
-### Fase 2 — gestão de contatos (quase concluída)
+### Módulos WhatsApp (fases 1–4 — concluídos no código)
 
-| Entrega | Status |
+| Módulo | Entregas principais |
 |---|---|
-| `/admin/contatos` | Lista paginada, busca, opt-out, coluna último envio |
-| Importação CSV | Parse no cliente, normalização BR, lotes de até 5.000 linhas |
-| `whatsapp_import_batches` | Histórico de importações com resumo (importados / duplicados / erros) |
-| Consentimento termos | Opt-in do site grava contato + aceite; importação CSV exige checkbox LGPD; WhatsApp pergunta na 1ª mensagem se faltar aceite |
-| `opted_out_at` | Registro de quando o cliente parou de receber |
+| Infra | `whatsapp-webhook`, `whatsapp-verify`, HMAC, dedupe, CRM base |
+| Contatos | `/admin/contatos`, CSV/Excel, LGPD, etiquetas, segmentos, homologação QA |
+| Templates | `/admin/templates`, `whatsapp-templates`, preview WhatsApp |
+| Disparos | `/admin/disparos`, `broadcast-send`, rate limit, dry-run |
+| Pesquisas | `/admin/pesquisas`, `survey_flows`, respostas sequenciais, relatório + CSV |
+| Inbox | `/admin/conversas`, envio manual `whatsapp-send-message` |
 
-**Pendente:** upload da planilha da cliente (~2.000 contatos) para validação em produção.
+Opt-in do site: Edge Function `register-site-consent` (não expõe RPC `SECURITY DEFINER` na API pública).
 
-Formato esperado do CSV:
+**Bloqueio externo:** envio real e submissão de templates dependem de **App Review Meta** — manter `BROADCAST_DRY_RUN=true` até go-live.
 
-```csv
-nome,telefone
-Maria Silva,11999998888
-João Santos,+5511988887777
+```bash
+npm run functions:deploy:whatsapp   # inclui register-site-consent
+npm run test:regression              # regressão E2E (CMS intocado)
+npm run homologacao:post-deploy      # smoke pós-deploy
 ```
 
-Colunas aceitas para telefone: `telefone`, `phone`, `cel`, `celular`, `numero`, `whatsapp`.
-
-Realtime usa canais privados (`private: true`) — ver migrations e hooks em `src/hooks/`.
-
-> ⚠️ Não submeta templates à Meta nem dispare campanhas reais em ambientes de teste sem autorização explícita.
-
-**Documentação operacional:**
+### Documentação
 
 | Doc | Público |
 |---|---|
-| [docs/GUIA-ROSA-WHATSAPP.md](docs/GUIA-ROSA-WHATSAPP.md) | Rosa — uso do painel sem jargão |
-| [docs/HOMOLOGACAO-T01-T30.md](docs/HOMOLOGACAO-T01-T30.md) | QA — checklist antes do go-live |
-| [docs/COEXISTENCIA-ROSA-E-PC.md](docs/COEXISTENCIA-ROSA-E-PC.md) | Coexistência celular + PC (após Meta aprovar) |
-
-**Testes:** `npm run test` (unit) · `npm run test:e2e:smoke` (login/disparos sem auth) · `npm run homologacao:post-deploy` (roteiro pós-deploy)
+| [docs/DESENVOLVIMENTO.md](docs/DESENVOLVIMENTO.md) | Desenvolvedores — setup, scripts, estrutura |
+| [docs/FASES-ENTREGA.md](docs/FASES-ENTREGA.md) | Status das fases 1–5 |
+| [docs/SEGURANCA-AUTH.md](docs/SEGURANCA-AUTH.md) | Auth, warnings Supabase, HostGator |
+| [docs/GUIA-ROSA-WHATSAPP.md](docs/GUIA-ROSA-WHATSAPP.md) | Rosa — uso do painel |
+| [docs/HOMOLOGACAO-T01-T30.md](docs/HOMOLOGACAO-T01-T30.md) | QA — checklist go-live |
+| [docs/PESQUISAS-WHATSAPP.md](docs/PESQUISAS-WHATSAPP.md) | Arquitetura técnica pesquisas |
+| [docs/COEXISTENCIA-ROSA-E-PC.md](docs/COEXISTENCIA-ROSA-E-PC.md) | Coexistência celular + PC |
 
 ## 14. Convenções técnicas — não quebre isso
 
@@ -674,72 +678,40 @@ Realtime usa canais privados (`private: true`) — ver migrations e hooks em `sr
 
 ## 15. Checklist de QA — painel administrativo
 
-Última rodada: **2026-06-02** · ambiente local `http://localhost:8080` · **nenhum conteúdo publicado** (cardápio, páginas, topo/rodapé intactos).
+Última rodada automatizada: **regressão E2E** (`npm run test:regression`) — site público read-only + rotas admin sem alterar CMS.
 
-### Automatizado (passou)
-
-| Teste | Resultado |
+| Comando | Escopo |
 |---|---|
-| `/admin/dashboard` sem sessão → tela de login | ✅ |
-| Cardápio público carrega produtos do Supabase | ✅ |
-| Home com guard de carregamento | ✅ |
-| `npm run test` (9 testes) | ✅ |
-| `npm run build` | ✅ (rodada anterior) |
-| Webhook sem assinatura HMAC → HTTP 403 | ✅ |
-| `whatsapp-send-message` sem JWT → HTTP 401 | ✅ |
-| `admin-users` sem JWT → HTTP 401 | ✅ |
-| RPC `is_admin` removida da API | ✅ |
-| RPC `am_i_admin` negada para anon | ✅ |
+| `npm run test` | Vitest (unit) |
+| `npm run test:e2e:smoke` | Smoke admin (login, rotas) |
+| `npm run test:regression` | Regressão completa documentada em `docs/qa-sample/` |
+| `npm run homologacao:post-deploy` | T03 + vitest + smoke pós-deploy |
 
-### Segurança Supabase / WhatsApp
-
-| Item | Status |
-|---|---|
-| HMAC `X-Hub-Signature-256` antes de persistir | ✅ (`meta-webhook.ts`) |
-| Comparação timing-safe | ✅ |
-| RLS em tabelas WhatsApp | ✅ (migrations) |
-| Edge Functions sensíveis com `verify_jwt = true` | ✅ (`config.toml`) |
-| Secrets Meta só no Supabase (não `VITE_*`) | ✅ |
-
-### Manual — requer login admin (Rosa / super admin)
-
-Executar logado, **sem clicar em Publicar** em CMS/cardápio/topo e rodapé:
-
-1. [ ] Dashboard: cards e gráficos carregam sem erro 400 no console
-2. [ ] Header: nome da equipe ao lado do avatar (não e-mail)
-3. [ ] Mensagens: lista conversas; abrir thread; banner janela 24h se aplicável
-4. [ ] Clientes: listar, buscar, importar (cancelar antes de confirmar)
-5. [ ] Mensagens prontas: listar modelos; criar rascunho; **não** submeter à Meta
-6. [ ] Promoções: listar campanhas; abrir detalhe; **não** disparar
-7. [ ] Páginas do site: links espelho/preview abrem; **Salvar rascunho** ok; **não Publicar**
-8. [ ] Cardápio admin: editar produto em rascunho; **não Publicar**
-9. [ ] Topo e rodapé: visualizar; **não Publicar**
-10. [ ] Equipe: listar; editar permissões de teste; **não** excluir super admin
-11. [ ] Minha conta: alterar nome; refletir no header
-12. [ ] Notificações: abrir sheet; marcar lida / dispensar
-13. [ ] Logout → `/login`; voltar a `/admin` exige login
-
-### Findings desta rodada
-
-| # | Severidade | Descrição | Status |
-|---|---|---|---|
-| 1 | 🟡 minor | Título da aba em `/login` e `/recuperar-senha` mostra "Página não encontrada" (falta entrada em `PAGE_SEO`) | ✅ corrigido |
-| 2 | 🟡 minor | `npm run lint` — 5 erros pré-existentes (não bloqueiam build) | ✅ corrigido (0 erros) |
-| 3 | 🔵 obs | Commit histórico `db09cff` incluiu `.env` — revisar rotação de chaves se repo foi público | registrado |
-| 4 | 🔵 obs | HaveIBeenPwned: requer plano Pro + toggle no Dashboard Auth | pendente infra |
-| 5 | 🔴 blocker | `get_admin_dashboard_stats` 400 (`deleted_at` inexistente em `whatsapp_contacts`) | ✅ corrigido |
-
-### Sprint Review (QA)
-
-**Entregue neste ciclo:** painel admin com RBAC, dashboard, equipe, auth (convite/recuperar senha), templates de e-mail, hardening Security Advisor (schema `private`, storage, MFA TOTP).
-
-**Riscos:** fluxos autenticados dependem de validação manual com credencial real; lint com erores legados; histórico git com `.env`.
-
-**Próximo sprint:** corrigir SEO de rotas auth; rodada E2E logada com Playwright; habilitar HIBP se plano Pro.
+Homologação manual com celulares reais: [docs/HOMOLOGACAO-T01-T30.md](docs/HOMOLOGACAO-T01-T30.md).
 
 ---
 
-## 16. Onde pedir ajuda / credenciais
+## 16. Segurança e autenticação
+
+Guia completo: **[docs/SEGURANCA-AUTH.md](docs/SEGURANCA-AUTH.md)**
+
+Resumo:
+
+| Warning Supabase | Ação |
+|---|---|
+| `register_whatsapp_site_consent` SECURITY DEFINER público | Migration `20260609130000` + Edge Function `register-site-consent` |
+| Leaked password protection disabled | Dashboard → Auth → Email → habilitar (requer Pro em alguns planos) |
+
+**HostGator:** serve apenas o front-end estático. Senhas do painel ficam no **Supabase Auth**. Passo a passo HTTPS, deploy SPA e redirects: seção 10 deste README + `docs/SEGURANCA-AUTH.md`.
+
+```bash
+npm run db:deploy
+npm run functions:deploy:site-consent
+```
+
+---
+
+## 17. Onde pedir ajuda / credenciais
 
 - **Credenciais** (Supabase, HostGator, Vercel, GitHub, Meta Business, variáveis de ambiente): solicitar diretamente à **proprietária da pizzaria**.
 - **Dúvidas técnicas sobre a implementação**: contato com a desenvolvedora responsável — [Janaina Guiotti](https://janaina-guiotti.vercel.app/).

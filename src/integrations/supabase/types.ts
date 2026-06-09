@@ -1475,15 +1475,6 @@ export type Database = {
         Args: { p_contact_id: string }
         Returns: undefined
       }
-      register_whatsapp_site_consent: {
-        Args: {
-          p_email?: string
-          p_name: string
-          p_phone: string
-          p_source?: string
-        }
-        Returns: Json
-      }
       resolve_queue_contact_ids: {
         Args: { p_queue_id: string }
         Returns: string[]

@@ -4,7 +4,8 @@ Checklist executável antes do go-live. Marque cada item ao testar.
 
 **Pré-requisitos**
 
-- [x] Migrations aplicadas (`npm run db:deploy`) — até 20260527180300
+- [x] Migrations aplicadas (`npm run db:deploy`) — incluir `20260609130000_register_site_consent_private_schema`
+- [x] Edge Function `register-site-consent` deployada (`npm run functions:deploy:site-consent`)
 - [x] Edge Functions `whatsapp-webhook` + `broadcast-send` deployadas
 - [x] Fila **Homologação QA** com ≥ 3 contatos de teste (tag `qa-homologacao` + consentimento LGPD)
 - [x] `BROADCAST_DRY_RUN=true` para testes sem cobrança Meta (trocar para `false` só após App Review)

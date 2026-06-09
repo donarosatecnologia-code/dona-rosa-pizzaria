@@ -78,3 +78,6 @@ verify_jwt = true
 
 [functions.whatsapp-phone-status]
 verify_jwt = true
+
+[functions.register-site-consent]
+verify_jwt = false
