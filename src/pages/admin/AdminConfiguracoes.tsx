@@ -55,7 +55,7 @@ const AdminConfiguracoes = () => {
           <div>
             <p className="text-sm font-medium">Conexão WhatsApp</p>
             <p className="text-xs text-muted-foreground">
-              Vincule o número da pizzaria ao painel (coexistência com o app no celular).
+              App Meta aprovado. Falta sessão no celular da loja (~15 min com a Rosa).
             </p>
           </div>
           <Button asChild size="sm" className="min-h-[44px]">
