@@ -4,6 +4,9 @@
   "version": "1.0.0",
   "author": "Janaina Guiotti",
   "type": "module",
+  "engines": {
+    "node": ">=20 <26"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",

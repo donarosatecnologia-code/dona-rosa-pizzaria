@@ -32,8 +32,14 @@ export function DeleteContactDialog({ contactId, contactName }: DeleteContactDia
       toast.success("Cliente removido da lista.");
       setOpen(false);
       setReason("");
-    } catch {
-      toast.error("Não deu para excluir. Tente de novo.");
+    } catch (err) {
+      const msg =
+        err instanceof Error && err.message.includes("contact_not_found")
+          ? "Contato não encontrado."
+          : err instanceof Error && err.message.includes("not_admin")
+            ? "Sem permissão para excluir."
+            : "Não deu para excluir. Se acabou de atualizar o sistema, rode db:deploy.";
+      toast.error(msg);
     }
   }
 

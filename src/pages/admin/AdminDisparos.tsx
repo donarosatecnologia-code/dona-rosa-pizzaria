@@ -1,8 +1,9 @@
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { Send, Plus, Loader2, ChevronRight } from "lucide-react";
+import { Send, Plus, Loader2, ChevronRight, Trash2, CheckCircle2 } from "lucide-react";
 import { BroadcastSendConfirmDialog } from "@/components/admin/disparos/BroadcastSendConfirmDialog";
 import { toast } from "sonner";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +16,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -28,12 +39,14 @@ import {
   useBroadcastCampaigns,
   useBroadcastSend,
   useCreateBroadcastCampaignDraft,
+  useDeleteBroadcastCampaign,
   usePublishBroadcastCampaign,
   useApprovedWhatsappTemplates,
   useWhatsappContacts,
   useWhatsappQueues,
   useQueueContactCount,
   useSurveyFlows,
+  useWhatsappPhoneStatus,
 } from "@/hooks/whatsapp";
 import type { BroadcastCampaign } from "@/integrations/supabase/types/whatsapp-broadcast";
 
@@ -54,7 +67,10 @@ export default function AdminDisparos() {
   const { data: surveyFlows } = useSurveyFlows();
   const createDraft = useCreateBroadcastCampaignDraft();
   const publish = usePublishBroadcastCampaign();
+  const deleteCampaign = useDeleteBroadcastCampaign();
   const send = useBroadcastSend();
+  const { data: phoneStatus } = useWhatsappPhoneStatus();
+  const cloudReady = phoneStatus?.phone?.is_cloud_ready ?? false;
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
@@ -63,6 +79,7 @@ export default function AdminDisparos() {
   const [surveyFlowId, setSurveyFlowId] = useState("");
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [confirmCampaignId, setConfirmCampaignId] = useState<string | null>(null);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   const confirmCampaign = campaigns?.find((c) => c.id === confirmCampaignId);
   const { data: confirmContactCount, isLoading: loadingConfirmCount } = useQueueContactCount(
@@ -117,6 +134,25 @@ export default function AdminDisparos() {
       toast.success("Campanha publicada.");
     } catch {
       toast.error("Publicação falhou. Verifique se há conteúdo em rascunho.");
+    }
+  }
+
+  const deleteTarget = campaigns?.find((c) => c.id === deleteTargetId);
+
+  async function handleDeleteCampaign() {
+    if (!deleteTargetId) {
+      return;
+    }
+    try {
+      await deleteCampaign.mutateAsync(deleteTargetId);
+      toast.success("Campanha excluída.");
+      setDeleteTargetId(null);
+    } catch (err) {
+      const msg =
+        err instanceof Error && err.message.includes("campaign_sending_blocked")
+          ? "Aguarde o envio terminar antes de excluir."
+          : "Não foi possível excluir. Rode db:deploy se acabou de atualizar o sistema.";
+      toast.error(msg);
     }
   }
 
@@ -256,6 +292,16 @@ export default function AdminDisparos() {
         </Dialog>
       </div>
 
+      {cloudReady && (
+        <Alert className="mb-4 border-emerald-200 bg-emerald-50 text-emerald-950">
+          <CheckCircle2 className="h-4 w-4 text-emerald-700" />
+          <AlertTitle>WhatsApp conectado</AlertTitle>
+          <AlertDescription>
+            Coexistência ativa — celular e painel sincronizados. Disparos reais liberados.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {isLoading && (
         <div className="space-y-3">
           {[1, 2].map((i) => (
@@ -349,6 +395,17 @@ export default function AdminDisparos() {
                       <ChevronRight className="h-4 w-4 ml-1" />
                     </Link>
                   </Button>
+                  {campaign.status !== "sending" && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => setDeleteTargetId(campaign.id)}
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Excluir
+                    </Button>
+                  )}
                 </div>
                 <p className="text-[11px] text-muted-foreground font-mono truncate">{campaign.id}</p>
               </CardContent>
@@ -373,6 +430,35 @@ export default function AdminDisparos() {
           }
         }}
       />
+
+      <AlertDialog open={Boolean(deleteTargetId)} onOpenChange={(open) => !open && setDeleteTargetId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir campanha?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A campanha{" "}
+              <strong>
+                {deleteTarget?.template_name ?? deleteTarget?.template_name_draft ?? "sem nome"}
+              </strong>{" "}
+              será removida do painel, incluindo relatório e histórico de envio desta campanha. Não dá
+              para desfazer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteCampaign.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                void handleDeleteCampaign();
+              }}
+            >
+              {deleteCampaign.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

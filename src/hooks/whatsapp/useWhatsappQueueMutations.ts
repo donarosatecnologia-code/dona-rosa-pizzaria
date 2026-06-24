@@ -10,12 +10,11 @@ export interface QueueWithTags extends WhatsappQueue {
 const QUEUES_KEY = ["whatsapp", "queues"] as const;
 const QUEUE_TAGS_KEY = ["whatsapp", "queue-tags"] as const;
 
-/** Filas criadas pelo sistema — não podem ser excluídas pelo painel. */
+/** Filas padrão do sistema — segmentos customizados podem ser excluídos. */
 export const PROTECTED_QUEUE_SLUGS = new Set([
   "clientes-ativos",
   "clientes-inativos",
   "nunca-responderam",
-  "homologacao-qa",
 ]);
 
 function toSlug(name: string): string {

@@ -228,10 +228,7 @@ export default function AdminSegmentos() {
 
       <Card className="mb-4 border-dashed max-md:border-0 max-md:bg-muted/30">
         <CardContent className="pt-4 text-sm text-muted-foreground max-md:px-3 max-md:py-3">
-          <span className="max-md:block max-md:font-medium max-md:text-foreground max-md:mb-1">
-            Como montar um segmento
-          </span>
-          Primeiro crie{" "}
+          Como montar um segmento. Primeiro crie{" "}
           <Link to="/admin/etiquetas" className="text-primary hover:underline">
             etiquetas
           </Link>

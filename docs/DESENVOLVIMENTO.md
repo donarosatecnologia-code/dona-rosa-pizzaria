@@ -86,6 +86,13 @@ npm run build:hostgator
 npm run verify:hostgator
 ```
 
+### Build lento ou aparentemente travado
+
+- Use **Node 22 LTS** (`nvm use` — o projeto tem `.nvmrc` com `22`). Node 26 não é suportado.
+- Antes de buildar, confirme que **não há outro `vite build` rodando** (`pkill -f "vite build"` se necessário).
+- O build costuma levar **20–60 segundos**; a mensagem `transforming...` pode ficar parada por um tempo — aguarde até aparecer `✓ built in`.
+- Se cancelar com Ctrl+C no meio, o próximo build pode falhar até encerrar processos órfãos.
+
 ---
 
 ## Estrutura de pastas

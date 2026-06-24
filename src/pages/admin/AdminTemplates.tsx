@@ -1,10 +1,20 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { FileText, Plus, RefreshCw, Send, Pencil, Loader2, Archive, Trash2 } from "lucide-react";
+import { FileText, Plus, RefreshCw, Send, Pencil, Loader2, Archive, Trash2, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { TemplateEditorDialog } from "@/components/admin/templates/TemplateEditorDialog";
 import { TemplateStatusBadge } from "@/components/admin/templates/TemplateStatusBadge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -26,12 +36,13 @@ export default function AdminTemplates() {
   const archive = useArchiveWhatsappTemplate();
   const deleteDraft = useDeleteWhatsappTemplateDraft();
   const { data: phoneStatus } = useWhatsappPhoneStatus();
-  const templatesBlockedByMeta = !phoneStatus?.phone?.is_cloud_ready;
+  const cloudReady = phoneStatus?.phone?.is_cloud_ready ?? false;
 
   const [editorOpen, setEditorOpen] = useState(false);
   const [editing, setEditing] = useState<WhatsappTemplate | null>(null);
   const [actionId, setActionId] = useState<string | null>(null);
   const [didAutoSync, setDidAutoSync] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<WhatsappTemplate | null>(null);
 
   useEffect(() => {
     if (didAutoSync || isLoading) {
@@ -99,12 +110,20 @@ export default function AdminTemplates() {
     }
   }
 
-  async function handleDeleteDraft(templateId: string) {
+  async function handleDeleteTemplate() {
+    if (!deleteTarget) {
+      return;
+    }
     try {
-      await deleteDraft.mutateAsync(templateId);
-      toast.success("Rascunho excluído.");
+      await deleteDraft.mutateAsync(deleteTarget.id);
+      toast.success("Modelo excluído.");
+      setDeleteTarget(null);
     } catch {
-      toast.error("Só é possível excluir rascunhos ou modelos rejeitados.");
+      toast.error(
+        deleteTarget.is_meta_imported
+          ? "Modelos importados da Meta só podem ser arquivados."
+          : "Não foi possível excluir. Rode db:deploy se acabou de atualizar o sistema.",
+      );
     }
   }
 
@@ -140,16 +159,25 @@ export default function AdminTemplates() {
         </div>
       </div>
 
-      {templatesBlockedByMeta && (
+      {!cloudReady && (
         <Alert className="mb-4 border-amber-300 bg-amber-50 text-amber-950">
-          <AlertTitle>Envio à Meta temporariamente bloqueado</AlertTitle>
+          <AlertTitle>Migração do WhatsApp em andamento</AlertTitle>
           <AlertDescription>
-            A conta WhatsApp ainda não tem permissão para criar modelos (App Review + coexistência
-            pendente). Você pode salvar rascunhos aqui; o botão &quot;Enviar para aprovação&quot; só
-            funcionará depois que a Meta aprovar o app e o número estiver em Cloud API.{" "}
+            Você já pode enviar modelos para aprovação da Meta daqui. Disparos para clientes reais
+            só funcionam depois da coexistência (Cloud API).{" "}
             <Link to="/admin/conectar-whatsapp" className="underline font-medium">
               Ver status da conexão
             </Link>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {cloudReady && (
+        <Alert className="mb-4 border-emerald-200 bg-emerald-50 text-emerald-950">
+          <CheckCircle2 className="h-4 w-4 text-emerald-700" />
+          <AlertTitle>WhatsApp conectado</AlertTitle>
+          <AlertDescription>
+            Modelos aprovados podem ser usados em promoções com disparo real para clientes.
           </AlertDescription>
         </Alert>
       )}
@@ -225,12 +253,7 @@ export default function AdminTemplates() {
                     </Button>
                     <Button
                       size="sm"
-                      disabled={actionId === template.id || templatesBlockedByMeta}
-                      title={
-                        templatesBlockedByMeta
-                          ? "Aguarde App Review e coexistência Cloud API"
-                          : undefined
-                      }
+                      disabled={actionId === template.id}
                       onClick={() => handleSubmit(template.id)}
                     >
                       {actionId === template.id ? (
@@ -260,21 +283,21 @@ export default function AdminTemplates() {
                     </Button>
                   </>
                 )}
-                {(template.status === "draft" || template.status === "rejected") && !template.is_meta_imported && (
+                {!template.is_meta_imported && (
                   <Button
                     size="sm"
                     variant="ghost"
                     className="text-destructive"
-                    onClick={() => handleDeleteDraft(template.id)}
+                    onClick={() => setDeleteTarget(template)}
                     disabled={deleteDraft.isPending}
                   >
                     <Trash2 className="h-4 w-4 mr-1" />
-                    Excluir rascunho
+                    Excluir
                   </Button>
                 )}
                 {template.is_meta_imported && (
                   <p className="text-xs text-muted-foreground w-full">
-                    Modelo importado da Meta — exclusão bloqueada. Você pode arquivar.
+                    Modelo importado da Meta — use Arquivar para ocultar do painel.
                   </p>
                 )}
                 {template.status === "pending" && (
@@ -293,6 +316,37 @@ export default function AdminTemplates() {
         onOpenChange={setEditorOpen}
         template={editing}
       />
+
+      <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir modelo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O modelo <strong>{deleteTarget?.display_name}</strong> será removido deste painel.
+              {deleteTarget?.status === "approved" && (
+                <>
+                  {" "}
+                  Ele continua aprovado na Meta até você remover lá também, se quiser.
+                </>
+              )}{" "}
+              Não dá para desfazer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteDraft.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                void handleDeleteTemplate();
+              }}
+            >
+              {deleteDraft.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

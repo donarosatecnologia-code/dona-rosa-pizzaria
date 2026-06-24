@@ -63,7 +63,7 @@ export function useDeleteWhatsappContact() {
       });
 
       if (error) {
-        throw error;
+        throw new Error(error.message || error.code || "delete_failed");
       }
 
       return data as string;

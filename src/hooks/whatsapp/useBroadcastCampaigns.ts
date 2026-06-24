@@ -88,6 +88,27 @@ export function usePublishBroadcastCampaign() {
   });
 }
 
+export function useDeleteBroadcastCampaign() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (campaignId: string) => {
+      const { error } = await supabase.rpc("delete_broadcast_campaign", {
+        p_campaign_id: campaignId,
+      });
+
+      if (error) {
+        throw new Error(error.message || error.code || "delete_failed");
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: CAMPAIGNS_KEY });
+      queryClient.invalidateQueries({ queryKey: ["whatsapp", "campaign-recipients"] });
+      queryClient.invalidateQueries({ queryKey: ["whatsapp", "responses"] });
+    },
+  });
+}
+
 export function useCreateBroadcastCampaignDraft() {
   const queryClient = useQueryClient();
 

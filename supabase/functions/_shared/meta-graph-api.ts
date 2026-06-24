@@ -322,7 +322,7 @@ export function formatMetaGraphErrorMessage(
     error.error_user_msg?.toLowerCase().includes("permissão") ||
     error.error_user_msg?.toLowerCase().includes("permission")
   ) {
-    return "A Meta ainda não liberou criação de modelos nesta conta. Aguarde o App Review e conclua a coexistência (Cloud API).";
+    return "A Meta ainda não liberou criação de modelos nesta conta. Confira se o App Review inclui whatsapp_business_management (acesso avançado).";
   }
 
   return error.error_user_msg?.trim() || error.message?.trim() || fallback;

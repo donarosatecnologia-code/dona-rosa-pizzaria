@@ -4,6 +4,7 @@ export {
   useBroadcastCampaignRecipients,
   useBroadcastResponses,
   usePublishBroadcastCampaign,
+  useDeleteBroadcastCampaign,
   useCreateBroadcastCampaignDraft,
 } from "./useBroadcastCampaigns";
 export { useBroadcastSend } from "./useBroadcastSend";

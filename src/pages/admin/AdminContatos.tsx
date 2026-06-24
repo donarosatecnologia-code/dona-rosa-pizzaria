@@ -1,8 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Users, Upload, Search } from "lucide-react";
+import { Users, Upload, Search, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { ContactHomologacaoControls } from "@/components/admin/contatos/ContactHomologacaoControls";
 import { ContactTagsEditor } from "@/components/admin/contatos/ContactTagsEditor";
 import { ContactStatusBadge } from "@/components/admin/contatos/ContactStatusBadge";
 import { DeleteContactDialog } from "@/components/admin/contatos/DeleteContactDialog";
@@ -11,6 +10,7 @@ import { ImportHistoryCard } from "@/components/admin/contatos/ImportHistoryCard
 import { AdminPageHeader, AdminPageShell } from "@/components/admin/AdminPageShell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -22,6 +22,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useWhatsappContacts, useUpdateWhatsappContactStatus } from "@/hooks/whatsapp";
+import { useDeleteWhatsappContact } from "@/hooks/whatsapp/useWhatsappBusinessHours";
+import { useWhatsappContactTagMap } from "@/hooks/whatsapp/useWhatsappContactTags";
 import { formatPhoneDisplay } from "@/lib/format-phone";
 
 const PAGE_SIZE = 50;
@@ -33,27 +35,49 @@ function formatLastCampaign(at: string | null): string {
   return new Date(at).toLocaleDateString("pt-BR");
 }
 
+const QA_TAG_SLUG = "qa-homologacao";
+
 export default function AdminContatos() {
   const { data: contacts, isLoading, error } = useWhatsappContacts();
+  const { data: tagMap } = useWhatsappContactTagMap();
   const updateStatus = useUpdateWhatsappContactStatus();
+  const deleteContact = useDeleteWhatsappContact();
   const [importOpen, setImportOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
+  const [isPurgingQa, setIsPurgingQa] = useState(false);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
+  const qaContactIds = useMemo(() => {
+    const ids = new Set<string>();
+    if (!tagMap) {
+      return ids;
+    }
+    for (const [contactId, tags] of tagMap.entries()) {
+      if (tags.some((t) => t.slug === QA_TAG_SLUG)) {
+        ids.add(contactId);
+      }
+    }
+    return ids;
+  }, [tagMap]);
+
+  const productionContacts = useMemo(() => {
     if (!contacts) {
       return [];
     }
+    return contacts.filter((c) => !qaContactIds.has(c.id));
+  }, [contacts, qaContactIds]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
     if (!q) {
-      return contacts;
+      return productionContacts;
     }
-    return contacts.filter(
+    return productionContacts.filter(
       (c) =>
         c.name.toLowerCase().includes(q) ||
         c.phone_number.includes(q.replace(/\D/g, "")),
     );
-  }, [contacts, search]);
+  }, [productionContacts, search]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageItems = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
@@ -64,6 +88,39 @@ export default function AdminContatos() {
       toast.success("Cliente marcado como não quer receber.");
     } catch {
       toast.error("Não deu para atualizar. Tente de novo.");
+    }
+  }
+
+  async function handlePurgeQaContacts() {
+    if (qaContactIds.size === 0) {
+      return;
+    }
+    const confirmed = window.confirm(
+      `Excluir ${qaContactIds.size} contato(s) de teste da homologação? Não dá para desfazer.`,
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    setIsPurgingQa(true);
+    let removed = 0;
+    try {
+      for (const contactId of qaContactIds) {
+        await deleteContact.mutateAsync({
+          contactId,
+          reason: "Limpeza pós-homologação QA",
+        });
+        removed += 1;
+      }
+      toast.success(`${removed} contato(s) de teste removido(s).`);
+    } catch {
+      toast.error(
+        removed > 0
+          ? `${removed} removido(s), mas falhou no restante. Rode db:deploy e tente de novo.`
+          : "Não deu para excluir os contatos de teste. Rode db:deploy e tente de novo.",
+      );
+    } finally {
+      setIsPurgingQa(false);
     }
   }
 
@@ -91,6 +148,33 @@ export default function AdminContatos() {
       </div>
 
       <ImportHistoryCard />
+
+      {qaContactIds.size > 0 && (
+        <Alert className="mb-4 border-amber-200 bg-amber-50 text-amber-950">
+          <AlertTitle>Contatos de teste ocultos</AlertTitle>
+          <AlertDescription className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <span>
+              {qaContactIds.size} número(s) de homologação não aparecem na lista do dia a dia.
+            </span>
+            <Button
+              size="sm"
+              variant="outline"
+              className="min-h-[44px] shrink-0 border-amber-400 text-amber-950 hover:bg-amber-100"
+              disabled={isPurgingQa || deleteContact.isPending}
+              onClick={() => void handlePurgeQaContacts()}
+            >
+              {isPurgingQa ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Excluir contatos de teste
+                </>
+              )}
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
 
       <div className="relative mb-4 w-full min-w-0">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -170,7 +254,6 @@ export default function AdminContatos() {
                         Classificar
                       </p>
                       <ContactTagsEditor contact={contact} compact fullWidth />
-                      <ContactHomologacaoControls contact={contact} compact fullWidth />
                       <div className="flex flex-col gap-2 pt-1">
                         <Button
                           size="sm"
@@ -200,7 +283,6 @@ export default function AdminContatos() {
                   <TableHead>Cadastro</TableHead>
                   <TableHead>Último envio</TableHead>
                   <TableHead>Etiquetas</TableHead>
-                  <TableHead>Homologação</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -221,13 +303,6 @@ export default function AdminContatos() {
                     <TableCell>
                       {contact.status === "active" ? (
                         <ContactTagsEditor contact={contact} compact />
-                      ) : (
-                        "—"
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {contact.status === "active" ? (
-                        <ContactHomologacaoControls contact={contact} compact />
                       ) : (
                         "—"
                       )}

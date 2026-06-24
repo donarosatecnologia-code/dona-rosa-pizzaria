@@ -86,7 +86,7 @@ export default function AdminConectarWhatsapp() {
       link: { href: LINKS.developersWebhook, label: "Conferir webhook na Meta" },
     },
     {
-      title: "Sessão no celular com a Rosa (coexistência)",
+      title: "Sessão no celular com a Pizzaria (coexistência)",
       body:
         "WhatsApp Business da loja + QR no computador, no mesmo horário. Até concluir, o celular atende normalmente; o painel ainda não recebe mensagens.",
       done: cloudReady,
@@ -131,7 +131,11 @@ export default function AdminConectarWhatsapp() {
 
       <AdminPageHeader
         title="Conectar WhatsApp"
-        description="Celular da pizzaria + painel. App Meta aprovado — falta só a sessão com a Rosa."
+        description={
+          cloudReady
+            ? "Celular e painel sincronizados na Cloud API da Meta."
+            : "Celular da pizzaria + painel."
+        }
       />
 
       {cloudReady ? (

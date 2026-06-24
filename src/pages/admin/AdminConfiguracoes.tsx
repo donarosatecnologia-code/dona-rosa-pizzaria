@@ -55,7 +55,7 @@ const AdminConfiguracoes = () => {
           <div>
             <p className="text-sm font-medium">Conexão WhatsApp</p>
             <p className="text-xs text-muted-foreground">
-              App Meta aprovado. Falta sessão no celular da loja (~15 min com a Rosa).
+              Celular e painel na mesma conta WhatsApp Business.
             </p>
           </div>
           <Button asChild size="sm" className="min-h-[44px]">
