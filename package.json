@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build:hostgator": "bash scripts/build-hostgator.sh",
+    "build:hostgator": "node scripts/build-hostgator.mjs",
     "verify:hostgator": "bash scripts/verify-hostgator-spa.sh",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",

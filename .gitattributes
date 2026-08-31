@@ -1,0 +1,2 @@
+# Scripts bash precisam de LF; CRLF no Windows quebra `set -o pipefail`.
+*.sh text eol=lf
