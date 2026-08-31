@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { MessageCircle, ChevronRight, Clock } from "lucide-react";
+import { ListPagination } from "@/components/admin/ListPagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,6 +13,7 @@ import {
 } from "@/hooks/whatsapp";
 import { formatPhoneDisplay, formatRelativeTime } from "@/lib/format-phone";
 import { isOutsideBusinessHours, isWaitingForReply } from "@/integrations/supabase/types/whatsapp-inbox";
+import { LIST_PAGE_SIZE, usePagedItems } from "@/hooks/usePagedItems";
 import { cn } from "@/lib/utils";
 
 type QueueTab = "waiting" | "all" | "closed";
@@ -52,6 +54,18 @@ export default function AdminConversas() {
     }
     return conversations;
   }, [conversations, tab]);
+
+  const {
+    page,
+    setPage,
+    pageItems,
+    totalPages,
+    total,
+  } = usePagedItems(filtered, LIST_PAGE_SIZE);
+
+  useEffect(() => {
+    setPage(0);
+  }, [tab, setPage]);
 
   const waitingCount = conversations?.filter(isWaitingForReply).length ?? 0;
 
@@ -122,8 +136,9 @@ export default function AdminConversas() {
       )}
 
       {!isLoading && !error && filtered.length > 0 && (
+        <>
         <ul className="space-y-2">
-          {filtered.map((conv) => {
+          {pageItems.map((conv) => {
             const preview = [...(conv.whatsapp_messages ?? [])].sort(
               (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
             )[0];
@@ -171,6 +186,14 @@ export default function AdminConversas() {
             );
           })}
         </ul>
+        <ListPagination
+          page={page}
+          totalPages={totalPages}
+          total={total}
+          onPageChange={setPage}
+          label="conversa(s)"
+        />
+        </>
       )}
     </div>
   );

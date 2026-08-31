@@ -4,7 +4,7 @@ import {
   hasImportProfileData,
   parseContactsSpreadsheet,
 } from "@/lib/whatsapp/importContactsParse";
-import { normalizeBrazilPhone } from "./normalizePhone";
+import { normalizeBrazilPhone, isLandlineBrazilPhone, isLandlineStoredPhone } from "./normalizePhone";
 
 const MAX_ERROR_DETAILS = 100;
 
@@ -73,6 +73,7 @@ export async function importContactsFromFile(
     line: number;
     name: string;
     phone: string;
+    isLandline: boolean;
     profile: ContactImportProfile;
   }> = [];
   const errorDetails: ImportRowError[] = [];
@@ -91,6 +92,7 @@ export async function importContactsFromFile(
       line: row.line,
       name: row.name || result.normalized,
       phone: result.normalized,
+      isLandline: isLandlineBrazilPhone(row.phoneRaw),
       profile: row.profile,
     });
   }
@@ -166,6 +168,7 @@ export async function importContactsFromFile(
         phone_number: r.phone,
         status: "active" as const,
         import_batch_id: batchId,
+        is_landline: r.isLandline || isLandlineStoredPhone(r.phone),
         ...termsFields,
         ...(hasImportProfileData(r.profile) ? { import_profile: r.profile } : {}),
       }));

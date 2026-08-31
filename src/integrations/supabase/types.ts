@@ -982,6 +982,7 @@ export type Database = {
           import_batch_id: string | null
           import_profile: Json | null
           inbound_count: number
+          is_landline: boolean
           last_inbound_at: string | null
           last_outbound_at: string | null
           name: string
@@ -1001,6 +1002,7 @@ export type Database = {
           import_batch_id?: string | null
           import_profile?: Json | null
           inbound_count?: number
+          is_landline?: boolean
           last_inbound_at?: string | null
           last_outbound_at?: string | null
           name: string
@@ -1020,6 +1022,7 @@ export type Database = {
           import_batch_id?: string | null
           import_profile?: Json | null
           inbound_count?: number
+          is_landline?: boolean
           last_inbound_at?: string | null
           last_outbound_at?: string | null
           name?: string

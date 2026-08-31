@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LIST_PAGE_SIZE } from "@/hooks/usePagedItems";
 import { supabase } from "@/integrations/supabase/client";
 import type { WhatsappContact } from "@/integrations/supabase/types/whatsapp-broadcast";
+import { TELEFONE_FIXO_TAG_SLUG } from "@/lib/whatsapp/contactTelefoneFixo";
 import { fetchAllRows } from "@/lib/supabase/fetchAllRows";
 
 export const CONTACTS_KEY = ["whatsapp", "contacts"] as const;
@@ -79,22 +80,36 @@ export function useWhatsappContactsPage(options: {
   search: string;
   excludeContactIds?: string[];
   pageSize?: number;
+  tagFilter?: { slug: string; tagId?: string } | null;
 }) {
   const pageSize = options.pageSize ?? LIST_PAGE_SIZE;
   const search = options.search.trim();
   const excludeIds = options.excludeContactIds ?? [];
+  const tagFilter = options.tagFilter ?? null;
 
   return useQuery({
-    queryKey: [...CONTACTS_KEY, "page", options.page, pageSize, search, excludeIds],
+    queryKey: [...CONTACTS_KEY, "page", options.page, pageSize, search, excludeIds, tagFilter],
     queryFn: async (): Promise<WhatsappContactsPageResult> => {
       const from = options.page * pageSize;
       const to = from + pageSize - 1;
 
-      let query = supabase
-        .from("whatsapp_contacts")
-        .select("*", { count: "exact" })
+      const isTelefoneFixoFilter = tagFilter?.slug === TELEFONE_FIXO_TAG_SLUG;
+      const tagId = !isTelefoneFixoFilter ? tagFilter?.tagId : undefined;
+
+      let query = tagId
+        ? supabase
+            .from("whatsapp_contacts")
+            .select("*, whatsapp_contact_tags!inner(tag_id)", { count: "exact" })
+            .eq("whatsapp_contact_tags.tag_id", tagId)
+        : supabase.from("whatsapp_contacts").select("*", { count: "exact" });
+
+      query = query
         .order("last_inbound_at", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false });
+
+      if (isTelefoneFixoFilter) {
+        query = query.eq("is_landline", true);
+      }
 
       if (search) {
         const digits = search.replace(/\D/g, "");

@@ -51,6 +51,7 @@ export interface WhatsappContact {
   terms_prompt_sent_at: string | null;
   import_batch_id: string | null;
   import_profile: ContactImportProfile | null;
+  is_landline: boolean;
   engagement_level: EngagementLevel;
   last_inbound_at: string | null;
   last_outbound_at: string | null;

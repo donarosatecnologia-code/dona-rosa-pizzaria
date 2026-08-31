@@ -6,6 +6,60 @@ export interface NormalizePhoneResult {
   reason?: string;
 }
 
+/** True quando o número original é fixo (10 dígitos nacionais, sem o 9 do celular). */
+export function isLandlineBrazilPhone(input: string): boolean {
+  const prepared = spreadsheetCellToString(input);
+  let digits = prepared.replace(/\D/g, "");
+
+  if (digits.length === 0) {
+    return false;
+  }
+
+  digits = digits.replace(/^0+/, "");
+
+  if (digits.startsWith("5555")) {
+    digits = digits.slice(2);
+  }
+
+  if (!digits.startsWith("55")) {
+    if (digits.length >= 10 && digits.length <= 11) {
+      digits = `55${digits}`;
+    } else {
+      return false;
+    }
+  }
+
+  return digits.slice(2).length === 10;
+}
+
+/**
+ * Fixo armazenado: 55 + DDD (2) + 8 dígitos = 12 dígitos totais, sem 9 após o DDD.
+ * Celular/WhatsApp: 55 + DDD + 9 + 8 = 13 dígitos; o 3º dígito nacional (índice 2) é 9.
+ */
+export function isLandlineStoredPhone(phone: string): boolean {
+  let digits = phone.replace(/\D/g, "");
+
+  if (digits.startsWith("5555")) {
+    digits = digits.slice(2);
+  }
+
+  if (!digits.startsWith("55")) {
+    return false;
+  }
+
+  const national = digits.slice(2);
+
+  if (national.length === 10) {
+    return true;
+  }
+
+  if (national.length === 11) {
+    return national.charAt(2) !== "9";
+  }
+
+  return false;
+}
+
 /** Normaliza telefone BR para E.164 sem + (ex.: 5511999998888). */
 export function normalizeBrazilPhone(input: string): NormalizePhoneResult {
   const prepared = spreadsheetCellToString(input);
@@ -35,12 +89,8 @@ export function normalizeBrazilPhone(input: string): NormalizePhoneResult {
 
   const national = digits.slice(2);
 
-  if (national.length === 10) {
-    digits = `55${national.slice(0, 2)}9${national.slice(2)}`;
-  }
-
   const finalNational = digits.slice(2);
-  if (finalNational.length < 10 || finalNational.length > 11) {
+  if (finalNational.length !== 10 && finalNational.length !== 11) {
     return { normalized: null, valid: false, reason: "tamanho inválido após normalização" };
   }
 

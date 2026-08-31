@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Users, Upload, Search, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -22,11 +22,24 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { LIST_PAGE_SIZE } from "@/hooks/usePagedItems";
 import { useWhatsappContactsPage, useUpdateWhatsappContactStatus } from "@/hooks/whatsapp";
+import { useWhatsappTags } from "@/hooks/whatsapp/useWhatsappTags";
 import { useDeleteWhatsappContact } from "@/hooks/whatsapp/useWhatsappBusinessHours";
 import { useQaHomologacaoContactIds } from "@/hooks/whatsapp/useWhatsappContactTags";
 import { formatPhoneDisplay } from "@/lib/format-phone";
+import {
+  canInteractViaWhatsapp,
+  TELEFONE_FIXO_TAG_NAME,
+  TELEFONE_FIXO_TAG_SLUG,
+} from "@/lib/whatsapp/contactTelefoneFixo";
 
 function formatLastCampaign(at: string | null): string {
   if (!at) {
@@ -39,19 +52,50 @@ const QA_TAG_SLUG = "qa-homologacao";
 
 export default function AdminContatos() {
   const { data: qaIds } = useQaHomologacaoContactIds();
+  const { data: allTags } = useWhatsappTags();
   const qaContactIds = qaIds ?? [];
   const [importOpen, setImportOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [tagFilterSlug, setTagFilterSlug] = useState("all");
   const [page, setPage] = useState(0);
   const [isPurgingQa, setIsPurgingQa] = useState(false);
   const updateStatus = useUpdateWhatsappContactStatus();
   const deleteContact = useDeleteWhatsappContact();
+
+  const tagFilter = useMemo(() => {
+    if (tagFilterSlug === "all") {
+      return null;
+    }
+
+    const tag = allTags?.find((item) => item.slug === tagFilterSlug);
+    return { slug: tagFilterSlug, tagId: tag?.id };
+  }, [allTags, tagFilterSlug]);
+
+  const filterTags = useMemo(() => {
+    const tags = (allTags ?? []).filter((tag) => tag.slug !== QA_TAG_SLUG);
+    const hasTelefoneFixo = tags.some((tag) => tag.slug === TELEFONE_FIXO_TAG_SLUG);
+
+    if (!hasTelefoneFixo) {
+      tags.push({
+        id: TELEFONE_FIXO_TAG_SLUG,
+        name: TELEFONE_FIXO_TAG_NAME,
+        slug: TELEFONE_FIXO_TAG_SLUG,
+        description: null,
+        color: "#64748b",
+        is_system: true,
+        created_at: "",
+      });
+    }
+
+    return tags.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+  }, [allTags]);
 
   const { data, isLoading, error } = useWhatsappContactsPage({
     page,
     search,
     excludeContactIds: qaContactIds,
     pageSize: LIST_PAGE_SIZE,
+    tagFilter,
   });
 
   const pageItems = data?.items ?? [];
@@ -158,17 +202,38 @@ export default function AdminContatos() {
         </Alert>
       )}
 
-      <div className="relative mb-4 w-full min-w-0">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          className="pl-9 min-h-[44px]"
-          placeholder="Buscar nome ou telefone..."
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
+      <div className="mb-4 grid gap-3 w-full min-w-0 md:grid-cols-2">
+        <div className="relative w-full min-w-0">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            className="pl-9 min-h-[44px]"
+            placeholder="Buscar nome ou telefone..."
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(0);
+            }}
+          />
+        </div>
+        <Select
+          value={tagFilterSlug}
+          onValueChange={(value) => {
+            setTagFilterSlug(value);
             setPage(0);
           }}
-        />
+        >
+          <SelectTrigger className="min-h-[44px] w-full">
+            <SelectValue placeholder="Filtrar por etiqueta" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas as etiquetas</SelectItem>
+            {filterTags.map((tag) => (
+              <SelectItem key={tag.slug} value={tag.slug}>
+                {tag.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {isLoading && (
@@ -202,7 +267,9 @@ export default function AdminContatos() {
       {pageItems.length > 0 && (
         <>
           <div className="md:hidden space-y-3 w-full min-w-0">
-            {pageItems.map((contact) => (
+            {pageItems.map((contact) => {
+              const whatsappEnabled = canInteractViaWhatsapp(contact);
+              return (
               <Card key={contact.id} className="w-full min-w-0 overflow-hidden rounded-xl max-md:shadow-sm">
                 <CardContent className="p-0 min-w-0">
                   <div className="p-4 pb-3">
@@ -236,23 +303,30 @@ export default function AdminContatos() {
                         Classificar
                       </p>
                       <ContactTagsEditor contact={contact} compact fullWidth />
-                      <div className="flex flex-col gap-2 pt-1">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="min-h-[44px] w-full"
-                          disabled={updateStatus.isPending}
-                          onClick={() => void handleOptOut(contact.id)}
-                        >
-                          Não quer receber mensagens
-                        </Button>
-                        <DeleteContactDialog contactId={contact.id} contactName={contact.name} />
-                      </div>
+                      {whatsappEnabled ? (
+                        <div className="flex flex-col gap-2 pt-1">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="min-h-[44px] w-full"
+                            disabled={updateStatus.isPending}
+                            onClick={() => void handleOptOut(contact.id)}
+                          >
+                            Não quer receber mensagens
+                          </Button>
+                          <DeleteContactDialog contactId={contact.id} contactName={contact.name} />
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground pt-1">
+                          Contato só para consulta — sem interação via WhatsApp.
+                        </p>
+                      )}
                     </div>
                   )}
                 </CardContent>
               </Card>
-            ))}
+            );
+            })}
           </div>
 
           <div className="hidden md:block overflow-x-auto rounded-xl border bg-white">
@@ -269,7 +343,9 @@ export default function AdminContatos() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {pageItems.map((contact) => (
+                {pageItems.map((contact) => {
+                  const whatsappEnabled = canInteractViaWhatsapp(contact);
+                  return (
                   <TableRow key={contact.id}>
                     <TableCell className="font-medium">{contact.name}</TableCell>
                     <TableCell>{formatPhoneDisplay(contact.phone_number)}</TableCell>
@@ -290,7 +366,7 @@ export default function AdminContatos() {
                       )}
                     </TableCell>
                     <TableCell className="text-right space-x-1">
-                      {contact.status === "active" && (
+                      {contact.status === "active" && whatsappEnabled && (
                         <>
                           <Button
                             size="sm"
@@ -306,7 +382,8 @@ export default function AdminContatos() {
                       )}
                     </TableCell>
                   </TableRow>
-                ))}
+                );
+                })}
               </TableBody>
             </Table>
           </div>

@@ -10,6 +10,7 @@ export interface ContactTagEntry {
   tagId: string;
   slug: string;
   name: string;
+  color: string | null;
 }
 
 export function useWhatsappContactTagMap() {
@@ -19,18 +20,18 @@ export function useWhatsappContactTagMap() {
       const data = await fetchAllRows<{
         contact_id: string;
         tag_id: string;
-        whatsapp_tags: { slug: string; name: string } | null;
+        whatsapp_tags: { slug: string; name: string; color: string | null } | null;
       }>((from, to) =>
         supabase
           .from("whatsapp_contact_tags")
-          .select("contact_id, tag_id, whatsapp_tags ( slug, name )")
+          .select("contact_id, tag_id, whatsapp_tags ( slug, name, color )")
           .range(from, to),
       );
 
       const map = new Map<string, ContactTagEntry[]>();
 
       for (const row of data) {
-        const tag = row.whatsapp_tags as { slug: string; name: string } | null;
+        const tag = row.whatsapp_tags as { slug: string; name: string; color: string | null } | null;
         if (!tag?.slug) {
           continue;
         }
@@ -40,6 +41,7 @@ export function useWhatsappContactTagMap() {
           tagId: row.tag_id,
           slug: tag.slug,
           name: tag.name,
+          color: tag.color,
         });
         map.set(row.contact_id, list);
       }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeBrazilPhone } from "./normalizePhone";
+import { isLandlineBrazilPhone, isLandlineStoredPhone, normalizeBrazilPhone } from "./normalizePhone";
 
 describe("normalizeBrazilPhone", () => {
   it("aceita celular com ddd sem +55", () => {
@@ -23,9 +23,9 @@ describe("normalizeBrazilPhone", () => {
     });
   });
 
-  it("insere 9 quando número fixo tem 10 dígitos nacionais", () => {
+  it("mantém fixo com 10 dígitos nacionais (sem inserir 9)", () => {
     expect(normalizeBrazilPhone("1188887777")).toEqual({
-      normalized: "5511988887777",
+      normalized: "551188887777",
       valid: true,
     });
   });
@@ -59,5 +59,27 @@ describe("normalizeBrazilPhone", () => {
       normalized: "5511999998888",
       valid: true,
     });
+  });
+});
+
+describe("isLandlineBrazilPhone", () => {
+  it("detecta telefone fixo antes da normalização", () => {
+    expect(isLandlineBrazilPhone("1133334444")).toBe(true);
+    expect(isLandlineBrazilPhone("(11) 3333-4444")).toBe(true);
+  });
+
+  it("não classifica celular como fixo", () => {
+    expect(isLandlineBrazilPhone("11999998888")).toBe(false);
+    expect(isLandlineBrazilPhone("+5511999998888")).toBe(false);
+  });
+});
+
+describe("isLandlineStoredPhone", () => {
+  it("detecta fixo armazenado (12 dígitos)", () => {
+    expect(isLandlineStoredPhone("551133334444")).toBe(true);
+  });
+
+  it("não classifica celular armazenado (13 dígitos, 9 após DDD)", () => {
+    expect(isLandlineStoredPhone("5511999998888")).toBe(false);
   });
 });
