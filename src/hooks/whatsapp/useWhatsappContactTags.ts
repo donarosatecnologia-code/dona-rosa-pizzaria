@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/supabase/fetchAllRows";
 
 const CONTACT_TAGS_KEY = ["whatsapp", "contact-tags"] as const;
 const QA_TAG_SLUG = "qa-homologacao";
@@ -15,17 +16,20 @@ export function useWhatsappContactTagMap() {
   return useQuery({
     queryKey: CONTACT_TAGS_KEY,
     queryFn: async (): Promise<Map<string, ContactTagEntry[]>> => {
-      const { data, error } = await supabase
-        .from("whatsapp_contact_tags")
-        .select("contact_id, tag_id, whatsapp_tags ( slug, name )");
-
-      if (error) {
-        throw error;
-      }
+      const data = await fetchAllRows<{
+        contact_id: string;
+        tag_id: string;
+        whatsapp_tags: { slug: string; name: string } | null;
+      }>((from, to) =>
+        supabase
+          .from("whatsapp_contact_tags")
+          .select("contact_id, tag_id, whatsapp_tags ( slug, name )")
+          .range(from, to),
+      );
 
       const map = new Map<string, ContactTagEntry[]>();
 
-      for (const row of data ?? []) {
+      for (const row of data) {
         const tag = row.whatsapp_tags as { slug: string; name: string } | null;
         if (!tag?.slug) {
           continue;
@@ -41,6 +45,25 @@ export function useWhatsappContactTagMap() {
       }
 
       return map;
+    },
+  });
+}
+
+export function useQaHomologacaoContactIds() {
+  const { data: tag } = useQaHomologacaoTag();
+
+  return useQuery({
+    queryKey: ["whatsapp", "qa-contact-ids", tag?.id],
+    enabled: Boolean(tag?.id),
+    queryFn: async (): Promise<string[]> => {
+      const rows = await fetchAllRows<{ contact_id: string }>((from, to) =>
+        supabase
+          .from("whatsapp_contact_tags")
+          .select("contact_id")
+          .eq("tag_id", tag!.id)
+          .range(from, to),
+      );
+      return rows.map((row) => row.contact_id);
     },
   });
 }

@@ -1,5 +1,6 @@
 import { persistOutboundCrmMessage } from "../_shared/crm-persistence.ts";
 import { handleCorsPreflight, jsonWithCors } from "../_shared/cors.ts";
+import { fetchAllRows } from "../_shared/fetch-all-rows.ts";
 import {
   MetaApiError,
   parseTemplateParams,
@@ -156,32 +157,28 @@ async function ensureRecipients(
   campaignId: string,
   queueId: string,
 ): Promise<void> {
-  const { data: contactIds, error: resolveError } = await supabase.rpc(
-    "resolve_queue_contact_ids",
-    { p_queue_id: queueId },
+  const ids = await fetchAllRows<string>((from, to) =>
+    supabase.rpc("resolve_queue_contact_ids", { p_queue_id: queueId }).range(from, to),
   );
 
-  if (resolveError) {
-    throw resolveError;
-  }
-
-  const ids = (contactIds ?? []) as string[];
   if (ids.length === 0) {
     return;
   }
 
-  const rows = ids.map((contactId) => ({
-    campaign_id: campaignId,
-    contact_id: contactId,
-    send_status: "pending",
-  }));
+  for (let i = 0; i < ids.length; i += 200) {
+    const rows = ids.slice(i, i + 200).map((contactId) => ({
+      campaign_id: campaignId,
+      contact_id: contactId,
+      send_status: "pending",
+    }));
 
-  const { error: insertError } = await supabase
-    .from("broadcast_campaign_recipients")
-    .upsert(rows, { onConflict: "campaign_id,contact_id", ignoreDuplicates: true });
+    const { error: insertError } = await supabase
+      .from("broadcast_campaign_recipients")
+      .upsert(rows, { onConflict: "campaign_id,contact_id", ignoreDuplicates: true });
 
-  if (insertError) {
-    throw insertError;
+    if (insertError) {
+      throw insertError;
+    }
   }
 }
 

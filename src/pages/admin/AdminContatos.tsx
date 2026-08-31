@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Users, Upload, Search, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -7,6 +7,7 @@ import { ContactStatusBadge } from "@/components/admin/contatos/ContactStatusBad
 import { DeleteContactDialog } from "@/components/admin/contatos/DeleteContactDialog";
 import { ImportContactsModal } from "@/components/admin/contatos/ImportContactsModal";
 import { ImportHistoryCard } from "@/components/admin/contatos/ImportHistoryCard";
+import { ListPagination } from "@/components/admin/ListPagination";
 import { AdminPageHeader, AdminPageShell } from "@/components/admin/AdminPageShell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,12 +22,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useWhatsappContacts, useUpdateWhatsappContactStatus } from "@/hooks/whatsapp";
+import { LIST_PAGE_SIZE } from "@/hooks/usePagedItems";
+import { useWhatsappContactsPage, useUpdateWhatsappContactStatus } from "@/hooks/whatsapp";
 import { useDeleteWhatsappContact } from "@/hooks/whatsapp/useWhatsappBusinessHours";
-import { useWhatsappContactTagMap } from "@/hooks/whatsapp/useWhatsappContactTags";
+import { useQaHomologacaoContactIds } from "@/hooks/whatsapp/useWhatsappContactTags";
 import { formatPhoneDisplay } from "@/lib/format-phone";
-
-const PAGE_SIZE = 50;
 
 function formatLastCampaign(at: string | null): string {
   if (!at) {
@@ -38,49 +38,31 @@ function formatLastCampaign(at: string | null): string {
 const QA_TAG_SLUG = "qa-homologacao";
 
 export default function AdminContatos() {
-  const { data: contacts, isLoading, error } = useWhatsappContacts();
-  const { data: tagMap } = useWhatsappContactTagMap();
-  const updateStatus = useUpdateWhatsappContactStatus();
-  const deleteContact = useDeleteWhatsappContact();
+  const { data: qaIds } = useQaHomologacaoContactIds();
+  const qaContactIds = qaIds ?? [];
   const [importOpen, setImportOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
   const [isPurgingQa, setIsPurgingQa] = useState(false);
+  const updateStatus = useUpdateWhatsappContactStatus();
+  const deleteContact = useDeleteWhatsappContact();
 
-  const qaContactIds = useMemo(() => {
-    const ids = new Set<string>();
-    if (!tagMap) {
-      return ids;
-    }
-    for (const [contactId, tags] of tagMap.entries()) {
-      if (tags.some((t) => t.slug === QA_TAG_SLUG)) {
-        ids.add(contactId);
-      }
-    }
-    return ids;
-  }, [tagMap]);
+  const { data, isLoading, error } = useWhatsappContactsPage({
+    page,
+    search,
+    excludeContactIds: qaContactIds,
+    pageSize: LIST_PAGE_SIZE,
+  });
 
-  const productionContacts = useMemo(() => {
-    if (!contacts) {
-      return [];
-    }
-    return contacts.filter((c) => !qaContactIds.has(c.id));
-  }, [contacts, qaContactIds]);
+  const pageItems = data?.items ?? [];
+  const total = data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / LIST_PAGE_SIZE));
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) {
-      return productionContacts;
+  useEffect(() => {
+    if (page > totalPages - 1) {
+      setPage(Math.max(0, totalPages - 1));
     }
-    return productionContacts.filter(
-      (c) =>
-        c.name.toLowerCase().includes(q) ||
-        c.phone_number.includes(q.replace(/\D/g, "")),
-    );
-  }, [productionContacts, search]);
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const pageItems = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  }, [page, totalPages]);
 
   async function handleOptOut(contactId: string) {
     try {
@@ -92,11 +74,11 @@ export default function AdminContatos() {
   }
 
   async function handlePurgeQaContacts() {
-    if (qaContactIds.size === 0) {
+    if (qaContactIds.length === 0) {
       return;
     }
     const confirmed = window.confirm(
-      `Excluir ${qaContactIds.size} contato(s) de teste da homologação? Não dá para desfazer.`,
+      `Excluir ${qaContactIds.length} contato(s) de teste da homologação? Não dá para desfazer.`,
     );
     if (!confirmed) {
       return;
@@ -149,12 +131,12 @@ export default function AdminContatos() {
 
       <ImportHistoryCard />
 
-      {qaContactIds.size > 0 && (
+      {qaContactIds.length > 0 && (
         <Alert className="mb-4 border-amber-200 bg-amber-50 text-amber-950">
           <AlertTitle>Contatos de teste ocultos</AlertTitle>
           <AlertDescription className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <span>
-              {qaContactIds.size} número(s) de homologação não aparecem na lista do dia a dia.
+              {qaContactIds.length} número(s) de homologação não aparecem na lista do dia a dia.
             </span>
             <Button
               size="sm"
@@ -205,7 +187,7 @@ export default function AdminContatos() {
         </Card>
       )}
 
-      {!isLoading && !error && filtered.length === 0 && (
+      {!isLoading && !error && total === 0 && (
         <Card>
           <CardContent className="pt-6 text-center text-sm text-muted-foreground">
             <p className="font-medium text-foreground mb-1">Nenhum contato ainda</p>
@@ -329,25 +311,13 @@ export default function AdminContatos() {
             </Table>
           </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-4 text-sm max-md:pb-1">
-            <p className="text-muted-foreground">
-              {filtered.length} contato(s) · página {page + 1} de {totalPages}
-            </p>
-            <div className="flex gap-2">
-              <Button size="sm" variant="outline" className="min-h-[44px] flex-1 sm:flex-none" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
-                Anterior
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="min-h-[44px] flex-1 sm:flex-none"
-                disabled={page >= totalPages - 1}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                Próxima
-              </Button>
-            </div>
-          </div>
+          <ListPagination
+            page={page}
+            totalPages={totalPages}
+            total={total}
+            onPageChange={setPage}
+            label="contato(s)"
+          />
         </>
       )}
 

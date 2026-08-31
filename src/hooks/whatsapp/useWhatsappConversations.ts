@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/supabase/fetchAllRows";
 import type {
   WhatsappConversationWithPreview,
   WhatsappMessage,
@@ -11,19 +12,16 @@ export function useWhatsappConversations() {
   return useQuery({
     queryKey: CONVERSATIONS_KEY,
     queryFn: async (): Promise<WhatsappConversationWithPreview[]> => {
-      const { data, error } = await supabase
-        .from("whatsapp_conversations")
-        .select(
-          "*, whatsapp_messages(id, body_text, direction, created_at, status)",
-        )
-        .is("deleted_at", null)
-        .order("last_message_at", { ascending: false, nullsFirst: false });
-
-      if (error) {
-        throw error;
-      }
-
-      return (data ?? []) as WhatsappConversationWithPreview[];
+      return fetchAllRows<WhatsappConversationWithPreview>((from, to) =>
+        supabase
+          .from("whatsapp_conversations")
+          .select(
+            "*, whatsapp_messages(id, body_text, direction, created_at, status)",
+          )
+          .is("deleted_at", null)
+          .order("last_message_at", { ascending: false, nullsFirst: false })
+          .range(from, to),
+      );
     },
   });
 }
@@ -33,18 +31,15 @@ export function useWhatsappMessages(conversationId: string | undefined) {
     queryKey: ["whatsapp", "crm", "messages", conversationId],
     enabled: !!conversationId,
     queryFn: async (): Promise<WhatsappMessage[]> => {
-      const { data, error } = await supabase
-        .from("whatsapp_messages")
-        .select("*")
-        .eq("conversation_id", conversationId!)
-        .is("deleted_at", null)
-        .order("created_at", { ascending: true });
-
-      if (error) {
-        throw error;
-      }
-
-      return (data ?? []) as WhatsappMessage[];
+      return fetchAllRows<WhatsappMessage>((from, to) =>
+        supabase
+          .from("whatsapp_messages")
+          .select("*")
+          .eq("conversation_id", conversationId!)
+          .is("deleted_at", null)
+          .order("created_at", { ascending: true })
+          .range(from, to),
+      );
     },
   });
 }

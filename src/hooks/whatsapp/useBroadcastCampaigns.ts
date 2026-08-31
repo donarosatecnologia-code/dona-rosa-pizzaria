@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/supabase/fetchAllRows";
 import type {
   BroadcastCampaign,
   BroadcastCampaignRecipient,
@@ -12,16 +13,13 @@ export function useBroadcastCampaigns() {
   return useQuery({
     queryKey: CAMPAIGNS_KEY,
     queryFn: async (): Promise<BroadcastCampaign[]> => {
-      const { data, error } = await supabase
-        .from("broadcast_campaigns")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        throw error;
-      }
-
-      return (data ?? []) as BroadcastCampaign[];
+      return fetchAllRows<BroadcastCampaign>((from, to) =>
+        supabase
+          .from("broadcast_campaigns")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .range(from, to),
+      );
     },
   });
 }
@@ -31,17 +29,14 @@ export function useBroadcastCampaignRecipients(campaignId: string | undefined) {
     queryKey: ["whatsapp", "campaign-recipients", campaignId],
     enabled: !!campaignId,
     queryFn: async (): Promise<BroadcastCampaignRecipient[]> => {
-      const { data, error } = await supabase
-        .from("broadcast_campaign_recipients")
-        .select("*")
-        .eq("campaign_id", campaignId!)
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        throw error;
-      }
-
-      return (data ?? []) as BroadcastCampaignRecipient[];
+      return fetchAllRows<BroadcastCampaignRecipient>((from, to) =>
+        supabase
+          .from("broadcast_campaign_recipients")
+          .select("*")
+          .eq("campaign_id", campaignId!)
+          .order("created_at", { ascending: false })
+          .range(from, to),
+      );
     },
   });
 }
@@ -50,21 +45,16 @@ export function useBroadcastResponses(campaignId?: string) {
   return useQuery({
     queryKey: ["whatsapp", "responses", campaignId ?? "all"],
     queryFn: async (): Promise<BroadcastResponse[]> => {
-      let query = supabase
-        .from("broadcast_responses")
-        .select("*")
-        .order("received_at", { ascending: false });
-
-      if (campaignId) {
-        query = query.eq("campaign_id", campaignId);
-      }
-
-      const { data, error } = await query;
-      if (error) {
-        throw error;
-      }
-
-      return (data ?? []) as BroadcastResponse[];
+      return fetchAllRows<BroadcastResponse>((from, to) => {
+        let query = supabase
+          .from("broadcast_responses")
+          .select("*")
+          .order("received_at", { ascending: false });
+        if (campaignId) {
+          query = query.eq("campaign_id", campaignId);
+        }
+        return query.range(from, to);
+      });
     },
   });
 }

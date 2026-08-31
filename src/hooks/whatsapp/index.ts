@@ -1,4 +1,10 @@
-export { useWhatsappContacts, useCreateWhatsappContact } from "./useWhatsappContacts";
+export {
+  useWhatsappContacts,
+  useWhatsappContactsCount,
+  useWhatsappContactsByIds,
+  useWhatsappContactsPage,
+  useCreateWhatsappContact,
+} from "./useWhatsappContacts";
 export {
   useBroadcastCampaigns,
   useBroadcastCampaignRecipients,
@@ -18,6 +24,7 @@ export { useWhatsappQueues } from "./useWhatsappQueues";
 export { useQueueContactCount } from "./useQueueContactCount";
 export {
   useWhatsappContactTagMap,
+  useQaHomologacaoContactIds,
   useQaHomologacaoTag,
   useToggleQaHomologacaoTag,
 } from "./useWhatsappContactTags";

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { SurveyFlow, SurveySessionWithAnswers, SurveyStep } from "@/integrations/supabase/types/survey-flows";
+import { fetchAllRows } from "@/lib/supabase/fetchAllRows";
 import { normalizeSurveySteps, toSurveySlug } from "@/lib/whatsapp/survey-flow-utils";
 
 const FLOWS_KEY = ["whatsapp", "survey-flows"] as const;
@@ -125,32 +126,39 @@ export function useSurveyCampaignResults(campaignId: string | undefined) {
     queryKey: ["whatsapp", "survey-results", campaignId],
     enabled: Boolean(campaignId),
     queryFn: async (): Promise<SurveySessionWithAnswers[]> => {
-      const { data: sessions, error: sessionsError } = await supabase
-        .from("survey_sessions")
-        .select("id, contact_id, status, completed_at")
-        .eq("campaign_id", campaignId!);
+      const sessions = await fetchAllRows<{
+        id: string;
+        contact_id: string;
+        status: string;
+        completed_at: string | null;
+      }>((from, to) =>
+        supabase
+          .from("survey_sessions")
+          .select("id, contact_id, status, completed_at")
+          .eq("campaign_id", campaignId!)
+          .range(from, to),
+      );
 
-      if (sessionsError) {
-        throw sessionsError;
-      }
-
-      if (!sessions?.length) {
+      if (!sessions.length) {
         return [];
       }
 
-      const sessionIds = sessions.map((s) => s.id);
-      const { data: answers, error: answersError } = await supabase
-        .from("survey_session_answers")
-        .select("*")
-        .in("session_id", sessionIds)
-        .order("step_index", { ascending: true });
-
-      if (answersError) {
-        throw answersError;
+      const answers = [];
+      for (let i = 0; i < sessions.length; i += 200) {
+        const sessionIds = sessions.slice(i, i + 200).map((s) => s.id);
+        const chunk = await fetchAllRows((from, to) =>
+          supabase
+            .from("survey_session_answers")
+            .select("*")
+            .in("session_id", sessionIds)
+            .order("step_index", { ascending: true })
+            .range(from, to),
+        );
+        answers.push(...chunk);
       }
 
       const answersBySession = new Map<string, typeof answers>();
-      for (const answer of answers ?? []) {
+      for (const answer of answers) {
         const list = answersBySession.get(answer.session_id) ?? [];
         list.push(answer);
         answersBySession.set(answer.session_id, list);
