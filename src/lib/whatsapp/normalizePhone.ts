@@ -53,12 +53,11 @@ export function isLandlineStoredPhone(phone: string): boolean {
     return true;
   }
 
-  if (national.length === 11) {
-    return national.charAt(2) !== "9";
-  }
-
   return false;
 }
+
+/** Regex alinhado a isLandlineStoredPhone — exatamente 12 dígitos, sem 9 após DDD. */
+export const LANDLINE_STORED_PHONE_REGEX = "^55[0-9]{2}[0-8][0-9]{7}$";
 
 /** Normaliza telefone BR para E.164 sem + (ex.: 5511999998888). */
 export function normalizeBrazilPhone(input: string): NormalizePhoneResult {
@@ -90,6 +89,11 @@ export function normalizeBrazilPhone(input: string): NormalizePhoneResult {
   const national = digits.slice(2);
 
   const finalNational = digits.slice(2);
+
+  if (finalNational.length === 11 && finalNational.charAt(2) !== "9") {
+    return { normalized: null, valid: false, reason: "número de celular inválido" };
+  }
+
   if (finalNational.length !== 10 && finalNational.length !== 11) {
     return { normalized: null, valid: false, reason: "tamanho inválido após normalização" };
   }

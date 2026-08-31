@@ -4,7 +4,11 @@ import {
   hasImportProfileData,
   parseContactsSpreadsheet,
 } from "@/lib/whatsapp/importContactsParse";
-import { normalizeBrazilPhone, isLandlineBrazilPhone, isLandlineStoredPhone } from "./normalizePhone";
+import {
+  isLandlineFromImportDigits,
+  phoneDigitsFromImportRaw,
+  validateImportPhoneDigits,
+} from "@/lib/whatsapp/importPhone";
 
 const MAX_ERROR_DETAILS = 100;
 
@@ -79,20 +83,22 @@ export async function importContactsFromFile(
   const errorDetails: ImportRowError[] = [];
 
   for (const row of parsed) {
-    const result = normalizeBrazilPhone(row.phoneRaw);
-    if (!result.valid || !result.normalized) {
+    const phone = phoneDigitsFromImportRaw(row.phoneRaw);
+    const validation = validateImportPhoneDigits(phone);
+    if (!validation.valid) {
       errorDetails.push({
         line: row.line,
         value: row.phoneRaw,
-        reason: result.reason ?? "formato inválido",
+        reason: validation.reason ?? "formato inválido",
       });
       continue;
     }
+
     validRows.push({
       line: row.line,
-      name: row.name || result.normalized,
-      phone: result.normalized,
-      isLandline: isLandlineBrazilPhone(row.phoneRaw),
+      name: row.name || phone,
+      phone,
+      isLandline: isLandlineFromImportDigits(phone),
       profile: row.profile,
     });
   }
@@ -168,7 +174,7 @@ export async function importContactsFromFile(
         phone_number: r.phone,
         status: "active" as const,
         import_batch_id: batchId,
-        is_landline: r.isLandline || isLandlineStoredPhone(r.phone),
+        is_landline: r.isLandline,
         ...termsFields,
         ...(hasImportProfileData(r.profile) ? { import_profile: r.profile } : {}),
       }));

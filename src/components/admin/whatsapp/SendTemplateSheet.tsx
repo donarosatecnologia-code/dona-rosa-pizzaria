@@ -63,7 +63,7 @@ export function SendTemplateSheet({ conversationId }: SendTemplateSheetProps) {
             {isLoading && <p className="text-sm text-muted-foreground">Carregando...</p>}
             {!isLoading && (!templates || templates.length === 0) && (
               <p className="text-sm text-muted-foreground">
-                Nenhuma mensagem pronta disponível. Crie uma em Mensagens prontas.
+                Nenhuma mensagem pronta disponível. Crie uma em Template de mensagens.
               </p>
             )}
             {templates?.map((template) => (

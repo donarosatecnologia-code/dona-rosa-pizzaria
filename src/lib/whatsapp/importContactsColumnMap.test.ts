@@ -27,7 +27,7 @@ describe("mapSpreadsheetRows", () => {
     const rows = mapSpreadsheetRows([
       headers,
       [
-        "11999998888",
+        "5511999998888",
         "Maria Silva",
         "R.",
         "Das Flores",
@@ -43,12 +43,20 @@ describe("mapSpreadsheetRows", () => {
     ]);
 
     expect(rows).toHaveLength(1);
-    expect(rows[0].phoneRaw).toBe("11999998888");
+    expect(rows[0].phoneRaw).toBe("5511999998888");
     expect(rows[0].name).toBe("Maria Silva");
     expect(rows[0].profile.full_address).toContain("R.");
     expect(rows[0].profile.full_address).toContain("Das Flores");
     expect(rows[0].profile.purchase_count).toBe("5");
     expect(rows[0].profile.days_without_purchase).toBe("12");
+  });
+
+  it("aceita cabeçalho TELEFONE da planilha Dona Rosa", () => {
+    const rows = mapSpreadsheetRows([
+      ["TELEFONE", "NOME"],
+      ["551138621077", "Cliente Fixo"],
+    ]);
+    expect(rows[0].phoneRaw).toBe("551138621077");
   });
 
   it("aceita cabeçalho telefone legado", () => {

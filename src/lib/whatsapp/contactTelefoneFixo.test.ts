@@ -4,6 +4,7 @@ import {
   canInteractViaWhatsapp,
   isTelefoneFixoContact,
 } from "@/lib/whatsapp/contactTelefoneFixo";
+import { isLandlineStoredPhone } from "@/lib/whatsapp/normalizePhone";
 
 function baseContact(overrides: Partial<WhatsappContact> = {}): WhatsappContact {
   return {
@@ -29,42 +30,51 @@ function baseContact(overrides: Partial<WhatsappContact> = {}): WhatsappContact 
   };
 }
 
-describe("isTelefoneFixoContact", () => {
-  it("marca telefone fixo (10 dígitos nacionais, sem 9 após DDD)", () => {
-    expect(isTelefoneFixoContact(baseContact({ phone_number: "551133334444" }))).toBe(true);
+describe("isLandlineStoredPhone", () => {
+  it("marca fixo real da planilha (551138621077)", () => {
+    expect(isLandlineStoredPhone("551138621077")).toBe(true);
   });
 
-  it("não marca celular/WhatsApp (9 após DDD)", () => {
+  it("não marca celular (5511999998888)", () => {
+    expect(isLandlineStoredPhone("5511999998888")).toBe(false);
+  });
+
+  it("não marca número inválido com 13 dígitos sem 9 após DDD", () => {
+    expect(isLandlineStoredPhone("5511763131424")).toBe(false);
+  });
+});
+
+describe("isTelefoneFixoContact", () => {
+  it("marca telefone fixo armazenado", () => {
+    expect(isTelefoneFixoContact(baseContact({ phone_number: "551138621077" }))).toBe(true);
+  });
+
+  it("não marca celular", () => {
     expect(isTelefoneFixoContact(baseContact({ phone_number: "5511999998888" }))).toBe(false);
   });
 
-  it("não marca importado só por ter vindo da planilha", () => {
+  it("não marca importado celular só por ter vindo da planilha", () => {
     expect(
       isTelefoneFixoContact(
         baseContact({
           phone_number: "5511999998888",
           import_batch_id: "batch-1",
-          terms_accepted_source: "csv_import",
         }),
       ),
     ).toBe(false);
   });
 
-  it("não marca contato que já interagiu via WhatsApp", () => {
-    expect(
-      isTelefoneFixoContact(
-        baseContact({ phone_number: "551133334444", inbound_count: 1, last_inbound_at: "2026-02-01" }),
-      ),
-    ).toBe(false);
+  it("não marca número inválido", () => {
+    expect(isTelefoneFixoContact(baseContact({ phone_number: "5511763131424" }))).toBe(false);
   });
 });
 
 describe("canInteractViaWhatsapp", () => {
-  it("bloqueia interação para telefone fixo ativo", () => {
-    expect(canInteractViaWhatsapp(baseContact({ phone_number: "551133334444" }))).toBe(false);
+  it("bloqueia telefone fixo", () => {
+    expect(canInteractViaWhatsapp(baseContact({ phone_number: "551138621077" }))).toBe(false);
   });
 
-  it("permite interação para celular ativo", () => {
+  it("permite celular ativo", () => {
     expect(canInteractViaWhatsapp(baseContact({ phone_number: "5511999998888" }))).toBe(true);
   });
 });

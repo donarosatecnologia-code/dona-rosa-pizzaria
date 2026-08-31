@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isLandlineBrazilPhone, isLandlineStoredPhone, normalizeBrazilPhone } from "./normalizePhone";
+import { isLandlineBrazilPhone, isLandlineStoredPhone, LANDLINE_STORED_PHONE_REGEX, normalizeBrazilPhone } from "./normalizePhone";
 
 describe("normalizeBrazilPhone", () => {
   it("aceita celular com ddd sem +55", () => {
@@ -60,6 +60,10 @@ describe("normalizeBrazilPhone", () => {
       valid: true,
     });
   });
+
+  it("rejeita celular inválido com 11 dígitos nacionais sem 9", () => {
+    expect(normalizeBrazilPhone("11763131424").valid).toBe(false);
+  });
 });
 
 describe("isLandlineBrazilPhone", () => {
@@ -81,5 +85,12 @@ describe("isLandlineStoredPhone", () => {
 
   it("não classifica celular armazenado (13 dígitos, 9 após DDD)", () => {
     expect(isLandlineStoredPhone("5511999998888")).toBe(false);
+    expect("5511999998888").not.toMatch(new RegExp(LANDLINE_STORED_PHONE_REGEX));
+  });
+
+  it("regex de filtro alinha com isLandlineStoredPhone", () => {
+    const regex = new RegExp(LANDLINE_STORED_PHONE_REGEX);
+    expect(isLandlineStoredPhone("551133334444")).toBe(true);
+    expect("551133334444").toMatch(regex);
   });
 });

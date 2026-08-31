@@ -56,14 +56,14 @@ export const ADMIN_MODULES: AdminModuleDefinition[] = [
   },
   {
     key: "templates",
-    label: "Mensagens prontas",
+    label: "Template de mensagens",
     description: "Templates aprovados para envio",
     routePrefixes: ["/admin/templates"],
   },
   {
     key: "disparos",
-    label: "Promoções",
-    description: "Campanhas de disparo em massa",
+    label: "Mensagens ativas",
+    description: "Campanhas e envio ativo para um ou vários contatos",
     routePrefixes: ["/admin/disparos", "/admin/pesquisas"],
   },
   {

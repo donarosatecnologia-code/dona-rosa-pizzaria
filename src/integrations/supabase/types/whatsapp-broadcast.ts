@@ -79,6 +79,8 @@ export interface BroadcastCampaign {
   content_type_draft: BroadcastContentType | null;
   queue_id: string | null;
   queue_id_draft: string | null;
+  target_contact_id: string | null;
+  target_contact_id_draft: string | null;
   survey_flow_id: string | null;
   survey_flow_id_draft: string | null;
   status: BroadcastCampaignStatus;

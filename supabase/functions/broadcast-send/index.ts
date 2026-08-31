@@ -24,6 +24,7 @@ interface CampaignRow {
   template_name: string | null;
   template_params: Record<string, unknown> | null;
   queue_id: string | null;
+  target_contact_id: string | null;
   survey_flow_id: string | null;
   status: string;
   published_at: string | null;
@@ -86,7 +87,7 @@ async function handleBroadcastSend(req: Request): Promise<Response> {
 
   const { data: campaign, error: campaignError } = await supabase
     .from("broadcast_campaigns")
-    .select("id, template_name, template_params, queue_id, survey_flow_id, status, published_at, total_sent")
+    .select("id, template_name, template_params, queue_id, target_contact_id, survey_flow_id, status, published_at, total_sent")
     .eq("id", campaignId)
     .maybeSingle();
 
@@ -100,7 +101,7 @@ async function handleBroadcastSend(req: Request): Promise<Response> {
     return jsonResponse({ error: validationError }, 400);
   }
 
-  await ensureRecipients(supabase, row.id, row.queue_id!);
+  await ensureRecipients(supabase, row.id, row.queue_id, row.target_contact_id);
 
   const { count: pendingCount } = await supabase
     .from("broadcast_campaign_recipients")
@@ -146,8 +147,8 @@ function validateCampaignForSend(campaign: CampaignRow): string | null {
   if (!campaign.template_name?.trim()) {
     return "template_name_missing";
   }
-  if (!campaign.queue_id) {
-    return "queue_id_missing";
+  if (!campaign.queue_id && !campaign.target_contact_id) {
+    return "target_missing";
   }
   return null;
 }
@@ -155,11 +156,14 @@ function validateCampaignForSend(campaign: CampaignRow): string | null {
 async function ensureRecipients(
   supabase: ReturnType<typeof createServiceClient>,
   campaignId: string,
-  queueId: string,
+  queueId: string | null,
+  targetContactId: string | null,
 ): Promise<void> {
-  const ids = await fetchAllRows<string>((from, to) =>
-    supabase.rpc("resolve_queue_contact_ids", { p_queue_id: queueId }).range(from, to),
-  );
+  const ids = targetContactId
+    ? [targetContactId]
+    : await fetchAllRows<string>((from, to) =>
+        supabase.rpc("resolve_queue_contact_ids", { p_queue_id: queueId! }).range(from, to),
+      );
 
   if (ids.length === 0) {
     return;
@@ -209,11 +213,12 @@ async function processPendingRecipients(
   const contactIds = (pendingRows ?? []).map((row) => row.contact_id);
   const phoneByContactId = new Map<string, string>();
   const termsAcceptedByContactId = new Map<string, boolean>();
+  const isLandlineByContactId = new Map<string, boolean>();
 
   if (contactIds.length > 0) {
     const { data: contacts, error: contactsError } = await supabase
       .from("whatsapp_contacts")
-      .select("id, phone_number, terms_accepted_at")
+      .select("id, phone_number, terms_accepted_at, is_landline")
       .in("id", contactIds);
 
     if (contactsError) {
@@ -223,6 +228,7 @@ async function processPendingRecipients(
     for (const contact of contacts ?? []) {
       phoneByContactId.set(contact.id, contact.phone_number);
       termsAcceptedByContactId.set(contact.id, Boolean(contact.terms_accepted_at));
+      isLandlineByContactId.set(contact.id, Boolean(contact.is_landline));
     }
   }
 
@@ -263,11 +269,14 @@ async function processPendingRecipients(
     processed += 1;
     const phone = phoneByContactId.get(row.contact_id);
     const hasTerms = termsAcceptedByContactId.get(row.contact_id);
+    const isLandline = isLandlineByContactId.get(row.contact_id);
 
-    if (!phone || !hasTerms) {
+    if (!phone || !hasTerms || isLandline) {
       const failureReason = !phone
         ? "Telefone do contato não encontrado."
-        : "Contato sem consentimento LGPD (terms_accepted_at).";
+        : isLandline
+          ? "Telefone fixo — não recebe WhatsApp."
+          : "Contato sem consentimento LGPD (terms_accepted_at).";
       await supabase
         .from("broadcast_campaign_recipients")
         .update({ send_status: "failed", failure_reason: failureReason })

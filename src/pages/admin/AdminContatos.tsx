@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Users, Upload, Search, Trash2, Loader2 } from "lucide-react";
+import { Users, Upload, Search, Trash2, Loader2, Send } from "lucide-react";
 import { toast } from "sonner";
 import { ContactTagsEditor } from "@/components/admin/contatos/ContactTagsEditor";
 import { ContactStatusBadge } from "@/components/admin/contatos/ContactStatusBadge";
 import { DeleteContactDialog } from "@/components/admin/contatos/DeleteContactDialog";
 import { ImportContactsModal } from "@/components/admin/contatos/ImportContactsModal";
 import { ImportHistoryCard } from "@/components/admin/contatos/ImportHistoryCard";
+import { SendActiveMessageDialog } from "@/components/admin/disparos/SendActiveMessageDialog";
 import { ListPagination } from "@/components/admin/ListPagination";
 import { AdminPageHeader, AdminPageShell } from "@/components/admin/AdminPageShell";
 import { Button } from "@/components/ui/button";
@@ -59,6 +60,7 @@ export default function AdminContatos() {
   const [tagFilterSlug, setTagFilterSlug] = useState("all");
   const [page, setPage] = useState(0);
   const [isPurgingQa, setIsPurgingQa] = useState(false);
+  const [activeMessageContactId, setActiveMessageContactId] = useState<string | null>(null);
   const updateStatus = useUpdateWhatsappContactStatus();
   const deleteContact = useDeleteWhatsappContact();
 
@@ -307,6 +309,15 @@ export default function AdminContatos() {
                         <div className="flex flex-col gap-2 pt-1">
                           <Button
                             size="sm"
+                            variant="secondary"
+                            className="min-h-[44px] w-full"
+                            onClick={() => setActiveMessageContactId(contact.id)}
+                          >
+                            <Send className="h-4 w-4 mr-2" />
+                            Mensagem ativa
+                          </Button>
+                          <Button
+                            size="sm"
                             variant="outline"
                             className="min-h-[44px] w-full"
                             disabled={updateStatus.isPending}
@@ -372,6 +383,15 @@ export default function AdminContatos() {
                             size="sm"
                             variant="ghost"
                             className="text-xs min-h-[44px]"
+                            onClick={() => setActiveMessageContactId(contact.id)}
+                          >
+                            <Send className="h-4 w-4 mr-1" />
+                            Ativa
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-xs min-h-[44px]"
                             disabled={updateStatus.isPending}
                             onClick={() => handleOptOut(contact.id)}
                           >
@@ -399,6 +419,16 @@ export default function AdminContatos() {
       )}
 
       <ImportContactsModal open={importOpen} onOpenChange={setImportOpen} />
+
+      <SendActiveMessageDialog
+        open={Boolean(activeMessageContactId)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setActiveMessageContactId(null);
+          }
+        }}
+        initialContactId={activeMessageContactId ?? undefined}
+      />
     </AdminPageShell>
   );
 }

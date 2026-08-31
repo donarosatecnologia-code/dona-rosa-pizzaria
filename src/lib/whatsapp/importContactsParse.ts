@@ -5,7 +5,7 @@ import {
   mapSpreadsheetRows,
   type ParsedImportRow,
 } from "./importContactsColumnMap";
-import { spreadsheetCellToString } from "./spreadsheetCell";
+import { xlsxCellToString } from "./spreadsheetCell";
 
 function parseCsvLine(line: string): string[] {
   const fields: string[] = [];
@@ -41,15 +41,26 @@ async function parseXlsxToRows(file: File): Promise<string[][]> {
   if (!sheetName) {
     return [];
   }
+
   const sheet = workbook.Sheets[sheetName];
-  const raw = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
-    header: 1,
-    defval: "",
-    raw: true,
-  });
-  return raw.map((row) =>
-    (Array.isArray(row) ? row : []).map((cell) => spreadsheetCellToString(cell)),
-  );
+  const ref = sheet["!ref"];
+  if (!ref) {
+    return [];
+  }
+
+  const range = XLSX.utils.decode_range(ref);
+  const rows: string[][] = [];
+
+  for (let rowIndex = range.s.r; rowIndex <= range.e.r; rowIndex += 1) {
+    const row: string[] = [];
+    for (let colIndex = range.s.c; colIndex <= range.e.c; colIndex += 1) {
+      const address = XLSX.utils.encode_cell({ r: rowIndex, c: colIndex });
+      row.push(xlsxCellToString(sheet[address]));
+    }
+    rows.push(row);
+  }
+
+  return rows;
 }
 
 export async function parseContactsSpreadsheet(file: File): Promise<ParsedImportRow[]> {

@@ -135,7 +135,7 @@ export default function AdminTemplates() {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <FileText className="h-6 w-6 text-primary" />
-            <h1 className="text-xl sm:text-2xl font-bold">Mensagens prontas</h1>
+            <h1 className="text-xl sm:text-2xl font-bold">Template de mensagens</h1>
           </div>
           <p className="text-sm text-muted-foreground">
             Textos que o WhatsApp precisa aprovar antes de usar.

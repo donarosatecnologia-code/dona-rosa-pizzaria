@@ -67,7 +67,7 @@ export function ImportContactsModal({ open, onOpenChange }: ImportContactsModalP
       const code = error instanceof Error ? error.message : "unknown";
       if (code === "missing_phone_column") {
         setErrorMessage(
-          "Não encontramos a coluna de telefone. Use TELEFONE1, telefone ou phone no cabeçalho.",
+          "Não encontramos a coluna de telefone. Use TELEFONE, telefone ou phone no cabeçalho.",
         );
       } else if (code === "empty_file" || code === "empty_csv") {
         setErrorMessage("O arquivo está vazio ou só tem cabeçalho.");
@@ -77,7 +77,7 @@ export function ImportContactsModal({ open, onOpenChange }: ImportContactsModalP
         setErrorMessage("Formato não suportado. Envie um arquivo .csv ou .xlsx.");
       } else {
         setErrorMessage(
-          "Não conseguimos ler este arquivo. Verifique se é .csv ou .xlsx com coluna TELEFONE1 (ou telefone).",
+          "Não conseguimos ler este arquivo. Verifique se é .csv ou .xlsx com coluna TELEFONE (ou telefone).",
         );
       }
     }
@@ -91,7 +91,7 @@ export function ImportContactsModal({ open, onOpenChange }: ImportContactsModalP
         <DialogHeader>
           <DialogTitle>Importar clientes</DialogTitle>
           <DialogDescription>
-            Selecione um arquivo .csv ou .xlsx com a lista de clientes (coluna TELEFONE1 ou telefone).
+            Selecione um arquivo .csv ou .xlsx com a lista de clientes (coluna TELEFONE ou telefone).
           </DialogDescription>
         </DialogHeader>
 
@@ -147,9 +147,8 @@ export function ImportContactsModal({ open, onOpenChange }: ImportContactsModalP
               </summary>
               <pre className="mt-2 whitespace-pre-wrap bg-muted p-3 rounded-md text-[11px]">
 {`• Formatos: .csv ou .xlsx (primeira aba)
-• Coluna TELEFONE1: no Excel, formate como TEXTO antes de colar
-  (evita 1,19E+10 e perda de dígitos)
-• Aceito: 11999998888, 5511999998888, (11) 99999-8888, +55...
+• Coluna TELEFONE (ou telefone / TELEFONE1)
+• Os números são gravados exatamente como na planilha (sem normalizar)
 • Nome: coluna NOME (ou name)
 • Endereço opcional: LOGR, ENDERECO, NUMERO, COMPLEMENTO, BAIRRO
 • Histórico opcional: compras, datas e dias sem comprar`}

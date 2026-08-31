@@ -3,6 +3,7 @@ import { LIST_PAGE_SIZE } from "@/hooks/usePagedItems";
 import { supabase } from "@/integrations/supabase/client";
 import type { WhatsappContact } from "@/integrations/supabase/types/whatsapp-broadcast";
 import { TELEFONE_FIXO_TAG_SLUG } from "@/lib/whatsapp/contactTelefoneFixo";
+import { LANDLINE_STORED_PHONE_REGEX } from "@/lib/whatsapp/normalizePhone";
 import { fetchAllRows } from "@/lib/supabase/fetchAllRows";
 
 export const CONTACTS_KEY = ["whatsapp", "contacts"] as const;
@@ -108,7 +109,10 @@ export function useWhatsappContactsPage(options: {
         .order("created_at", { ascending: false });
 
       if (isTelefoneFixoFilter) {
-        query = query.eq("is_landline", true);
+        query = query
+          .eq("inbound_count", 0)
+          .is("last_inbound_at", null)
+          .filter("phone_number", "match", LANDLINE_STORED_PHONE_REGEX);
       }
 
       if (search) {

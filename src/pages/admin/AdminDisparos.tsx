@@ -1,7 +1,8 @@
 import { Link } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { Send, Plus, Loader2, ChevronRight, Trash2, CheckCircle2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Send, Plus, Loader2, ChevronRight, Trash2, CheckCircle2, Search, User } from "lucide-react";
 import { BroadcastSendConfirmDialog } from "@/components/admin/disparos/BroadcastSendConfirmDialog";
+import { SendActiveMessageDialog } from "@/components/admin/disparos/SendActiveMessageDialog";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +28,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -47,8 +49,13 @@ import {
   useQueueContactCount,
   useSurveyFlows,
   useWhatsappPhoneStatus,
+  useWhatsappContactsPage,
 } from "@/hooks/whatsapp";
 import type { BroadcastCampaign } from "@/integrations/supabase/types/whatsapp-broadcast";
+import { formatPhoneDisplay } from "@/lib/format-phone";
+import { canInteractViaWhatsapp } from "@/lib/whatsapp/contactTelefoneFixo";
+
+type RecipientMode = "segment" | "single";
 
 function statusLabel(status: BroadcastCampaign["status"]) {
   const map = {
@@ -73,8 +80,12 @@ export default function AdminDisparos() {
   const cloudReady = phoneStatus?.phone?.is_cloud_ready ?? false;
 
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [singleDialogOpen, setSingleDialogOpen] = useState(false);
+  const [recipientMode, setRecipientMode] = useState<RecipientMode>("segment");
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [queueId, setQueueId] = useState("");
+  const [contactSearch, setContactSearch] = useState("");
+  const [selectedContactId, setSelectedContactId] = useState("");
   const [contentType, setContentType] = useState("informational");
   const [surveyFlowId, setSurveyFlowId] = useState("");
   const [sendingId, setSendingId] = useState<string | null>(null);
@@ -83,7 +94,19 @@ export default function AdminDisparos() {
 
   const confirmCampaign = campaigns?.find((c) => c.id === confirmCampaignId);
   const { data: confirmContactCount, isLoading: loadingConfirmCount } = useQueueContactCount(
-    confirmCampaign?.queue_id ?? confirmCampaign?.queue_id_draft,
+    confirmCampaign?.target_contact_id ? undefined : (confirmCampaign?.queue_id ?? confirmCampaign?.queue_id_draft),
+  );
+  const resolvedConfirmCount = confirmCampaign?.target_contact_id ? 1 : (confirmContactCount ?? 0);
+
+  const { data: contactSearchPage, isLoading: loadingContactSearch } = useWhatsappContactsPage({
+    page: 0,
+    search: contactSearch,
+    pageSize: 20,
+  });
+
+  const contactOptions = useMemo(
+    () => (contactSearchPage?.items ?? []).filter((contact) => canInteractViaWhatsapp(contact)),
+    [contactSearchPage?.items],
   );
 
   useEffect(() => {
@@ -102,8 +125,16 @@ export default function AdminDisparos() {
 
   async function handleCreate() {
     const template = approvedTemplates?.find((t) => t.id === selectedTemplateId);
-    if (!template || !queueId) {
-      toast.error("Selecione um modelo aprovado e o segmento.");
+    if (!template) {
+      toast.error("Selecione um modelo aprovado.");
+      return;
+    }
+    if (recipientMode === "segment" && !queueId) {
+      toast.error("Selecione o segmento de destinatários.");
+      return;
+    }
+    if (recipientMode === "single" && !selectedContactId) {
+      toast.error("Selecione o contato.");
       return;
     }
     if (contentType === "survey" && !surveyFlowId) {
@@ -118,7 +149,8 @@ export default function AdminDisparos() {
           body: template.variables?.map((v) => v.example) ?? [],
         },
         content_type_draft: contentType,
-        queue_id_draft: queueId,
+        queue_id_draft: recipientMode === "segment" ? queueId : null,
+        target_contact_id_draft: recipientMode === "single" ? selectedContactId : null,
         survey_flow_id_draft: contentType === "survey" ? surveyFlowId : null,
       });
       toast.success("Campanha criada como rascunho.");
@@ -177,19 +209,24 @@ export default function AdminDisparos() {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Send className="h-6 w-6 text-primary" />
-            <h1 className="text-xl sm:text-2xl font-bold">Promoções</h1>
+            <h1 className="text-xl sm:text-2xl font-bold">Mensagens ativas</h1>
           </div>
           <p className="text-sm text-muted-foreground">
-            Envie a mesma mensagem para vários clientes ·{" "}
+            Envie mensagens ativas para um contato ou para um segmento ·{" "}
             <Link to="/admin/contatos" className="text-primary hover:underline">
               {contacts?.length ?? 0} contato(s)
             </Link>
           </p>
         </div>
 
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+          <Button variant="outline" className="min-h-[44px]" onClick={() => setSingleDialogOpen(true)}>
+            <User className="h-4 w-4 mr-2" />
+            Um contato
+          </Button>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="shrink-0">
+            <Button className="shrink-0 min-h-[44px]">
               <Plus className="h-4 w-4 mr-2" />
               Nova campanha
             </Button>
@@ -198,7 +235,7 @@ export default function AdminDisparos() {
             <DialogHeader>
               <DialogTitle>Nova campanha (rascunho)</DialogTitle>
               <DialogDescription>
-                Escolha um modelo já aprovado pela Meta e a fila de destinatários.
+                Escolha um modelo aprovado e quem vai receber.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-2">
@@ -211,6 +248,21 @@ export default function AdminDisparos() {
                   para aprovação primeiro.
                 </p>
               )}
+              <div className="space-y-2">
+                <Label>Destinatários</Label>
+                <Select
+                  value={recipientMode}
+                  onValueChange={(value) => setRecipientMode(value as RecipientMode)}
+                >
+                  <SelectTrigger className="min-h-[44px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="segment">Segmento (lista)</SelectItem>
+                    <SelectItem value="single">Um contato</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="space-y-2">
                 <Label>Modelo aprovado</Label>
                 <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
@@ -266,21 +318,58 @@ export default function AdminDisparos() {
                   )}
                 </div>
               )}
-              <div className="space-y-2">
-                <Label>Segmento de destinatários</Label>
-                <Select value={queueId} onValueChange={setQueueId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione a fila" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {queues?.map((q) => (
-                      <SelectItem key={q.id} value={q.id}>
-                        {q.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {recipientMode === "segment" ? (
+                <div className="space-y-2">
+                  <Label>Segmento de destinatários</Label>
+                  <Select value={queueId} onValueChange={setQueueId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione a fila" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {queues?.map((q) => (
+                        <SelectItem key={q.id} value={q.id}>
+                          {q.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label>Contato</Label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      className="pl-9 min-h-[44px]"
+                      placeholder="Buscar nome ou telefone..."
+                      value={contactSearch}
+                      onChange={(event) => setContactSearch(event.target.value)}
+                    />
+                  </div>
+                  <Select value={selectedContactId} onValueChange={setSelectedContactId}>
+                    <SelectTrigger className="min-h-[44px]">
+                      <SelectValue placeholder="Selecione o contato" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {loadingContactSearch && (
+                        <SelectItem value="__loading" disabled>
+                          Carregando...
+                        </SelectItem>
+                      )}
+                      {!loadingContactSearch && contactOptions.length === 0 && (
+                        <SelectItem value="__empty" disabled>
+                          Nenhum contato com WhatsApp
+                        </SelectItem>
+                      )}
+                      {contactOptions.map((contact) => (
+                        <SelectItem key={contact.id} value={contact.id}>
+                          {contact.name} · {formatPhoneDisplay(contact.phone_number)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button onClick={handleCreate} disabled={createDraft.isPending}>
@@ -290,6 +379,7 @@ export default function AdminDisparos() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {cloudReady && (
@@ -421,8 +511,8 @@ export default function AdminDisparos() {
             setConfirmCampaignId(null);
           }
         }}
-        contactCount={confirmContactCount ?? 0}
-        isLoadingCount={loadingConfirmCount}
+        contactCount={resolvedConfirmCount}
+        isLoadingCount={confirmCampaign?.target_contact_id ? false : loadingConfirmCount}
         isSending={Boolean(sendingId && sendingId === confirmCampaignId)}
         onConfirm={() => {
           if (confirmCampaignId) {
@@ -430,6 +520,8 @@ export default function AdminDisparos() {
           }
         }}
       />
+
+      <SendActiveMessageDialog open={singleDialogOpen} onOpenChange={setSingleDialogOpen} />
 
       <AlertDialog open={Boolean(deleteTargetId)} onOpenChange={(open) => !open && setDeleteTargetId(null)}>
         <AlertDialogContent>

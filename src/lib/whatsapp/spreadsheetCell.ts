@@ -32,6 +32,23 @@ function stripTrailingDecimalZeros(value: string): string {
   return value;
 }
 
+/** Valor textual de célula XLSX: usa cell.v para números (cell.w pode ser notação científica). */
+export function xlsxCellToString(cell: { t?: string; v?: unknown; w?: string } | undefined): string {
+  if (!cell) {
+    return "";
+  }
+
+  if (cell.t === "n" && typeof cell.v === "number" && Number.isFinite(cell.v)) {
+    return String(Math.trunc(cell.v));
+  }
+
+  if (typeof cell.w === "string" && cell.w.trim()) {
+    return cell.w.trim();
+  }
+
+  return spreadsheetCellToString(cell.v);
+}
+
 export function spreadsheetCellToString(cell: unknown): string {
   if (cell == null || cell === "") {
     return "";
