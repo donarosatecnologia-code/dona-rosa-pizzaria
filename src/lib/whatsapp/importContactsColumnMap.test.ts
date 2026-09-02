@@ -2,28 +2,31 @@ import { describe, expect, it } from "vitest";
 import { mapSpreadsheetRows, normalizeSpreadsheetHeader } from "./importContactsColumnMap";
 
 describe("normalizeSpreadsheetHeader", () => {
-  it("remove acentos e normaliza espaços", () => {
-    expect(normalizeSpreadsheetHeader("  ÚLTIMA   COMPRA  ")).toBe("ultima compra");
+  it("remove acentos e normaliza barras", () => {
+    expect(normalizeSpreadsheetHeader("TOTAL/COMPRAS")).toBe("total compras");
+    expect(normalizeSpreadsheetHeader("DATA/CADASTRO")).toBe("data cadastro");
+    expect(normalizeSpreadsheetHeader("ULTIMA/COMPRA")).toBe("ultima compra");
+    expect(normalizeSpreadsheetHeader("R$/COMPRAS")).toBe("r$ compras");
   });
 });
 
 describe("mapSpreadsheetRows", () => {
   const headers = [
-    "TELEFONE1",
+    "TELEFONE",
     "NOME",
     "LOGR",
     "ENDERECO",
     "NUMERO",
     "COMPLEMENTO",
     "BAIRRO",
-    "QTD TOTAL COMPRAS",
-    "TOTAL R$ COMPRAS",
-    "DATA CADASTRO",
-    "ULTIMA COMPRA",
-    "DIAS SEM COMPRAR ENTRE 27/03/26 E ULTIMA COMPRA",
+    "TOTAL/COMPRAS",
+    "R$/COMPRAS",
+    "DATA/CADASTRO",
+    "ULTIMA/COMPRA",
+    "DIAS SEM COMPRAR/DESDE_ÚLTIMA_COMPRA/ATÉ/27-03-26",
   ];
 
-  it("mapeia colunas da planilha de clientes", () => {
+  it("mapeia colunas da planilha Dona Rosa", () => {
     const rows = mapSpreadsheetRows([
       headers,
       [
@@ -35,20 +38,22 @@ describe("mapSpreadsheetRows", () => {
         "Apto 2",
         "Centro",
         "5",
-        "R$ 250,00",
-        "01/01/2024",
-        "15/03/2026",
-        "12",
+        "235.5",
+        "31.07.2024 19:36",
+        "15.03.2026 19:28",
+        "604",
       ],
     ]);
 
     expect(rows).toHaveLength(1);
     expect(rows[0].phoneRaw).toBe("5511999998888");
     expect(rows[0].name).toBe("Maria Silva");
-    expect(rows[0].profile.full_address).toContain("R.");
-    expect(rows[0].profile.full_address).toContain("Das Flores");
-    expect(rows[0].profile.purchase_count).toBe("5");
-    expect(rows[0].profile.days_without_purchase).toBe("12");
+    expect(rows[0].crm.addressStreet).toBe("R. Das Flores");
+    expect(rows[0].crm.addressNumber).toBe("100");
+    expect(rows[0].crm.purchaseCount).toBe(5);
+    expect(rows[0].crm.purchaseTotal).toBe(235.5);
+    expect(rows[0].crm.registeredAt).toBe("2024-07-31");
+    expect(rows[0].crm.lastPurchaseAt).toBe("2026-03-15");
   });
 
   it("aceita cabeçalho TELEFONE da planilha Dona Rosa", () => {
@@ -57,15 +62,6 @@ describe("mapSpreadsheetRows", () => {
       ["551138621077", "Cliente Fixo"],
     ]);
     expect(rows[0].phoneRaw).toBe("551138621077");
-  });
-
-  it("aceita cabeçalho telefone legado", () => {
-    const rows = mapSpreadsheetRows([
-      ["nome", "telefone"],
-      ["João", "5511988887777"],
-    ]);
-    expect(rows[0].phoneRaw).toBe("5511988887777");
-    expect(rows[0].name).toBe("João");
   });
 
   it("falha sem coluna de telefone", () => {

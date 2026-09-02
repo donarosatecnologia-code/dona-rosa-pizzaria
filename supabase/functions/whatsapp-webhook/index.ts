@@ -1,5 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2.100.0";
 import {
+  ensureWhatsappContact,
   logWebhookEvent,
   markWebhookEventProcessed,
   persistInboundCrmMessage,
@@ -141,6 +142,7 @@ async function processWebhookPayload(
         field: change.field,
         phoneNumberId: ctx.phoneNumberId,
         messages: value.messages?.length ?? 0,
+        message_echoes: value.message_echoes?.length ?? 0,
         statuses: value.statuses?.length ?? 0,
       });
 
@@ -266,6 +268,13 @@ async function handleDeliveryStatus(
 }
 
 /** Mensagem enviada pelo celular (WhatsApp Business app) — espelha no painel. */
+function resolveContactNameFromCtx(
+  waId: string,
+  ctx: WebhookChangeContext,
+): string | null {
+  return ctx.contacts?.find((c) => c.wa_id === waId)?.profile?.name?.trim() ?? null;
+}
+
 async function handleMessageEcho(
   supabase: ReturnType<typeof createClient>,
   echo: MetaWebhookMessageEcho,
@@ -288,12 +297,17 @@ async function handleMessageEcho(
 
   const bodyText = extractResponseValue(asInboundShape);
 
+  const contactId = await ensureWhatsappContact(supabase, waId, {
+    name: resolveContactNameFromCtx(waId, ctx),
+  });
+
   await persistOutboundCrmMessage(supabase, {
     waId,
     metaMessageId: echo.id,
     messageType: echo.type,
     bodyText,
     content: { source: "smb_message_echo", echo },
+    whatsappContactId: contactId,
     isAutomated: false,
   });
 
@@ -431,7 +445,7 @@ async function ensureActiveContact(
 ): Promise<ContactConsentRow | null> {
   const { data: existing } = await supabase
     .from("whatsapp_contacts")
-    .select("id, status, inbound_count, terms_accepted_at, terms_prompt_sent_at")
+    .select("id, name, status, inbound_count, terms_accepted_at, terms_prompt_sent_at")
     .eq("phone_number", phone)
     .maybeSingle();
 
@@ -439,11 +453,25 @@ async function ensureActiveContact(
     if (existing.status === "opted_out") {
       return null;
     }
+
+    const contactName =
+      ctx.contacts?.find((c) => c.wa_id === phone)?.profile?.name?.trim();
+    if (contactName && contactName !== existing.name) {
+      await supabase
+        .from("whatsapp_contacts")
+        .update({ name: contactName, updated_at: new Date().toISOString() })
+        .eq("id", existing.id);
+    }
+
     return existing as ContactConsentRow;
   }
 
   const contactName =
     ctx.contacts?.find((c) => c.wa_id === phone)?.profile?.name?.trim() ?? phone;
+
+  const registeredAt = new Date().toLocaleDateString("en-CA", {
+    timeZone: "America/Sao_Paulo",
+  });
 
   const { data: created, error: insertError } = await supabase
     .from("whatsapp_contacts")
@@ -451,6 +479,7 @@ async function ensureActiveContact(
       phone_number: phone,
       name: contactName,
       status: "active",
+      registered_at: registeredAt,
     })
     .select("id, status, inbound_count, terms_accepted_at, terms_prompt_sent_at")
     .single();

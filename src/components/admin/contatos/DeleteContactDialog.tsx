@@ -15,13 +15,20 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useDeleteWhatsappContact } from "@/hooks/whatsapp/useWhatsappBusinessHours";
+import { cn } from "@/lib/utils";
 
 interface DeleteContactDialogProps {
   contactId: string;
   contactName: string;
+  /** Linha da tabela desktop — botão compacto inline. */
+  compact?: boolean;
 }
 
-export function DeleteContactDialog({ contactId, contactName }: DeleteContactDialogProps) {
+export function DeleteContactDialog({
+  contactId,
+  contactName,
+  compact = false,
+}: DeleteContactDialogProps) {
   const [reason, setReason] = useState("");
   const [open, setOpen] = useState(false);
   const deleteContact = useDeleteWhatsappContact();
@@ -29,7 +36,7 @@ export function DeleteContactDialog({ contactId, contactName }: DeleteContactDia
   async function handleDelete() {
     try {
       await deleteContact.mutateAsync({ contactId, reason: reason.trim() || undefined });
-      toast.success("Cliente removido da lista.");
+      toast.success("Cadastro excluído.");
       setOpen(false);
       setReason("");
     } catch (err) {
@@ -46,20 +53,30 @@ export function DeleteContactDialog({ contactId, contactName }: DeleteContactDia
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
-        <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive min-h-[44px] w-full">
-          <Trash2 className="h-4 w-4 mr-1" />
-          Tirar da lista
+        <Button
+          size="sm"
+          variant="ghost"
+          className={cn(
+            "text-destructive hover:bg-destructive/10 hover:text-destructive",
+            compact
+              ? "h-8 px-2 text-xs shrink-0"
+              : "min-h-[44px] w-full",
+          )}
+        >
+          <Trash2 className={cn("h-4 w-4", compact ? "mr-1" : "mr-2")} />
+          Excluir cadastro
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Tirar da lista para sempre?</AlertDialogTitle>
+          <AlertDialogTitle>Excluir cadastro para sempre?</AlertDialogTitle>
           <AlertDialogDescription>
-            <strong>{contactName}</strong> sai da lista. Conversas antigas ficam guardadas. Não dá para desfazer.
+            O cadastro de <strong>{contactName}</strong> será removido. Conversas antigas ficam
+            guardadas. Não dá para desfazer.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <Textarea
-          placeholder="Por que está tirando? (opcional)"
+          placeholder="Por que está excluindo? (opcional)"
           value={reason}
           onChange={(e) => setReason(e.target.value)}
           rows={2}
@@ -75,7 +92,7 @@ export function DeleteContactDialog({ contactId, contactName }: DeleteContactDia
             disabled={deleteContact.isPending}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
-            Tirar da lista
+            Excluir cadastro
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

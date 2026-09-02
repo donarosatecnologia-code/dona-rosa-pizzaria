@@ -148,7 +148,10 @@ export function ImportContactsModal({ open, onOpenChange }: ImportContactsModalP
               <pre className="mt-2 whitespace-pre-wrap bg-muted p-3 rounded-md text-[11px]">
 {`• Formatos: .csv ou .xlsx (primeira aba)
 • Coluna TELEFONE (ou telefone / TELEFONE1)
-• Os números são gravados exatamente como na planilha (sem normalizar)
+• Colunas opcionais: ENDERECO, NUMERO, COMPLEMENTO, BAIRRO,
+  TOTAL/COMPRAS, R$/COMPRAS, DATA/CADASTRO, ULTIMA/COMPRA
+• Dias sem comprar é calculado automaticamente (não importa da planilha)
+• Os telefones são gravados exatamente como na planilha
 • Nome: coluna NOME (ou name)
 • Endereço opcional: LOGR, ENDERECO, NUMERO, COMPLEMENTO, BAIRRO
 • Histórico opcional: compras, datas e dias sem comprar`}

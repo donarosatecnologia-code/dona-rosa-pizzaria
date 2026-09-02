@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Users, Upload, Search, Trash2, Loader2, Send } from "lucide-react";
+import { Users, Upload, Search, Trash2, Loader2, Send, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { ContactTagsEditor } from "@/components/admin/contatos/ContactTagsEditor";
-import { ContactStatusBadge } from "@/components/admin/contatos/ContactStatusBadge";
 import { DeleteContactDialog } from "@/components/admin/contatos/DeleteContactDialog";
 import { ImportContactsModal } from "@/components/admin/contatos/ImportContactsModal";
 import { ImportHistoryCard } from "@/components/admin/contatos/ImportHistoryCard";
@@ -35,23 +34,44 @@ import { useWhatsappContactsPage, useUpdateWhatsappContactStatus } from "@/hooks
 import { useWhatsappTags } from "@/hooks/whatsapp/useWhatsappTags";
 import { useDeleteWhatsappContact } from "@/hooks/whatsapp/useWhatsappBusinessHours";
 import { useQaHomologacaoContactIds } from "@/hooks/whatsapp/useWhatsappContactTags";
+import { useRefreshContactPurchaseTagsOnPage } from "@/hooks/whatsapp/useRefreshContactPurchaseTags";
 import { formatPhoneDisplay } from "@/lib/format-phone";
 import {
   canInteractViaWhatsapp,
   TELEFONE_FIXO_TAG_NAME,
   TELEFONE_FIXO_TAG_SLUG,
 } from "@/lib/whatsapp/contactTelefoneFixo";
-
-function formatLastCampaign(at: string | null): string {
-  if (!at) {
-    return "—";
-  }
-  return new Date(at).toLocaleDateString("pt-BR");
-}
+import {
+  formatContactDate,
+  getDaysWithoutPurchase,
+  getRegisteredAtDisplay,
+} from "@/lib/whatsapp/contactCrm";
+import type { WhatsappContact } from "@/integrations/supabase/types/whatsapp-broadcast";
 
 const QA_TAG_SLUG = "qa-homologacao";
 
+function ContactListMetrics({ contact }: { contact: WhatsappContact }) {
+  const days = getDaysWithoutPurchase(contact.last_purchase_at);
+  return (
+    <>
+      <TableCell className="text-xs text-center">
+        {contact.purchase_count ?? "—"}
+      </TableCell>
+      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+        {getRegisteredAtDisplay(contact.registered_at, contact.created_at)}
+      </TableCell>
+      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+        {formatContactDate(contact.last_purchase_at)}
+      </TableCell>
+      <TableCell className="text-xs text-center">
+        {days != null ? days : "—"}
+      </TableCell>
+    </>
+  );
+}
+
 export default function AdminContatos() {
+  useRefreshContactPurchaseTagsOnPage();
   const { data: qaIds } = useQaHomologacaoContactIds();
   const { data: allTags } = useWhatsappTags();
   const qaContactIds = qaIds ?? [];
@@ -92,7 +112,7 @@ export default function AdminContatos() {
     return tags.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
   }, [allTags]);
 
-  const { data, isLoading, error } = useWhatsappContactsPage({
+  const { data, isLoading, isFetching, error } = useWhatsappContactsPage({
     page,
     search,
     excludeContactIds: qaContactIds,
@@ -103,12 +123,22 @@ export default function AdminContatos() {
   const pageItems = data?.items ?? [];
   const total = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / LIST_PAGE_SIZE));
+  const hasLoadedOnce = data !== undefined;
+  const showContactList = hasLoadedOnce && total > 0;
 
   useEffect(() => {
+    if (isFetching || !hasLoadedOnce) {
+      return;
+    }
     if (page > totalPages - 1) {
       setPage(Math.max(0, totalPages - 1));
     }
-  }, [page, totalPages]);
+  }, [page, totalPages, isFetching, hasLoadedOnce]);
+
+  function handlePageChange(nextPage: number) {
+    const maxPage = Math.max(0, totalPages - 1);
+    setPage(Math.max(0, Math.min(nextPage, maxPage)));
+  }
 
   async function handleOptOut(contactId: string) {
     try {
@@ -156,7 +186,7 @@ export default function AdminContatos() {
     <AdminPageShell width="lg" className="max-md:pb-2">
       <AdminPageHeader
         title="Contatos"
-        description="Importe sua lista e organize com etiquetas e segmentos para campanhas."
+        description="Importe sua lista, consulte endereços e histórico de compras dos clientes."
         icon={Users}
         actions={
           <Button onClick={() => setImportOpen(true)} className="shrink-0 min-h-[44px] w-full sm:w-auto">
@@ -238,7 +268,7 @@ export default function AdminContatos() {
         </Select>
       </div>
 
-      {isLoading && (
+      {isLoading && !hasLoadedOnce && (
         <div className="space-y-2">
           {[1, 2, 3, 4, 5].map((i) => (
             <Skeleton key={i} className="h-16 w-full rounded-xl" />
@@ -254,7 +284,7 @@ export default function AdminContatos() {
         </Card>
       )}
 
-      {!isLoading && !error && total === 0 && (
+      {!isLoading && !error && hasLoadedOnce && total === 0 && (
         <Card>
           <CardContent className="pt-6 text-center text-sm text-muted-foreground">
             <p className="font-medium text-foreground mb-1">Nenhum contato ainda</p>
@@ -266,8 +296,8 @@ export default function AdminContatos() {
         </Card>
       )}
 
-      {pageItems.length > 0 && (
-        <>
+      {showContactList && (
+        <div className={isFetching ? "opacity-60 pointer-events-none" : undefined}>
           <div className="md:hidden space-y-3 w-full min-w-0">
             {pageItems.map((contact) => {
               const whatsappEnabled = canInteractViaWhatsapp(contact);
@@ -282,25 +312,42 @@ export default function AdminContatos() {
                           {formatPhoneDisplay(contact.phone_number)}
                         </p>
                       </div>
-                      <ContactStatusBadge status={contact.status} />
                     </div>
                     <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
                       <div>
-                        <dt className="text-muted-foreground">Último envio</dt>
+                        <dt className="text-muted-foreground">Cadastro</dt>
                         <dd className="font-medium text-foreground mt-0.5">
-                          {formatLastCampaign(contact.last_outbound_at)}
+                          {getRegisteredAtDisplay(contact.registered_at, contact.created_at)}
                         </dd>
                       </div>
                       <div>
-                        <dt className="text-muted-foreground">Cadastro</dt>
+                        <dt className="text-muted-foreground">Últ. compra</dt>
                         <dd className="font-medium text-foreground mt-0.5">
-                          {new Date(contact.created_at).toLocaleDateString("pt-BR")}
+                          {formatContactDate(contact.last_purchase_at)}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-muted-foreground">Compras</dt>
+                        <dd className="font-medium text-foreground mt-0.5">
+                          {contact.purchase_count ?? "—"}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-muted-foreground">Dias s/ compra</dt>
+                        <dd className="font-medium text-foreground mt-0.5">
+                          {getDaysWithoutPurchase(contact.last_purchase_at) ?? "—"}
                         </dd>
                       </div>
                     </dl>
                   </div>
                   {contact.status === "active" && (
                     <div className="border-t bg-muted/25 px-4 py-3 pb-4 space-y-2.5">
+                      <Button size="sm" variant="outline" className="min-h-[44px] w-full" asChild>
+                        <Link to={`/admin/contatos/${contact.id}`}>
+                          <Eye className="h-4 w-4 mr-2" />
+                          Ver detalhes
+                        </Link>
+                      </Button>
                       <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                         Classificar
                       </p>
@@ -346,9 +393,10 @@ export default function AdminContatos() {
                 <TableRow>
                   <TableHead>Nome</TableHead>
                   <TableHead>Telefone</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Compras</TableHead>
                   <TableHead>Cadastro</TableHead>
-                  <TableHead>Último envio</TableHead>
+                  <TableHead>Últ. compra</TableHead>
+                  <TableHead>Dias s/ compra</TableHead>
                   <TableHead>Etiquetas</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
@@ -358,48 +406,53 @@ export default function AdminContatos() {
                   const whatsappEnabled = canInteractViaWhatsapp(contact);
                   return (
                   <TableRow key={contact.id}>
-                    <TableCell className="font-medium">{contact.name}</TableCell>
-                    <TableCell>{formatPhoneDisplay(contact.phone_number)}</TableCell>
+                    <TableCell className="font-medium whitespace-nowrap">{contact.name}</TableCell>
+                    <TableCell className="whitespace-nowrap">{formatPhoneDisplay(contact.phone_number)}</TableCell>
+                    <ContactListMetrics contact={contact} />
                     <TableCell>
-                      <ContactStatusBadge status={contact.status} />
+                      <ContactTagsEditor contact={contact} compact />
                     </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {new Date(contact.created_at).toLocaleDateString("pt-BR")}
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {formatLastCampaign(contact.last_outbound_at)}
-                    </TableCell>
-                    <TableCell>
-                      {contact.status === "active" ? (
-                        <ContactTagsEditor contact={contact} compact />
-                      ) : (
-                        "—"
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right space-x-1">
-                      {contact.status === "active" && whatsappEnabled && (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="text-xs min-h-[44px]"
-                            onClick={() => setActiveMessageContactId(contact.id)}
-                          >
-                            <Send className="h-4 w-4 mr-1" />
-                            Ativa
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="text-xs min-h-[44px]"
-                            disabled={updateStatus.isPending}
-                            onClick={() => handleOptOut(contact.id)}
-                          >
-                            Não quer receber
-                          </Button>
-                          <DeleteContactDialog contactId={contact.id} contactName={contact.name} />
-                        </>
-                      )}
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-0.5 flex-wrap">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 px-2 text-xs shrink-0"
+                          asChild
+                        >
+                          <Link to={`/admin/contatos/${contact.id}`}>
+                            <Eye className="h-4 w-4 mr-1" />
+                            Detalhes
+                          </Link>
+                        </Button>
+                        {contact.status === "active" && whatsappEnabled && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 px-2 text-xs shrink-0"
+                              onClick={() => setActiveMessageContactId(contact.id)}
+                            >
+                              <Send className="h-4 w-4 mr-1" />
+                              Ativa
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 px-2 text-xs shrink-0"
+                              disabled={updateStatus.isPending}
+                              onClick={() => handleOptOut(contact.id)}
+                            >
+                              Não quer receber
+                            </Button>
+                            <DeleteContactDialog
+                              contactId={contact.id}
+                              contactName={contact.name}
+                              compact
+                            />
+                          </>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
@@ -412,10 +465,11 @@ export default function AdminContatos() {
             page={page}
             totalPages={totalPages}
             total={total}
-            onPageChange={setPage}
+            onPageChange={handlePageChange}
+            isFetching={isFetching}
             label="contato(s)"
           />
-        </>
+        </div>
       )}
 
       <ImportContactsModal open={importOpen} onOpenChange={setImportOpen} />

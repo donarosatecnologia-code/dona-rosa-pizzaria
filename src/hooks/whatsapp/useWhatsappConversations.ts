@@ -26,6 +26,40 @@ export function useWhatsappConversations() {
   });
 }
 
+export function useWhatsappConversationsByContact(
+  contactId: string | undefined,
+  phoneNumber: string | undefined,
+) {
+  return useQuery({
+    queryKey: [...CONVERSATIONS_KEY, "by-contact", contactId, phoneNumber],
+    enabled: Boolean(contactId || phoneNumber),
+    queryFn: async (): Promise<WhatsappConversationWithPreview[]> => {
+      let query = supabase
+        .from("whatsapp_conversations")
+        .select(
+          "*, whatsapp_messages(id, body_text, direction, created_at, status)",
+        )
+        .is("deleted_at", null)
+        .order("last_message_at", { ascending: false, nullsFirst: false });
+
+      if (contactId && phoneNumber) {
+        query = query.or(`whatsapp_contact_id.eq.${contactId},wa_id.eq.${phoneNumber}`);
+      } else if (contactId) {
+        query = query.eq("whatsapp_contact_id", contactId);
+      } else if (phoneNumber) {
+        query = query.eq("wa_id", phoneNumber);
+      }
+
+      const { data, error } = await query;
+      if (error) {
+        throw error;
+      }
+
+      return (data ?? []) as WhatsappConversationWithPreview[];
+    },
+  });
+}
+
 export function useWhatsappMessages(conversationId: string | undefined) {
   return useQuery({
     queryKey: ["whatsapp", "crm", "messages", conversationId],
@@ -37,7 +71,7 @@ export function useWhatsappMessages(conversationId: string | undefined) {
           .select("*")
           .eq("conversation_id", conversationId!)
           .is("deleted_at", null)
-          .order("created_at", { ascending: true })
+          .order("created_at", { ascending: false })
           .range(from, to),
       );
     },

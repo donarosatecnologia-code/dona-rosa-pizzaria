@@ -975,6 +975,10 @@ export type Database = {
       }
       whatsapp_contacts: {
         Row: {
+          address_complement: string | null
+          address_neighborhood: string | null
+          address_number: string | null
+          address_street: string | null
           created_at: string
           email: string | null
           engagement_level: string
@@ -985,9 +989,13 @@ export type Database = {
           is_landline: boolean
           last_inbound_at: string | null
           last_outbound_at: string | null
+          last_purchase_at: string | null
           name: string
           opted_out_at: string | null
           phone_number: string
+          purchase_count: number | null
+          purchase_total: number | null
+          registered_at: string | null
           status: string
           terms_accepted_at: string | null
           terms_accepted_source: string | null
@@ -995,6 +1003,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          address_complement?: string | null
+          address_neighborhood?: string | null
+          address_number?: string | null
+          address_street?: string | null
           created_at?: string
           email?: string | null
           engagement_level?: string
@@ -1005,9 +1017,13 @@ export type Database = {
           is_landline?: boolean
           last_inbound_at?: string | null
           last_outbound_at?: string | null
+          last_purchase_at?: string | null
           name: string
           opted_out_at?: string | null
           phone_number: string
+          purchase_count?: number | null
+          purchase_total?: number | null
+          registered_at?: string | null
           status?: string
           terms_accepted_at?: string | null
           terms_accepted_source?: string | null
@@ -1015,6 +1031,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          address_complement?: string | null
+          address_neighborhood?: string | null
+          address_number?: string | null
+          address_street?: string | null
           created_at?: string
           email?: string | null
           engagement_level?: string
@@ -1025,9 +1045,13 @@ export type Database = {
           is_landline?: boolean
           last_inbound_at?: string | null
           last_outbound_at?: string | null
+          last_purchase_at?: string | null
           name?: string
           opted_out_at?: string | null
           phone_number?: string
+          purchase_count?: number | null
+          purchase_total?: number | null
+          registered_at?: string | null
           status?: string
           terms_accepted_at?: string | null
           terms_accepted_source?: string | null
@@ -1477,6 +1501,22 @@ export type Database = {
       refresh_contact_engagement: {
         Args: { p_contact_id: string }
         Returns: undefined
+      }
+      refresh_all_contact_purchase_tags: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      relink_whatsapp_conversations_for_phones: {
+        Args: { p_phones?: string[] | null }
+        Returns: number
+      }
+      merge_whatsapp_contact_duplicates: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      ensure_whatsapp_conversation_contact: {
+        Args: { p_conversation_id: string }
+        Returns: string
       }
       resolve_queue_contact_ids: {
         Args: { p_queue_id: string }

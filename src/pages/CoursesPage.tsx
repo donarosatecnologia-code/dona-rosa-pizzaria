@@ -21,19 +21,15 @@ import { siteContainerClass } from "@/lib/siteLayout";
 import { cn } from "@/lib/utils";
 import { MaskedEmailInput } from "@/components/MaskedEmailInput";
 import { MaskedPhoneInput } from "@/components/MaskedPhoneInput";
+import { LegalTermsOptIn } from "@/components/LegalTermsOptIn";
+import { registerCourseInscription } from "@/lib/whatsapp/registerCourseInscription";
 import { brazilPhoneField, emailField, requiredField } from "@/lib/form-validation";
-
-import { buildWhatsAppUrl } from "@/lib/siteConfig";
 
 const EVENT_OPTIONS = [
   { value: "Espaco Gourmet", label: "Espaço Gourmet" },
   { value: "Curso de Pizza", label: "Curso de Pizza" },
   { value: "Dona Rosa em Casa", label: "Dona Rosa em Casa" },
 ] as const;
-
-export function generateWhatsAppLink(_phoneDigits: string, message: string): string {
-  return buildWhatsAppUrl(message);
-}
 
 interface RegistrationFormState {
   event: string;
@@ -44,23 +40,12 @@ interface RegistrationFormState {
   time: string;
 }
 
-function buildRegistrationMessage(values: RegistrationFormState): string {
-  const lines = [
-    "*Nova Inscrição - Dona Rosa Pizzaria*",
-    "",
-    `*Evento:* ${values.event}`,
-    `*Nome:* ${values.name}`,
-    `*Telefone:* ${values.phone}`,
-    `*E-mail:* ${values.email}`,
-    `*Data:* ${values.date}`,
-    `*Horário:* ${values.time}`,
-  ];
-  return lines.join("\n");
-}
+type RegistrationFormField = "event" | "name" | "phone" | "email" | "date" | "time" | "terms";
 
-type RegistrationFormField = "event" | "name" | "phone" | "email" | "date" | "time";
-
-function getRegistrationFormErrors(values: RegistrationFormState): Partial<Record<RegistrationFormField, string>> {
+function getRegistrationFormErrors(
+  values: RegistrationFormState,
+  acceptedTerms: boolean,
+): Partial<Record<RegistrationFormField, string>> {
   const errors: Partial<Record<RegistrationFormField, string>> = {};
   const eventErr = requiredField(values.event, "Selecione o tipo de evento.");
   if (eventErr) {
@@ -86,14 +71,22 @@ function getRegistrationFormErrors(values: RegistrationFormState): Partial<Recor
   if (timeErr) {
     errors.time = timeErr;
   }
+  if (!acceptedTerms) {
+    errors.terms = "Aceite os Termos de Uso e a Política de Privacidade para continuar.";
+  }
   return errors;
 }
 
-function submitRegistrationForm(values: RegistrationFormState): boolean {
-  const message = buildRegistrationMessage(values);
-  const url = generateWhatsAppLink("", message);
-  window.open(url, "_blank", "noopener,noreferrer");
-  toast.success("Redirecionando para o WhatsApp. Sua mensagem foi preparada!");
+async function submitRegistrationForm(values: RegistrationFormState): Promise<boolean> {
+  await registerCourseInscription({
+    event: values.event,
+    name: values.name,
+    phone: values.phone,
+    email: values.email,
+    date: values.date,
+    time: values.time,
+  });
+  toast.success("Inscrição recebida! Entraremos em contato em breve.");
   return true;
 }
 
@@ -420,17 +413,35 @@ function RegistrationFormCard({ formTitle }: { formTitle: string }) {
   const [email, setEmail] = useState("");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
-  const { validate, clearField, getError, showError } = useFieldErrors<RegistrationFormField>();
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { validate, clearField, getError, showError, reset: resetErrors } =
+    useFieldErrors<RegistrationFormField>();
 
-  const onSubmit = (e: FormEvent) => {
+  async function onSubmit(e: FormEvent) {
     e.preventDefault();
     const label = EVENT_OPTIONS.find((o) => o.value === event)?.label ?? event;
     const values = { event: label, name, phone, email, date, time };
-    if (!validate(getRegistrationFormErrors({ event, name, phone, email, date, time }))) {
+    if (!validate(getRegistrationFormErrors({ event, name, phone, email, date, time }, acceptedTerms))) {
       return;
     }
-    submitRegistrationForm(values);
-  };
+    setIsSubmitting(true);
+    try {
+      await submitRegistrationForm(values);
+      setEvent("");
+      setName("");
+      setPhone("");
+      setEmail("");
+      setDate("");
+      setTime("");
+      setAcceptedTerms(false);
+      resetErrors();
+    } catch {
+      toast.error("Não conseguimos enviar sua inscrição. Tente de novo em instantes.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   return (
     <div className="w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-lg md:p-8">
@@ -543,8 +554,15 @@ function RegistrationFormCard({ formTitle }: { formTitle: string }) {
               }}
             />
           </FormFieldError>
-          <button type="submit" className="btn-primary-dr w-full mt-2">
-            Enviar
+          <FormFieldError error={getError("terms")} showError={showError("terms")}>
+            <LegalTermsOptIn
+              id="courses-terms"
+              checked={acceptedTerms}
+              onCheckedChange={setAcceptedTerms}
+            />
+          </FormFieldError>
+          <button type="submit" className="btn-primary-dr w-full mt-2" disabled={isSubmitting}>
+            {isSubmitting ? "Enviando..." : "Enviar inscrição"}
           </button>
         </form>
     </div>

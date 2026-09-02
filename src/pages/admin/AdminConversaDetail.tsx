@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, CheckCircle2, Loader2, Send } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Loader2, Send, User } from "lucide-react";
 import { toast } from "sonner";
 import { ServiceWindowBanner } from "@/components/admin/whatsapp/ServiceWindowBanner";
 import { SendTemplateSheet } from "@/components/admin/whatsapp/SendTemplateSheet";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,6 +15,7 @@ import {
   useSendWhatsappMessage,
   useCloseWhatsappConversation,
   useServiceWindowOpen,
+  useEnsureConversationContact,
 } from "@/hooks/whatsapp";
 import { formatPhoneDisplay } from "@/lib/format-phone";
 import { toAdminUserMessage } from "@/lib/adminUserMessage";
@@ -39,6 +39,8 @@ export default function AdminConversaDetail() {
 
   const { data: conversations } = useWhatsappConversations();
   const conversation = conversations?.find((c) => c.id === id);
+  const { data: ensuredContactId } = useEnsureConversationContact(id);
+  const contactId = ensuredContactId ?? conversation?.whatsapp_contact_id ?? null;
 
   const { data: messages, isLoading, error } = useWhatsappMessages(id);
   const { data: windowOpen, isLoading: windowLoading } = useServiceWindowOpen(id);
@@ -103,13 +105,15 @@ export default function AdminConversaDetail() {
             <span className="sm:hidden">Atendido</span>
           </Button>
         )}
+        {contactId && (
+          <Button size="sm" variant="outline" className="shrink-0 min-h-[44px]" asChild>
+            <Link to={`/admin/contatos/${contactId}`}>
+              <User className="h-4 w-4 mr-1 shrink-0" />
+              <span className="hidden sm:inline">Cliente</span>
+            </Link>
+          </Button>
+        )}
       </header>
-
-      {conversation?.contact_removed_at && (
-        <div className="px-4 pt-2">
-          <Badge variant="outline">Saiu da lista</Badge>
-        </div>
-      )}
 
       <div className="px-4 pt-2 shrink-0">
         <ServiceWindowBanner
@@ -149,6 +153,9 @@ export default function AdminConversaDetail() {
                     : "bg-primary text-primary-foreground",
                 )}
               >
+                {!isInbound && (
+                  <p className="text-[10px] font-medium opacity-80 mb-0.5">Dona Rosa</p>
+                )}
                 <p>{msg.body_text ?? `[${msg.message_type}]`}</p>
                 <p className={cn("mt-1 text-[10px] opacity-70", !isInbound && "text-right")}>
                   {new Date(msg.created_at).toLocaleString("pt-BR", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" })}

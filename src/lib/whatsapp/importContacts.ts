@@ -1,14 +1,15 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { ContactImportProfile } from "@/lib/whatsapp/importContactsColumnMap";
 import {
   hasImportProfileData,
   parseContactsSpreadsheet,
 } from "@/lib/whatsapp/importContactsParse";
+import type { ContactCrmFields, ParsedImportRow } from "@/lib/whatsapp/importContactsColumnMap";
 import {
   isLandlineFromImportDigits,
   phoneDigitsFromImportRaw,
   validateImportPhoneDigits,
 } from "@/lib/whatsapp/importPhone";
+import { normalizeBrazilPhone } from "@/lib/whatsapp/normalizePhone";
 
 const MAX_ERROR_DETAILS = 100;
 
@@ -22,6 +23,7 @@ export interface ImportContactsResult {
   batchId: string | null;
   totalRows: number;
   imported: number;
+  updated: number;
   duplicates: number;
   errors: number;
   errorDetails: ImportRowError[];
@@ -78,7 +80,8 @@ export async function importContactsFromFile(
     name: string;
     phone: string;
     isLandline: boolean;
-    profile: ContactImportProfile;
+    crm: ContactCrmFields;
+    profile: ParsedImportRow["profile"];
   }> = [];
   const errorDetails: ImportRowError[] = [];
 
@@ -99,6 +102,7 @@ export async function importContactsFromFile(
       name: row.name || phone,
       phone,
       isLandline: isLandlineFromImportDigits(phone),
+      crm: row.crm,
       profile: row.profile,
     });
   }
@@ -138,26 +142,27 @@ export async function importContactsFromFile(
   }
 
   const phones = uniqueValidRows.map((r) => r.phone);
-  const existingPhones = new Set<string>();
+  const existingByPhone = new Map<string, string>();
 
   for (let i = 0; i < phones.length; i += 500) {
     const chunk = phones.slice(i, i + 500);
     const { data } = await supabase
       .from("whatsapp_contacts")
-      .select("phone_number")
+      .select("phone_number, id")
       .in("phone_number", chunk);
     for (const row of data ?? []) {
-      existingPhones.add(row.phone_number);
+      existingByPhone.set(row.phone_number, row.id);
     }
   }
 
   options?.onProgress?.(15);
 
-  const toInsert = uniqueValidRows.filter((r) => !existingPhones.has(r.phone));
-  const duplicates = fileDuplicates + (uniqueValidRows.length - toInsert.length);
+  const toInsert = uniqueValidRows.filter((r) => !existingByPhone.has(r.phone));
+  const toUpdate = uniqueValidRows.filter((r) => existingByPhone.has(r.phone));
+  const duplicates = fileDuplicates;
 
   let imported = 0;
-  const totalBatches = Math.max(1, Math.ceil(toInsert.length / BATCH_SIZE));
+  let updated = 0;
 
   const nowIso = new Date().toISOString();
   const termsFields = options?.confirmTermsConsent
@@ -167,36 +172,74 @@ export async function importContactsFromFile(
       }
     : {};
 
-  try {
-    for (let i = 0; i < toInsert.length; i += BATCH_SIZE) {
-      const batch = toInsert.slice(i, i + BATCH_SIZE).map((r) => ({
-        name: r.name,
-        phone_number: r.phone,
-        status: "active" as const,
-        import_batch_id: batchId,
-        is_landline: r.isLandline,
-        ...termsFields,
-        ...(hasImportProfileData(r.profile) ? { import_profile: r.profile } : {}),
-      }));
+  function buildImportFields(
+    r: typeof uniqueValidRows[number],
+  ): Record<string, unknown> {
+    return {
+      name: r.name,
+      status: "active" as const,
+      import_batch_id: batchId,
+      is_landline: r.isLandline,
+      address_street: r.crm.addressStreet,
+      address_number: r.crm.addressNumber,
+      address_complement: r.crm.addressComplement,
+      address_neighborhood: r.crm.addressNeighborhood,
+      purchase_count: r.crm.purchaseCount,
+      purchase_total: r.crm.purchaseTotal,
+      registered_at: r.crm.registeredAt,
+      last_purchase_at: r.crm.lastPurchaseAt,
+      ...termsFields,
+      ...(hasImportProfileData(r.profile) ? { import_profile: r.profile } : {}),
+    };
+  }
 
-      const { data, error } = await supabase
+  try {
+    const allUpsertRows = uniqueValidRows.map((r) => {
+      const normalized = normalizeBrazilPhone(r.phone);
+      const phoneNumber =
+        normalized.valid && normalized.normalized ? normalized.normalized : r.phone;
+
+      return {
+        phone_number: phoneNumber,
+        ...buildImportFields(r),
+      };
+    });
+
+    for (let i = 0; i < allUpsertRows.length; i += BATCH_SIZE) {
+      const batch = allUpsertRows.slice(i, i + BATCH_SIZE);
+      const { error } = await supabase
         .from("whatsapp_contacts")
-        .insert(batch)
-        .select("id");
+        .upsert(batch, { onConflict: "phone_number" });
 
       if (error) {
         throw error;
       }
 
-      imported += data?.length ?? batch.length;
       const batchIndex = Math.floor(i / BATCH_SIZE) + 1;
-      options?.onProgress?.(15 + Math.round((batchIndex / totalBatches) * 80));
+      const totalUpsertBatches = Math.max(1, Math.ceil(allUpsertRows.length / BATCH_SIZE));
+      options?.onProgress?.(15 + Math.round((batchIndex / totalUpsertBatches) * 80));
+    }
+
+    imported = toInsert.length;
+    updated = toUpdate.length;
+
+    const { error: relinkError } = await supabase.rpc("relink_whatsapp_conversations_for_phones", {
+      p_phones: phones,
+    });
+
+    if (relinkError) {
+      throw relinkError;
+    }
+
+    const { error: mergeError } = await supabase.rpc("merge_whatsapp_contact_duplicates");
+    if (mergeError) {
+      throw mergeError;
     }
 
     await supabase
       .from("whatsapp_import_batches")
       .update({
-        imported,
+        imported: imported + updated,
         duplicates,
         errors: errorDetails.length,
         error_details: errorDetails.slice(0, MAX_ERROR_DETAILS),
@@ -210,6 +253,7 @@ export async function importContactsFromFile(
       batchId,
       totalRows: parsed.length,
       imported,
+      updated,
       duplicates,
       errors: errorDetails.length,
       errorDetails,

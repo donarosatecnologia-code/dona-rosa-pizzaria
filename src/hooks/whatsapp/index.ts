@@ -6,6 +6,12 @@ export {
   useCreateWhatsappContact,
 } from "./useWhatsappContacts";
 export {
+  useWhatsappContact,
+  useWhatsappContactByPhone,
+  useEnsureConversationContact,
+  useUpdateWhatsappContact,
+} from "./useWhatsappContactDetail";
+export {
   useBroadcastCampaigns,
   useBroadcastCampaignRecipients,
   useBroadcastResponses,
@@ -55,6 +61,7 @@ export {
 } from "./useWhatsappTemplates";
 export {
   useWhatsappConversations,
+  useWhatsappConversationsByContact,
   useWhatsappMessages,
   useWhatsappWebhookEvents,
 } from "./useWhatsappConversations";

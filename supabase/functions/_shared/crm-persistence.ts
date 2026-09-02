@@ -91,7 +91,79 @@ function extractBodyText(message: MetaWebhookMessage): string | null {
   return extractResponseValue(message);
 }
 
+function digitsOnly(value: string): string {
+  return value.replace(/\D/g, "");
+}
+
+async function canonicalBrazilPhone(
+  supabase: SupabaseClient,
+  phone: string,
+): Promise<string> {
+  const { data } = await supabase.rpc("normalize_brazil_phone_e164", { p_input: phone });
+  if (typeof data === "string" && data.length > 0) {
+    return data;
+  }
+
+  const digits = digitsOnly(phone);
+  return digits.length > 0 ? digits : phone;
+}
+
 /** Upsert conversa CRM por wa_id; retorna conversation_id. */
+export async function ensureWhatsappContact(
+  supabase: SupabaseClient,
+  phone: string,
+  options?: { name?: string | null },
+): Promise<string | null> {
+  const contactName = options?.name?.trim() || null;
+  const canonical = await canonicalBrazilPhone(supabase, phone);
+  const rawDigits = digitsOnly(phone);
+
+  const { data: existing } = await supabase
+    .from("whatsapp_contacts")
+    .select("id, name, status, phone_number")
+    .or(
+      `phone_number.eq.${canonical},phone_number.eq.${phone},phone_number.eq.${rawDigits}`,
+    )
+    .maybeSingle();
+
+  if (existing) {
+    if (existing.status === "opted_out") {
+      return null;
+    }
+
+    if (contactName && contactName !== existing.name) {
+      await supabase
+        .from("whatsapp_contacts")
+        .update({ name: contactName, updated_at: new Date().toISOString() })
+        .eq("id", existing.id);
+    }
+
+    return existing.id as string;
+  }
+
+  const registeredAt = new Date().toLocaleDateString("en-CA", {
+    timeZone: "America/Sao_Paulo",
+  });
+
+  const { data: created, error } = await supabase
+    .from("whatsapp_contacts")
+    .insert({
+      phone_number: canonical,
+      name: contactName ?? canonical,
+      status: "active",
+      registered_at: registeredAt,
+    })
+    .select("id")
+    .single();
+
+  if (error) {
+    console.error("crm_contact_ensure_failed", error.message, { phone: canonical });
+    return null;
+  }
+
+  return created.id as string;
+}
+
 export async function upsertConversation(
   supabase: SupabaseClient,
   waId: string,
@@ -105,7 +177,7 @@ export async function upsertConversation(
 
   const { data: existing } = await supabase
     .from("whatsapp_conversations")
-    .select("id, contact_name")
+    .select("id, contact_name, whatsapp_contact_id")
     .eq("wa_id", waId)
     .is("deleted_at", null)
     .maybeSingle();
@@ -115,7 +187,8 @@ export async function upsertConversation(
       .from("whatsapp_conversations")
       .update({
         contact_name: options?.contactName ?? existing.contact_name,
-        whatsapp_contact_id: options?.whatsappContactId ?? undefined,
+        whatsapp_contact_id: options?.whatsappContactId ?? existing.whatsapp_contact_id,
+        contact_removed_at: null,
         last_message_at: now,
         status: "open",
         updated_at: now,
@@ -158,9 +231,13 @@ export async function persistInboundCrmMessage(
   }
 
   const contactName = resolveContactName(waId, ctx.contacts);
+  const resolvedContactId =
+    whatsappContactId ??
+    (await ensureWhatsappContact(supabase, waId, { name: contactName }));
+
   const conversationId = await upsertConversation(supabase, waId, {
     contactName,
-    whatsappContactId,
+    whatsappContactId: resolvedContactId,
     lastMessageAt: new Date().toISOString(),
   });
 
@@ -222,8 +299,12 @@ export async function persistOutboundCrmMessage(
     isAutomated?: boolean;
   },
 ): Promise<void> {
+  const resolvedContactId =
+    input.whatsappContactId ??
+    (await ensureWhatsappContact(supabase, input.waId));
+
   const conversationId = await upsertConversation(supabase, input.waId, {
-    whatsappContactId: input.whatsappContactId,
+    whatsappContactId: resolvedContactId,
     lastMessageAt: new Date().toISOString(),
   });
 

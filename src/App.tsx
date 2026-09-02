@@ -32,6 +32,7 @@ import AdminPages from "./pages/admin/AdminPages";
 import AdminHeaderFooter from "./pages/admin/AdminHeaderFooter";
 import AdminCardapio from "./pages/admin/AdminCardapio";
 import AdminContatos from "./pages/admin/AdminContatos";
+import AdminContatoDetail from "./pages/admin/AdminContatoDetail";
 import AdminConversas from "./pages/admin/AdminConversas";
 import AdminConversaDetail from "./pages/admin/AdminConversaDetail";
 import AdminDisparoDetail from "./pages/admin/AdminDisparoDetail";
@@ -87,6 +88,7 @@ const App = () => (
                 <Route path="equipe/convidar" element={<AdminEquipeConvidar />} />
                 <Route path="equipe/editar/:id" element={<AdminEquipeEditar />} />
                 <Route path="contatos" element={<AdminContatos />} />
+                <Route path="contatos/:id" element={<AdminContatoDetail />} />
                 <Route path="etiquetas" element={<AdminEtiquetas />} />
                 <Route path="segmentos" element={<AdminSegmentos />} />
                 <Route path="pesquisas" element={<AdminPesquisas />} />

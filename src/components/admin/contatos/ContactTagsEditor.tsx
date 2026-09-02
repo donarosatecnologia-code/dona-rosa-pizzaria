@@ -17,6 +17,7 @@ import {
   TELEFONE_FIXO_TAG_NAME,
   TELEFONE_FIXO_TAG_SLUG,
 } from "@/lib/whatsapp/contactTelefoneFixo";
+import { isPurchaseSystemTagSlug } from "@/lib/whatsapp/contactPurchaseTags";
 
 interface ContactTagsEditorProps {
   contact: WhatsappContact;
@@ -56,6 +57,7 @@ function buildDisplayTags(
       key: tag.tagId,
       name: tag.name,
       color: tag.color,
+      readOnly: isPurchaseSystemTagSlug(tag.slug),
     });
   }
 
@@ -74,9 +76,7 @@ export function ContactTagsEditor({ contact, compact = false, fullWidth = false 
   const displayTags = buildDisplayTags(contact, contactTags, telefoneFixoColor);
   const whatsappEnabled = canInteractViaWhatsapp(contact);
 
-  const manualTags = (allTags ?? []).filter(
-    (t) => !t.is_system || t.slug.startsWith("cliente-"),
-  );
+  const manualTags = (allTags ?? []).filter((t) => !t.is_system);
 
   async function handleToggle(tagId: string, enabled: boolean) {
     try {
@@ -99,7 +99,7 @@ export function ContactTagsEditor({ contact, compact = false, fullWidth = false 
             )}
           </div>
         )}
-        {contact.status === "active" && (
+        {contact.status === "active" && manualTags.length > 0 && (
           <Popover>
             <PopoverTrigger asChild>
               <Button
@@ -148,7 +148,7 @@ export function ContactTagsEditor({ contact, compact = false, fullWidth = false 
       </PopoverTrigger>
       <PopoverContent className="w-72 p-3" align="end">
         <p className="text-xs text-muted-foreground mb-2">
-          Toque para adicionar ou remover etiquetas deste cliente.
+          Etiquetas automáticas (ativo, VIP, etc.) são calculadas pelo sistema. Abaixo, etiquetas manuais.
         </p>
         {!whatsappEnabled && (
           <p className="text-xs text-amber-700 mb-2">

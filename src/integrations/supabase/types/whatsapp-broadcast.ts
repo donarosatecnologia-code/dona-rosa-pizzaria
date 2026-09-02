@@ -22,6 +22,7 @@ export type WhatsappTermsSource =
   | "site_widget"
   | "site_contact_form"
   | "site_reserve"
+  | "site_course"
   | "whatsapp"
   | "csv_import";
 
@@ -51,6 +52,14 @@ export interface WhatsappContact {
   terms_prompt_sent_at: string | null;
   import_batch_id: string | null;
   import_profile: ContactImportProfile | null;
+  address_street: string | null;
+  address_number: string | null;
+  address_complement: string | null;
+  address_neighborhood: string | null;
+  purchase_count: number | null;
+  purchase_total: number | null;
+  registered_at: string | null;
+  last_purchase_at: string | null;
   is_landline: boolean;
   engagement_level: EngagementLevel;
   last_inbound_at: string | null;
@@ -58,6 +67,17 @@ export interface WhatsappContact {
   inbound_count: number;
   created_at: string;
   updated_at: string;
+}
+
+export interface WhatsappContactUpdateInput {
+  name?: string;
+  address_street?: string | null;
+  address_number?: string | null;
+  address_complement?: string | null;
+  address_neighborhood?: string | null;
+  purchase_count?: number | null;
+  purchase_total?: number | null;
+  last_purchase_at?: string | null;
 }
 
 export type BroadcastContentType =

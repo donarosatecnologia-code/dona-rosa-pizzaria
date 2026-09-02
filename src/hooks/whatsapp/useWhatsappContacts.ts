@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData } from "@tanstack/react-query";
 import { LIST_PAGE_SIZE } from "@/hooks/usePagedItems";
 import { supabase } from "@/integrations/supabase/client";
 import type { WhatsappContact } from "@/integrations/supabase/types/whatsapp-broadcast";
@@ -90,6 +91,7 @@ export function useWhatsappContactsPage(options: {
 
   return useQuery({
     queryKey: [...CONTACTS_KEY, "page", options.page, pageSize, search, excludeIds, tagFilter],
+    placeholderData: keepPreviousData,
     queryFn: async (): Promise<WhatsappContactsPageResult> => {
       const from = options.page * pageSize;
       const to = from + pageSize - 1;
@@ -105,6 +107,8 @@ export function useWhatsappContactsPage(options: {
         : supabase.from("whatsapp_contacts").select("*", { count: "exact" });
 
       query = query
+        .order("import_batch_id", { ascending: true, nullsFirst: false })
+        .order("purchase_count", { ascending: false, nullsFirst: false })
         .order("last_inbound_at", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false });
 

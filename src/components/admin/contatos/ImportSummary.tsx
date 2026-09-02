@@ -14,12 +14,13 @@ export function ImportSummary({ result }: ImportSummaryProps) {
       <Alert className={hasErrors ? "border-amber-200 bg-amber-50 text-amber-950" : "border-green-200 bg-green-50 text-green-950"}>
         <AlertTitle>Importação concluída!</AlertTitle>
         <AlertDescription className="space-y-1 text-sm">
-          <p>{result.imported} contato(s) adicionado(s).</p>
+          {result.imported > 0 && <p>{result.imported} contato(s) adicionado(s).</p>}
+          {result.updated > 0 && <p>{result.updated} cadastro(s) atualizado(s).</p>}
           <p className="text-muted-foreground">
             {result.totalRows} linha(s) lidas no arquivo.
           </p>
           {result.duplicates > 0 && (
-            <p>{result.duplicates} número(s) já existentes foram ignorados.</p>
+            <p>{result.duplicates} número(s) repetidos no arquivo foram ignorados.</p>
           )}
           {hasErrors && (
             <p>{result.errors} número(s) inválidos foram pulados. Veja a lista abaixo.</p>

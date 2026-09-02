@@ -28,8 +28,19 @@ export function buildWebhookDedupeKey(ctx: WebhookChangeContext): string {
     .filter((id): id is string => Boolean(id))
     .sort();
 
+  const echoes =
+    (value.message_echoes as Array<{ id?: string }> | undefined) ?? [];
+  const echoIds = echoes
+    .map((echo) => echo.id?.trim())
+    .filter((id): id is string => Boolean(id))
+    .sort();
+
   if (messageIds.length > 0) {
     parts.push(`msg:${messageIds.join(",")}`);
+  }
+
+  if (echoIds.length > 0) {
+    parts.push(`echo:${echoIds.join(",")}`);
   }
 
   const statuses =

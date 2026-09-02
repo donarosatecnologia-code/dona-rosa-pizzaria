@@ -1,5 +1,12 @@
 /** Cabeçalhos da planilha de clientes (csv/xlsx) e aliases legados. */
 
+import {
+  parseSpreadsheetDateString,
+  parseSpreadsheetInteger,
+  parseSpreadsheetMoney,
+} from "./parseSpreadsheetDate";
+
+/** @deprecated Mantido para compatibilidade; preferir ContactCrmFields. */
 export interface ContactImportProfile {
   logr?: string;
   street?: string;
@@ -14,10 +21,23 @@ export interface ContactImportProfile {
   full_address?: string;
 }
 
+export interface ContactCrmFields {
+  addressStreet: string | null;
+  addressNumber: string | null;
+  addressComplement: string | null;
+  addressNeighborhood: string | null;
+  purchaseCount: number | null;
+  purchaseTotal: number | null;
+  registeredAt: string | null;
+  lastPurchaseAt: string | null;
+}
+
 export interface ParsedImportRow {
   line: number;
   name: string;
   phoneRaw: string;
+  crm: ContactCrmFields;
+  /** Legado — espelho parcial para import_profile jsonb. */
   profile: ContactImportProfile;
 }
 
@@ -29,11 +49,13 @@ const ADDRESS_NUMBER_HEADERS = ["numero", "número", "nro", "nr"];
 const COMPLEMENT_HEADERS = ["complemento", "compl"];
 const NEIGHBORHOOD_HEADERS = ["bairro"];
 const PURCHASE_COUNT_HEADERS = [
+  "total compras",
   "qtd total compras",
   "qtd total de compras",
   "quantidade compras",
 ];
 const PURCHASE_TOTAL_HEADERS = [
+  "r$ compras",
   "total r$ compras",
   "total r compras",
   "total rs compras",
@@ -42,14 +64,13 @@ const PURCHASE_TOTAL_HEADERS = [
 ];
 const REGISTERED_AT_HEADERS = ["data cadastro", "data de cadastro", "cadastro"];
 const LAST_PURCHASE_HEADERS = ["ultima compra", "última compra", "data ultima compra"];
-const DAYS_WITHOUT_PURCHASE_PREFIX = "dias sem comprar";
 
 export function normalizeSpreadsheetHeader(header: string): string {
   return header
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
-    .replace(/_/g, " ")
+    .replace(/[_/]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -78,17 +99,51 @@ function cellValue(cols: string[], index: number): string {
   return (cols[index] ?? "").trim();
 }
 
-function buildFullAddress(parts: {
-  logr: string;
-  street: string;
-  number: string;
-  complement: string;
-  neighborhood: string;
-}): string | undefined {
-  const line1 = [parts.logr, parts.street, parts.number].filter(Boolean).join(" ");
-  const line2 = [parts.complement, parts.neighborhood].filter(Boolean).join(" — ");
-  const full = [line1, line2].filter(Boolean).join(", ");
-  return full || undefined;
+function buildAddressStreet(logr: string, street: string): string | null {
+  const value = [logr, street].filter(Boolean).join(" ").trim();
+  return value || null;
+}
+
+function buildImportProfile(crm: ContactCrmFields, logr: string): ContactImportProfile {
+  const profile: ContactImportProfile = {};
+
+  if (logr) {
+    profile.logr = logr;
+  }
+  if (crm.addressStreet) {
+    profile.street = crm.addressStreet;
+    profile.full_address = [
+      crm.addressStreet,
+      crm.addressNumber,
+      crm.addressComplement,
+      crm.addressNeighborhood,
+    ]
+      .filter(Boolean)
+      .join(", ");
+  }
+  if (crm.addressNumber) {
+    profile.address_number = crm.addressNumber;
+  }
+  if (crm.addressComplement) {
+    profile.complement = crm.addressComplement;
+  }
+  if (crm.addressNeighborhood) {
+    profile.neighborhood = crm.addressNeighborhood;
+  }
+  if (crm.purchaseCount != null) {
+    profile.purchase_count = String(crm.purchaseCount);
+  }
+  if (crm.purchaseTotal != null) {
+    profile.purchase_total = String(crm.purchaseTotal);
+  }
+  if (crm.registeredAt) {
+    profile.registered_at = crm.registeredAt;
+  }
+  if (crm.lastPurchaseAt) {
+    profile.last_purchase_at = crm.lastPurchaseAt;
+  }
+
+  return profile;
 }
 
 export function mapSpreadsheetRows(rows: string[][]): ParsedImportRow[] {
@@ -113,7 +168,6 @@ export function mapSpreadsheetRows(rows: string[][]): ParsedImportRow[] {
   const purchaseTotalIdx = detectColumnIndex(headers, PURCHASE_TOTAL_HEADERS);
   const registeredAtIdx = detectColumnIndex(headers, REGISTERED_AT_HEADERS);
   const lastPurchaseIdx = detectColumnIndex(headers, LAST_PURCHASE_HEADERS);
-  const daysWithoutIdx = detectColumnByPrefix(headers, DAYS_WITHOUT_PURCHASE_PREFIX);
 
   const parsed: ParsedImportRow[] = [];
 
@@ -129,41 +183,32 @@ export function mapSpreadsheetRows(rows: string[][]): ParsedImportRow[] {
     const addressNumber = cellValue(cols, numberIdx);
     const complement = cellValue(cols, complementIdx);
     const neighborhood = cellValue(cols, neighborhoodIdx);
-    const purchaseCount = cellValue(cols, purchaseCountIdx);
-    const purchaseTotal = cellValue(cols, purchaseTotalIdx);
-    const registeredAt = cellValue(cols, registeredAtIdx);
-    const lastPurchaseAt = cellValue(cols, lastPurchaseIdx);
-    const daysWithoutPurchase = cellValue(cols, daysWithoutIdx);
+    const purchaseCountRaw = cellValue(cols, purchaseCountIdx);
+    const purchaseTotalRaw = cellValue(cols, purchaseTotalIdx);
+    const registeredAtRaw = cellValue(cols, registeredAtIdx);
+    const lastPurchaseAtRaw = cellValue(cols, lastPurchaseIdx);
 
-    const profile: ContactImportProfile = {
-      ...(logr ? { logr } : {}),
-      ...(street ? { street } : {}),
-      ...(addressNumber ? { address_number: addressNumber } : {}),
-      ...(complement ? { complement } : {}),
-      ...(neighborhood ? { neighborhood } : {}),
-      ...(purchaseCount ? { purchase_count: purchaseCount } : {}),
-      ...(purchaseTotal ? { purchase_total: purchaseTotal } : {}),
-      ...(registeredAt ? { registered_at: registeredAt } : {}),
-      ...(lastPurchaseAt ? { last_purchase_at: lastPurchaseAt } : {}),
-      ...(daysWithoutPurchase ? { days_without_purchase: daysWithoutPurchase } : {}),
+    const crm: ContactCrmFields = {
+      addressStreet: buildAddressStreet(logr, street),
+      addressNumber: addressNumber || null,
+      addressComplement: complement || null,
+      addressNeighborhood: neighborhood || null,
+      purchaseCount: purchaseCountRaw
+        ? parseSpreadsheetInteger(purchaseCountRaw)
+        : null,
+      purchaseTotal: purchaseTotalRaw
+        ? parseSpreadsheetMoney(purchaseTotalRaw)
+        : null,
+      registeredAt: parseSpreadsheetDateString(registeredAtRaw),
+      lastPurchaseAt: parseSpreadsheetDateString(lastPurchaseAtRaw),
     };
-
-    const fullAddress = buildFullAddress({
-      logr,
-      street,
-      number: addressNumber,
-      complement,
-      neighborhood,
-    });
-    if (fullAddress) {
-      profile.full_address = fullAddress;
-    }
 
     parsed.push({
       line: i + 1,
       name: nameIdx >= 0 ? cellValue(cols, nameIdx) : "",
       phoneRaw,
-      profile,
+      crm,
+      profile: buildImportProfile(crm, logr),
     });
   }
 

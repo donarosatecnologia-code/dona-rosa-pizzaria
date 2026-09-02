@@ -160,17 +160,14 @@ export default function AdminConversas() {
                       </span>
                     </div>
                     <p className="text-sm text-muted-foreground truncate">
-                      {preview?.body_text ?? "Sem mensagens de texto"}
+                      {preview
+                        ? `${preview.direction === "outbound" ? "Dona Rosa: " : ""}${preview.body_text ?? "Sem mensagens de texto"}`
+                        : "Sem mensagens de texto"}
                     </p>
                     <div className="mt-1 flex flex-wrap gap-2">
                       {waiting && (
                         <Badge variant="default" className="text-xs">
                           Esperando
-                        </Badge>
-                      )}
-                      {conv.contact_removed_at && (
-                        <Badge variant="outline" className="text-xs">
-                          Saiu da lista
                         </Badge>
                       )}
                       {conv.status === "closed" && (
