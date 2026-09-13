@@ -24,6 +24,8 @@ interface ContactTagsEditorProps {
   compact?: boolean;
   /** Botão largura total — uso em cards mobile */
   fullWidth?: boolean;
+  /** Lista de badges sempre visível + edição — tela de detalhes */
+  detail?: boolean;
 }
 
 interface DisplayTag {
@@ -64,7 +66,12 @@ function buildDisplayTags(
   return tags;
 }
 
-export function ContactTagsEditor({ contact, compact = false, fullWidth = false }: ContactTagsEditorProps) {
+export function ContactTagsEditor({
+  contact,
+  compact = false,
+  fullWidth = false,
+  detail = false,
+}: ContactTagsEditorProps) {
   const { data: allTags } = useWhatsappTags();
   const { data: tagMap } = useWhatsappContactTagMap();
   const toggleTag = useToggleContactTag();
@@ -84,6 +91,47 @@ export function ContactTagsEditor({ contact, compact = false, fullWidth = false 
     } catch {
       toast.error("Não foi possível atualizar a etiqueta.");
     }
+  }
+
+  if (detail) {
+    return (
+      <div className="space-y-4">
+        {displayTags.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {displayTags.map((tag) => (
+              <ContactTagBadge key={tag.key} name={tag.name} color={tag.color} />
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">Nenhuma etiqueta neste cliente.</p>
+        )}
+
+        {displayTags.some((tag) => tag.readOnly) && (
+          <p className="text-xs text-muted-foreground">
+            Etiquetas de compra (ativo, VIP, etc.) são calculadas automaticamente.
+          </p>
+        )}
+
+        {contact.status === "active" && (
+          <div className="space-y-2 border-t pt-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Editar etiquetas manuais
+            </p>
+            {!whatsappEnabled && (
+              <p className="text-xs text-amber-700">
+                Contato só para consulta — sem envio via WhatsApp.
+              </p>
+            )}
+            <TagPickerList
+              tags={manualTags}
+              contactTagIds={contactTagIds}
+              isPending={toggleTag.isPending}
+              onToggle={handleToggle}
+            />
+          </div>
+        )}
+      </div>
+    );
   }
 
   if (compact) {

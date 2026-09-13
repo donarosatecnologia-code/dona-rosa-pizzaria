@@ -37,6 +37,7 @@
     "functions:deploy:broadcast-send": "node ./node_modules/supabase/dist/supabase.js functions deploy broadcast-send --project-ref pptgzavxpdltcuqpcovo",
     "functions:deploy:templates": "node ./node_modules/supabase/dist/supabase.js functions deploy whatsapp-templates --project-ref pptgzavxpdltcuqpcovo",
     "functions:deploy:send-message": "node ./node_modules/supabase/dist/supabase.js functions deploy whatsapp-send-message --project-ref pptgzavxpdltcuqpcovo",
+    "functions:deploy:course-inscription": "node ./node_modules/supabase/dist/supabase.js functions deploy register-course-inscription --project-ref pptgzavxpdltcuqpcovo",
     "functions:deploy:embedded-signup": "node ./node_modules/supabase/dist/supabase.js functions deploy whatsapp-embedded-signup --project-ref pptgzavxpdltcuqpcovo",
     "functions:deploy:phone-status": "node ./node_modules/supabase/dist/supabase.js functions deploy whatsapp-phone-status --project-ref pptgzavxpdltcuqpcovo",
     "functions:deploy:verify": "node ./node_modules/supabase/dist/supabase.js functions deploy whatsapp-verify --project-ref pptgzavxpdltcuqpcovo",

@@ -86,7 +86,7 @@ async function submitRegistrationForm(values: RegistrationFormState): Promise<bo
     date: values.date,
     time: values.time,
   });
-  toast.success("Inscrição recebida! Entraremos em contato em breve.");
+  toast.success("Inscrição recebida! Entraremos em contato em breve por e-mail ou telefone.");
   return true;
 }
 

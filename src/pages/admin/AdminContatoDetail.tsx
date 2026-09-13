@@ -16,7 +16,6 @@ import {
 import { useWhatsappConversationsByContact } from "@/hooks/whatsapp/useWhatsappConversations";
 import { formatPhoneDisplay, formatRelativeTime } from "@/lib/format-phone";
 import {
-  formatContactDate,
   getDaysWithoutPurchase,
   getRegisteredAtDisplay,
 } from "@/lib/whatsapp/contactCrm";
@@ -264,14 +263,12 @@ export default function AdminContatoDetail() {
               </div>
             </div>
 
-            {contact.status === "active" && (
-              <div className="pt-2 border-t">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">
-                  Etiquetas
-                </p>
-                <ContactTagsEditor contact={contact} />
-              </div>
-            )}
+            <div className="pt-2 border-t space-y-2">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Etiquetas
+              </p>
+              <ContactTagsEditor contact={contact} detail />
+            </div>
           </CardContent>
         </Card>
 
