@@ -36,7 +36,7 @@ function parseCsvToRows(text: string): string[][] {
 
 async function parseXlsxToRows(file: File): Promise<string[][]> {
   const buffer = await file.arrayBuffer();
-  const workbook = XLSX.read(buffer, { type: "array" });
+  const workbook = XLSX.read(buffer, { type: "array", cellDates: true });
   const sheetName = workbook.SheetNames[0];
   if (!sheetName) {
     return [];

@@ -12,16 +12,16 @@ import {
   useWhatsappBusinessHours,
 } from "@/hooks/whatsapp";
 import { formatPhoneDisplay, formatRelativeTime } from "@/lib/format-phone";
-import { isOutsideBusinessHours, isWaitingForReply } from "@/integrations/supabase/types/whatsapp-inbox";
+import { isOutsideBusinessHours, isFinalizedConversation, isWaitingForReply } from "@/integrations/supabase/types/whatsapp-inbox";
 import { LIST_PAGE_SIZE, usePagedItems } from "@/hooks/usePagedItems";
 import { cn } from "@/lib/utils";
 
 type QueueTab = "waiting" | "all" | "closed";
 
 const TAB_OPTIONS: { id: QueueTab; label: string }[] = [
-  { id: "waiting", label: "Esperando resposta" },
+  { id: "waiting", label: "Aguardando" },
   { id: "all", label: "Todas" },
-  { id: "closed", label: "Já atendidas" },
+  { id: "closed", label: "Finalizadas" },
 ];
 
 function ConversasSkeleton() {
@@ -50,7 +50,7 @@ export default function AdminConversas() {
       return conversations.filter(isWaitingForReply);
     }
     if (tab === "closed") {
-      return conversations.filter((c) => c.status === "closed");
+      return conversations.filter(isFinalizedConversation);
     }
     return conversations;
   }, [conversations, tab]);
@@ -121,15 +121,17 @@ export default function AdminConversas() {
           <CardContent className="pt-6 text-center text-sm text-muted-foreground">
             <p className="font-medium text-foreground mb-1">
               {tab === "waiting"
-                ? "Ninguém esperando agora"
+                ? "Ninguém aguardando agora"
                 : tab === "closed"
-                  ? "Nenhuma conversa atendida ainda"
+                  ? "Nenhuma conversa finalizada ainda"
                   : "Ainda não há mensagens"}
             </p>
             <p>
               {tab === "waiting"
-                ? "Quando alguém mandar mensagem, aparece aqui."
-                : "Troque de filtro para ver outras conversas."}
+                ? "Quando alguém mandar mensagem (pelo app ou WhatsApp), aparece aqui."
+                : tab === "closed"
+                  ? "Clientes finalizados voltam para Aguardando se enviarem nova mensagem."
+                  : "Troque de filtro para ver outras conversas."}
             </p>
           </CardContent>
         </Card>
@@ -170,9 +172,9 @@ export default function AdminConversas() {
                           Esperando
                         </Badge>
                       )}
-                      {conv.status === "closed" && (
+                      {conv.status === "closed" && !waiting && (
                         <Badge variant="secondary" className="text-xs">
-                          Atendida
+                          Finalizada
                         </Badge>
                       )}
                     </div>

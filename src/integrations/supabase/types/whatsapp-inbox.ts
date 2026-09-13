@@ -119,10 +119,9 @@ export function isWaitingForReply(conversation: {
   last_inbound_at?: string | null;
   last_outbound_at?: string | null;
 }): boolean {
-  if (conversation.status === "closed") {
-    return false;
-  }
-
+  // Fonte da verdade: última mensagem do cliente é mais recente que a resposta da pizzaria.
+  // Assim, conversa "finalizada" volta à fila quando o cliente escreve de novo
+  // (painel, WhatsApp Business no celular ou echo outbound).
   if (!conversation.last_inbound_at) {
     return false;
   }
@@ -135,4 +134,13 @@ export function isWaitingForReply(conversation: {
     new Date(conversation.last_inbound_at).getTime() >
     new Date(conversation.last_outbound_at).getTime()
   );
+}
+
+export function isFinalizedConversation(conversation: {
+  status: string;
+  last_message_direction?: string | null;
+  last_inbound_at?: string | null;
+  last_outbound_at?: string | null;
+}): boolean {
+  return conversation.status === "closed" && !isWaitingForReply(conversation);
 }

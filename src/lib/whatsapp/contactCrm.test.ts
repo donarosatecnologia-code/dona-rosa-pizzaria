@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { getDaysWithoutPurchase } from "./contactCrm";
 import {
+  excelSerialToIsoDate,
   parseSpreadsheetDateString,
   parseSpreadsheetInteger,
   parseSpreadsheetMoney,
@@ -14,11 +15,24 @@ describe("parseSpreadsheetDateString", () => {
   it("parseia dd/mm/yyyy", () => {
     expect(parseSpreadsheetDateString("15/03/2026")).toBe("2026-03-15");
   });
+
+  it("parseia ISO com horário (Excel cellDates)", () => {
+    expect(parseSpreadsheetDateString("2026-09-08T03:00:28.000Z")).toBe("2026-09-08");
+  });
+
+  it("parseia serial Excel", () => {
+    expect(excelSerialToIsoDate(46273)).toBe("2026-09-08");
+    expect(parseSpreadsheetDateString("46273")).toBe("2026-09-08");
+  });
 });
 
 describe("parseSpreadsheetInteger", () => {
   it("extrai inteiro de texto", () => {
     expect(parseSpreadsheetInteger("119")).toBe(119);
+  });
+
+  it("interpreta milhar brasileiro", () => {
+    expect(parseSpreadsheetInteger("2.108")).toBe(2108);
   });
 });
 

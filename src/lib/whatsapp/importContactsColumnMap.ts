@@ -63,7 +63,13 @@ const PURCHASE_TOTAL_HEADERS = [
   "valor total compras",
 ];
 const REGISTERED_AT_HEADERS = ["data cadastro", "data de cadastro", "cadastro"];
-const LAST_PURCHASE_HEADERS = ["ultima compra", "última compra", "data ultima compra"];
+const LAST_PURCHASE_HEADERS = [
+  "ultima compra",
+  "última compra",
+  "data ultima compra",
+  "data da ultima compra",
+  "data ultima compra",
+];
 
 export function normalizeSpreadsheetHeader(header: string): string {
   return header

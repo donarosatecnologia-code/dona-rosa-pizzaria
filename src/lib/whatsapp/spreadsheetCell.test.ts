@@ -14,6 +14,18 @@ describe("xlsxCellToString", () => {
     ).toBe("5511763131424");
   });
 
+  it("converte serial Excel de data para ISO", () => {
+    expect(
+      xlsxCellToString({ t: "n", v: 46273, w: "08/09/26", z: "dd/mm/yy" }),
+    ).toBe("2026-09-08");
+  });
+
+  it("converte célula Date para ISO", () => {
+    expect(
+      xlsxCellToString({ t: "d", v: new Date(Date.UTC(2026, 8, 8)) }),
+    ).toBe("2026-09-08");
+  });
+
   it("mantém texto formatado em células string", () => {
     expect(xlsxCellToString({ t: "s", v: "55119882704", w: "55119882704" })).toBe(
       "55119882704",

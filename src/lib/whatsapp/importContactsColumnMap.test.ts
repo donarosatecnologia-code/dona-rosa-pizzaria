@@ -64,6 +64,41 @@ describe("mapSpreadsheetRows", () => {
     expect(rows[0].phoneRaw).toBe("551138621077");
   });
 
+  it("mapeia planilha atualizada com datas ISO", () => {
+    const rows = mapSpreadsheetRows([
+      [
+        "TELEFONE",
+        "NOME",
+        "ENDERECO",
+        "NUMERO",
+        "COMPLEMENTO",
+        "BAIRRO",
+        "TOTAL/COMPRAS",
+        "R$/COMPRAS",
+        "DATA/CADASTRO",
+        "ULTIMA/COMPRA",
+        "DIAS SEM COMPRAR",
+      ],
+      [
+        "5511998828377",
+        "CILINHA",
+        "RUA CERRO CORA",
+        "85",
+        "CASA 21",
+        "VILA ROMANA",
+        "2.108",
+        "525657",
+        "2012-03-28",
+        "2026-09-08",
+        "1",
+      ],
+    ]);
+
+    expect(rows[0].crm.purchaseCount).toBe(2108);
+    expect(rows[0].crm.lastPurchaseAt).toBe("2026-09-08");
+    expect(rows[0].crm.registeredAt).toBe("2012-03-28");
+  });
+
   it("falha sem coluna de telefone", () => {
     expect(() =>
       mapSpreadsheetRows([

@@ -38,9 +38,17 @@ export function useCloseWhatsappConversation() {
 
   return useMutation({
     mutationFn: async (conversationId: string) => {
+      const now = new Date().toISOString();
       const { error } = await supabase
         .from("whatsapp_conversations")
-        .update({ status: "closed", updated_at: new Date().toISOString() })
+        .update({
+          status: "closed",
+          // Marca como atendida na fila mesmo se a resposta foi pelo celular
+          // (sem outbound no painel). Nova mensagem do cliente reabre a fila.
+          last_outbound_at: now,
+          last_message_direction: "outbound",
+          updated_at: now,
+        })
         .eq("id", conversationId);
 
       if (error) {
