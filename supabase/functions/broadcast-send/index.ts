@@ -56,6 +56,7 @@ async function handleBroadcastSend(req: Request): Promise<Response> {
     await requireAdmin(req);
   } catch (error) {
     if (error instanceof AuthError) {
+      console.error("broadcast_send_auth_rejected", { code: error.code, status: error.status });
       return jsonResponse({ error: error.code }, error.status);
     }
     throw error;
@@ -65,21 +66,35 @@ async function handleBroadcastSend(req: Request): Promise<Response> {
   try {
     body = (await req.json()) as BroadcastSendRequest;
   } catch {
+    console.error("broadcast_send_rejected", { error: "invalid_json" });
     return jsonResponse({ error: "invalid_json" }, 400);
   }
 
   const campaignId = body.campaign_id?.trim();
   if (!campaignId) {
+    console.error("broadcast_send_rejected", { error: "campaign_id_required", body });
     return jsonResponse({ error: "campaign_id_required" }, 400);
   }
 
   const batchLimit = Math.min(Math.max(body.limit ?? DEFAULT_BATCH_LIMIT, 1), 200);
   const isDryRun = Deno.env.get("BROADCAST_DRY_RUN") === "true";
 
+  console.info("broadcast_send_request", {
+    campaignId,
+    batchLimit,
+    isDryRun,
+  });
+
   const accessToken = Deno.env.get("META_ACCESS_TOKEN");
   const phoneNumberId = Deno.env.get("META_PHONE_NUMBER_ID");
 
   if (!isDryRun && (!accessToken || !phoneNumberId)) {
+    console.error("broadcast_send_rejected", {
+      error: "missing_meta_env",
+      hasToken: Boolean(accessToken),
+      hasPhoneNumberId: Boolean(phoneNumberId),
+      isDryRun,
+    });
     return jsonResponse({ error: "missing_meta_env" }, 500);
   }
 
@@ -92,12 +107,26 @@ async function handleBroadcastSend(req: Request): Promise<Response> {
     .maybeSingle();
 
   if (campaignError || !campaign) {
+    console.error("broadcast_send_rejected", {
+      error: "campaign_not_found",
+      campaignId,
+      campaignError: campaignError?.message,
+    });
     return jsonResponse({ error: "campaign_not_found" }, 404);
   }
 
   const row = campaign as CampaignRow;
   const validationError = validateCampaignForSend(row);
   if (validationError) {
+    console.error("broadcast_send_rejected", {
+      error: validationError,
+      campaignId,
+      status: row.status,
+      published_at: row.published_at,
+      template_name: row.template_name,
+      queue_id: row.queue_id,
+      target_contact_id: row.target_contact_id,
+    });
     return jsonResponse({ error: validationError }, 400);
   }
 
@@ -110,6 +139,10 @@ async function handleBroadcastSend(req: Request): Promise<Response> {
     .eq("send_status", "pending");
 
   if (row.status === "completed" && (pendingCount ?? 0) === 0) {
+    console.error("broadcast_send_rejected", {
+      error: "campaign_already_completed",
+      campaignId,
+    });
     return jsonResponse({ error: "campaign_already_completed" }, 409);
   }
 
@@ -128,6 +161,12 @@ async function handleBroadcastSend(req: Request): Promise<Response> {
     batchLimit,
     isDryRun,
   );
+
+  console.info("broadcast_send_done", {
+    campaignId,
+    isDryRun,
+    ...result,
+  });
 
   return jsonResponse(
     {

@@ -19,7 +19,8 @@ export async function readFunctionInvokeError(
     const response = (error as { context?: Response }).context;
     if (response) {
       try {
-        const body = (await response.json()) as { message?: string; error?: string };
+        const clone = response.clone();
+        const body = (await clone.json()) as { message?: string; error?: string };
         if (body.message) {
           return toAdminUserMessage(body.message);
         }
@@ -27,13 +28,26 @@ export async function readFunctionInvokeError(
           return toAdminUserMessage(body.error);
         }
       } catch {
-        /* ignore parse errors */
+        try {
+          const body = (await response.json()) as { message?: string; error?: string };
+          if (body.message) {
+            return toAdminUserMessage(body.message);
+          }
+          if (body.error) {
+            return toAdminUserMessage(body.error);
+          }
+        } catch {
+          /* ignore parse errors */
+        }
       }
     }
   }
 
   if (error instanceof Error && error.message) {
-    return toAdminUserMessage(error.message);
+    // FunctionsHttpError message is often just "Edge Function returned a non-2xx status code"
+    if (!error.message.includes("non-2xx")) {
+      return toAdminUserMessage(error.message);
+    }
   }
 
   return "Algo deu errado. Tente de novo.";
