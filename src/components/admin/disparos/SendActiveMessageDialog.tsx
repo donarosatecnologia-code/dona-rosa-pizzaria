@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { Loader2, Search, Send } from "lucide-react";
 import { toast } from "sonner";
 import { BroadcastSendConfirmDialog } from "@/components/admin/disparos/BroadcastSendConfirmDialog";
@@ -25,6 +26,7 @@ import {
   useBroadcastSend,
   useCreateBroadcastCampaignDraft,
   usePublishBroadcastCampaign,
+  useSurveyFlows,
   useWhatsappContactsPage,
 } from "@/hooks/whatsapp";
 import { formatPhoneDisplay } from "@/lib/format-phone";
@@ -43,12 +45,14 @@ export function SendActiveMessageDialog({
   initialContactId,
 }: SendActiveMessageDialogProps) {
   const { data: approvedTemplates } = useApprovedWhatsappTemplates();
+  const { data: surveyFlows } = useSurveyFlows();
   const createDraft = useCreateBroadcastCampaignDraft();
   const publish = usePublishBroadcastCampaign();
   const send = useBroadcastSend();
 
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [contentType, setContentType] = useState("informational");
+  const [surveyFlowId, setSurveyFlowId] = useState("");
   const [contactSearch, setContactSearch] = useState("");
   const [selectedContactId, setSelectedContactId] = useState(initialContactId ?? "");
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -65,6 +69,11 @@ export function SendActiveMessageDialog({
     [contactPage?.items],
   );
 
+  const canSubmit =
+    Boolean(selectedTemplateId) &&
+    Boolean(selectedContactId) &&
+    (contentType !== "survey" || Boolean(surveyFlowId));
+
   useEffect(() => {
     if (open && initialContactId) {
       setSelectedContactId(initialContactId);
@@ -75,6 +84,7 @@ export function SendActiveMessageDialog({
     if (!open) {
       setSelectedTemplateId("");
       setContentType("informational");
+      setSurveyFlowId("");
       setContactSearch("");
       setSelectedContactId(initialContactId ?? "");
       setConfirmOpen(false);
@@ -85,6 +95,10 @@ export function SendActiveMessageDialog({
     const template = approvedTemplates?.find((item) => item.id === selectedTemplateId);
     if (!template || !selectedContactId) {
       toast.error("Selecione o modelo e o contato.");
+      return;
+    }
+    if (contentType === "survey" && !surveyFlowId) {
+      toast.error("Selecione a pesquisa.");
       return;
     }
 
@@ -99,13 +113,18 @@ export function SendActiveMessageDialog({
         content_type_draft: contentType,
         queue_id_draft: null,
         target_contact_id_draft: selectedContactId,
+        survey_flow_id_draft: contentType === "survey" ? surveyFlowId : null,
       });
 
       await publish.mutateAsync(draft.id);
       const result = await send.mutateAsync({ campaign_id: draft.id });
       const dryRunNote = result.dry_run ? " (modo teste — Meta não recebeu)" : "";
       const failedSuffix = result.failed > 0 ? ` (${result.failed} falha)` : "";
-      toast.success(`Mensagem ativa enviada${failedSuffix}${dryRunNote}.`);
+      toast.success(
+        contentType === "survey"
+          ? `Pesquisa enviada para 1 contato${failedSuffix}${dryRunNote}.`
+          : `Mensagem ativa enviada${failedSuffix}${dryRunNote}.`,
+      );
       onOpenChange(false);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Não foi possível enviar.";
@@ -125,7 +144,9 @@ export function SendActiveMessageDialog({
           <DialogHeader>
             <DialogTitle>Enviar mensagem ativa</DialogTitle>
             <DialogDescription>
-              Escolha um modelo aprovado e um contato com WhatsApp.
+              {contentType === "survey"
+                ? "Envia o modelo + a pesquisa só para o contato escolhido."
+                : "Escolha um modelo aprovado e um contato com WhatsApp."}
             </DialogDescription>
           </DialogHeader>
 
@@ -154,12 +175,39 @@ export function SendActiveMessageDialog({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="informational">Informativo</SelectItem>
+                  <SelectItem value="survey">Pesquisa</SelectItem>
                   <SelectItem value="promotion">Promoção</SelectItem>
                   <SelectItem value="utility">Utilidade</SelectItem>
                   <SelectItem value="reminder">Lembrete</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+
+            {contentType === "survey" && (
+              <div className="space-y-2">
+                <Label>Pesquisa</Label>
+                <Select value={surveyFlowId} onValueChange={setSurveyFlowId}>
+                  <SelectTrigger className="min-h-[44px]">
+                    <SelectValue placeholder="Selecione a pesquisa" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {surveyFlows?.map((flow) => (
+                      <SelectItem key={flow.id} value={flow.id}>
+                        {flow.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {(!surveyFlows || surveyFlows.length === 0) && (
+                  <p className="text-xs text-muted-foreground">
+                    Nenhuma pesquisa carregada.{" "}
+                    <Link to="/admin/pesquisas" className="text-primary hover:underline">
+                      Ver pesquisas
+                    </Link>
+                  </p>
+                )}
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label>Contato</Label>
@@ -200,7 +248,7 @@ export function SendActiveMessageDialog({
           <DialogFooter>
             <Button
               className="min-h-[44px]"
-              disabled={!selectedTemplateId || !selectedContactId || isSending}
+              disabled={!canSubmit || isSending}
               onClick={() => setConfirmOpen(true)}
             >
               {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
