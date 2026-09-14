@@ -62,6 +62,7 @@ export async function recordTermsConsentReply(
   supabase: SupabaseClient,
   contactId: string,
   decision: "accept" | "decline",
+  options?: { sendConfirmation?: boolean },
 ): Promise<void> {
   const now = new Date().toISOString();
 
@@ -76,7 +77,11 @@ export async function recordTermsConsentReply(
       .eq("id", contactId)
       .is("terms_accepted_at", null);
 
-    await sendWhatsAppTextConfirmation(supabase, contactId);
+    await reopenLgpdBlockedRecipients(supabase, contactId);
+
+    if (options?.sendConfirmation !== false) {
+      await sendWhatsAppTextConfirmation(supabase, contactId);
+    }
     return;
   }
 
@@ -88,6 +93,49 @@ export async function recordTermsConsentReply(
       updated_at: now,
     })
     .eq("id", contactId);
+}
+
+/** Reabre envios que falharam só por falta de LGPD, para um novo “Disparar”. */
+async function reopenLgpdBlockedRecipients(
+  supabase: SupabaseClient,
+  contactId: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from("broadcast_campaign_recipients")
+    .update({
+      send_status: "pending",
+      failure_reason: null,
+    })
+    .eq("contact_id", contactId)
+    .eq("send_status", "failed")
+    .ilike("failure_reason", "%terms_accepted_at%");
+
+  if (error) {
+    console.error("reopen_lgpd_recipients_failed", { contactId, message: error.message });
+    return;
+  }
+
+  const { data: campaigns, error: campaignsError } = await supabase
+    .from("broadcast_campaign_recipients")
+    .select("campaign_id")
+    .eq("contact_id", contactId)
+    .eq("send_status", "pending");
+
+  if (campaignsError) {
+    console.error("reopen_lgpd_campaigns_lookup_failed", campaignsError.message);
+    return;
+  }
+
+  const campaignIds = [...new Set((campaigns ?? []).map((row) => row.campaign_id))];
+  if (campaignIds.length === 0) {
+    return;
+  }
+
+  await supabase
+    .from("broadcast_campaigns")
+    .update({ status: "sending", updated_at: new Date().toISOString() })
+    .in("id", campaignIds)
+    .eq("status", "completed");
 }
 
 async function sendWhatsAppTextConfirmation(
@@ -210,10 +258,11 @@ export async function handleTermsConsentFlow(
     return "continue";
   }
 
-  if (!contact.terms_prompt_sent_at) {
-    await sendTermsConsentPrompt(supabase, contact, waId);
-    return "pending";
-  }
-
-  return "pending";
+  // Aceite automático: qualquer resposta do cliente (após disparo ou conversa)
+  // libera LGPD sem novo template e sem bloquear pesquisa/atendimento.
+  await recordTermsConsentReply(supabase, contact.id, "accept", {
+    sendConfirmation: false,
+  });
+  console.info("terms_auto_accepted_on_reply", { contactId: contact.id, waId });
+  return "continue";
 }
