@@ -102,13 +102,16 @@ export function SendActiveMessageDialog({
       });
 
       await publish.mutateAsync(draft.id);
-      const result = await send.mutateAsync({ campaign_id: draft.id, limit: 1 });
+      const result = await send.mutateAsync({ campaign_id: draft.id });
+      const dryRunNote = result.dry_run ? " (modo teste — Meta não recebeu)" : "";
       const failedSuffix = result.failed > 0 ? ` (${result.failed} falha)` : "";
-      toast.success(`Mensagem ativa enviada${failedSuffix}.`);
+      toast.success(`Mensagem ativa enviada${failedSuffix}${dryRunNote}.`);
       onOpenChange(false);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Não foi possível enviar.";
-      toast.error(message.includes("Failed to fetch") ? "Erro de conexão. Tente novamente." : "Envio falhou.");
+      toast.error(
+        message.includes("Failed to fetch") ? "Erro de conexão. Tente novamente." : message,
+      );
     } finally {
       setIsSending(false);
       setConfirmOpen(false);

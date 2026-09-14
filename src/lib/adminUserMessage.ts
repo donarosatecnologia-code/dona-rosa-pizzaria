@@ -12,6 +12,16 @@ const ERROR_MAP: Record<string, string> = {
   method_not_allowed: "Algo deu errado. Tente de novo.",
   internal_error: "Algo deu errado. Tente de novo.",
   unauthorized: "Sua sessão acabou. Entre de novo.",
+  missing_auth: "Sua sessão acabou. Entre de novo.",
+  invalid_auth: "Sua sessão acabou. Entre de novo.",
+  not_admin: "Sem permissão de admin para disparar.",
+  campaign_id_required: "Campanha inválida. Atualize a página e tente de novo.",
+  campaign_not_found: "Campanha não encontrada.",
+  campaign_not_published: "Publique a campanha antes de disparar.",
+  template_name_missing: "A campanha está sem modelo de mensagem. Edite e publique de novo.",
+  target_missing: "A campanha não tem destinatário (contato ou segmento).",
+  campaign_already_completed: "Esta campanha já foi concluída.",
+  broadcast_send_failed: "Disparo falhou. Veja o relatório da campanha.",
 };
 
 /** Traduz códigos técnicos para copy amigável da Rosa. */

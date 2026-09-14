@@ -1,9 +1,10 @@
 import { Link, useParams } from "react-router-dom";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ArrowLeft, Download, Send, Loader2 } from "lucide-react";
 import { BroadcastSendConfirmDialog } from "@/components/admin/disparos/BroadcastSendConfirmDialog";
 import { toast } from "sonner";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,6 +34,10 @@ import type { SurveyStep } from "@/integrations/supabase/types/survey-flows";
 import { maskPhone } from "@/lib/whatsapp/normalizePhone";
 
 const CHART_COLORS = ["#16a34a", "#2563eb", "#ca8a04", "#dc2626", "#9333ea"];
+
+function isDryRunMessageId(metaMessageId: string | null | undefined): boolean {
+  return Boolean(metaMessageId?.startsWith("dry_run_"));
+}
 
 export default function AdminDisparoDetail() {
   const { id } = useParams<{ id: string }>();
@@ -75,6 +80,18 @@ export default function AdminDisparoDetail() {
       ? Math.round((responseCount / campaign.total_delivered) * 100)
       : 0;
 
+  const dryRunRecipientCount = useMemo(
+    () => (recipients ?? []).filter((r) => isDryRunMessageId(r.meta_message_id)).length,
+    [recipients],
+  );
+  const realMetaIdCount = useMemo(
+    () =>
+      (recipients ?? []).filter(
+        (r) => r.meta_message_id && !isDryRunMessageId(r.meta_message_id),
+      ).length,
+    [recipients],
+  );
+
   async function handleSend() {
     if (!id) {
       return;
@@ -101,8 +118,9 @@ export default function AdminDisparoDetail() {
         { id: toastId },
       );
       setConfirmSendOpen(false);
-    } catch {
-      toast.error("Disparo falhou.", { id: toastId });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Disparo falhou.";
+      toast.error(message, { id: toastId });
     }
   }
 
@@ -188,6 +206,36 @@ export default function AdminDisparoDetail() {
           </Card>
         ))}
       </div>
+
+      {dryRunRecipientCount > 0 && (
+        <Alert className="mb-6 border-amber-300 bg-amber-50 text-amber-950">
+          <AlertTitle>Disparo em modo teste (dry-run)</AlertTitle>
+          <AlertDescription className="text-sm space-y-1">
+            <p>
+              {dryRunRecipientCount} mensagem(ns) têm ID <code className="text-xs">dry_run_…</code> —
+              a Meta <strong>não recebeu</strong> esses envios. Por isso entregues = 0.
+            </p>
+            <p>
+              No Supabase → Edge Functions → Secrets, defina{" "}
+              <code className="text-xs">BROADCAST_DRY_RUN=false</code>, faça redeploy de{" "}
+              <code className="text-xs">broadcast-send</code> e dispare de novo.
+            </p>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {dryRunRecipientCount === 0 &&
+        realMetaIdCount > 0 &&
+        (campaign?.total_delivered ?? 0) === 0 &&
+        (campaign?.total_sent ?? 0) > 0 && (
+          <Alert className="mb-6 border-blue-200 bg-blue-50 text-blue-950">
+            <AlertTitle>Envio aceito pela Meta, sem confirmação de entrega</AlertTitle>
+            <AlertDescription className="text-sm">
+              Os IDs são reais (<code className="text-xs">wamid.…</code>). Confira o webhook de status
+              e a qualidade do número no WhatsApp Manager.
+            </AlertDescription>
+          </Alert>
+        )}
 
       {isSurveyCampaign && surveySteps.length > 0 && (
         <Card className="mb-6">

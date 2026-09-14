@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { readFunctionInvokeError } from "@/lib/readFunctionInvokeError";
 
 export interface BroadcastSendResult {
   ok: boolean;
@@ -28,12 +29,8 @@ async function invokeBroadcastBatch(campaignId: string): Promise<BroadcastSendRe
     body: { campaign_id: campaignId },
   });
 
-  if (error) {
-    throw error;
-  }
-
-  if (!data?.ok) {
-    throw new Error(data?.error ?? "broadcast_send_failed");
+  if (error || !data?.ok) {
+    throw new Error(await readFunctionInvokeError(error, data));
   }
 
   return data;

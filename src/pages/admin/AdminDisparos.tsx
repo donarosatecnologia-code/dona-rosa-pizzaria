@@ -215,9 +215,7 @@ export default function AdminDisparos() {
     } catch (err) {
       const message = err instanceof Error ? err.message : "Disparo falhou.";
       toast.error(
-        message.includes("Failed to fetch")
-          ? "Erro de conexão. Tente novamente."
-          : "Disparo falhou. Campanha publicada?",
+        message.includes("Failed to fetch") ? "Erro de conexão. Tente novamente." : message,
         { id: toastId },
       );
     } finally {
