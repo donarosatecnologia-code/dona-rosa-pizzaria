@@ -20,6 +20,8 @@ const ERROR_MAP: Record<string, string> = {
   campaign_not_published: "Publique a campanha antes de disparar.",
   template_name_missing: "A campanha está sem modelo de mensagem. Edite e publique de novo.",
   target_missing: "A campanha não tem destinatário (contato ou segmento).",
+  queue_id_missing:
+    "Esta versão do disparo ainda exige um segmento. Atualize a function broadcast-send ou selecione um segmento.",
   campaign_already_completed: "Esta campanha já foi concluída.",
   broadcast_send_failed: "Disparo falhou. Veja o relatório da campanha.",
 };
