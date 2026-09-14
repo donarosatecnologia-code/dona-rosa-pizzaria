@@ -190,14 +190,36 @@ export default function AdminDisparos() {
 
   async function handleSend(campaignId: string) {
     setSendingId(campaignId);
+    const toastId = toast.loading("Disparando mensagens…");
     try {
-      const result = await send.mutateAsync({ campaign_id: campaignId });
-      const failedSuffix = result.failed > 0 ? `, ${result.failed} falha(s).` : ".";
-      toast.success(`${result.sent} mensagem(ns) enviada(s)${failedSuffix}`);
+      const result = await send.mutateAsync({
+        campaign_id: campaignId,
+        onProgress: (progress) => {
+          toast.loading(
+            `Enviando… ${progress.sentTotal} enviada(s), ${progress.pendingRemaining} pendente(s)`,
+            { id: toastId },
+          );
+        },
+      });
+      const dryRunNote = result.dry_run ? " (modo teste — Meta não recebeu)" : "";
+      const failedSuffix = result.failed > 0 ? `, ${result.failed} falha(s)` : "";
+      const pendingSuffix =
+        result.pending_remaining > 0
+          ? `. Ainda restam ${result.pending_remaining} pendente(s) — clique em Disparar de novo.`
+          : ".";
+      toast.success(
+        `${result.sent} mensagem(ns) enviada(s)${failedSuffix}${dryRunNote}${pendingSuffix}`,
+        { id: toastId },
+      );
       setConfirmCampaignId(null);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Disparo falhou.";
-      toast.error(message.includes("Failed to fetch") ? "Erro de conexão. Tente novamente." : "Disparo falhou. Campanha publicada?");
+      toast.error(
+        message.includes("Failed to fetch")
+          ? "Erro de conexão. Tente novamente."
+          : "Disparo falhou. Campanha publicada?",
+        { id: toastId },
+      );
     } finally {
       setSendingId(null);
     }
@@ -474,7 +496,7 @@ export default function AdminDisparos() {
                       ) : (
                         <>
                           <Send className="h-4 w-4 mr-1" />
-                          Disparar
+                          {campaign.status === "sending" ? "Continuar disparo" : "Disparar"}
                         </>
                       )}
                     </Button>

@@ -79,12 +79,30 @@ export default function AdminDisparoDetail() {
     if (!id) {
       return;
     }
+    const toastId = toast.loading("Disparando mensagens…");
     try {
-      const result = await send.mutateAsync({ campaign_id: id });
-      toast.success(`${result.sent} mensagem(ns) enviada(s).`);
+      const result = await send.mutateAsync({
+        campaign_id: id,
+        onProgress: (progress) => {
+          toast.loading(
+            `Enviando… ${progress.sentTotal} enviada(s), ${progress.pendingRemaining} pendente(s)`,
+            { id: toastId },
+          );
+        },
+      });
+      const dryRunNote = result.dry_run ? " (modo teste — Meta não recebeu)" : "";
+      const failedSuffix = result.failed > 0 ? `, ${result.failed} falha(s)` : "";
+      const pendingSuffix =
+        result.pending_remaining > 0
+          ? `. Ainda restam ${result.pending_remaining} pendente(s) — clique em Disparar de novo.`
+          : ".";
+      toast.success(
+        `${result.sent} mensagem(ns) enviada(s)${failedSuffix}${dryRunNote}${pendingSuffix}`,
+        { id: toastId },
+      );
       setConfirmSendOpen(false);
     } catch {
-      toast.error("Disparo falhou.");
+      toast.error("Disparo falhou.", { id: toastId });
     }
   }
 
@@ -148,7 +166,7 @@ export default function AdminDisparoDetail() {
             ) : (
               <>
                 <Send className="h-4 w-4 mr-1" />
-                Disparar
+                {campaign.status === "sending" ? "Continuar disparo" : "Disparar"}
               </>
             )}
           </Button>
