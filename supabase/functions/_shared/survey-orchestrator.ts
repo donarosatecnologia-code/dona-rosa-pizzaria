@@ -5,7 +5,11 @@ import {
   sendWhatsAppText,
 } from "./meta-graph-api.ts";
 import type { MetaWebhookMessage } from "./meta-webhook.ts";
-import { extractResponseValue, resolveResponseType } from "./meta-webhook.ts";
+import {
+  extractResponseLabel,
+  extractResponseValue,
+  isInteractiveChoiceReply,
+} from "./meta-webhook.ts";
 import { persistOutboundCrmMessage } from "./crm-persistence.ts";
 import {
   parseSurveySteps,
@@ -20,13 +24,42 @@ export interface SurveySendContext {
   isDryRun: boolean;
 }
 
-function stepLabel(step: SurveyStep, optionId: string): string | null {
-  const match = step.options?.find((o) => o.id === optionId);
+function stepLabel(step: SurveyStep, optionIdOrLabel: string): string | null {
+  const normalized = optionIdOrLabel.trim().toLowerCase();
+  const match = step.options?.find(
+    (o) => o.id === optionIdOrLabel || o.label.toLowerCase() === normalized,
+  );
   return match?.label ?? null;
+}
+
+function matchChoiceOption(step: SurveyStep, raw: string) {
+  const trimmed = raw.trim();
+  const normalized = trimmed.toLowerCase();
+  return (
+    step.options?.find(
+      (o) => o.id === trimmed || o.label.toLowerCase() === normalized,
+    ) ?? null
+  );
 }
 
 function formatQuestionBody(step: SurveyStep, stepNumber: number, total: number): string {
   return `*Pergunta ${stepNumber} de ${total}*\n\n${step.question}`;
+}
+
+function normalizeSurveyResponseType(message: MetaWebhookMessage, stepKind: "choice" | "text"): string {
+  if (stepKind === "text") {
+    return "text";
+  }
+  if (message.type === "interactive" && message.interactive?.list_reply) {
+    return "list";
+  }
+  if (
+    message.type === "button" ||
+    (message.type === "interactive" && message.interactive?.button_reply)
+  ) {
+    return "button";
+  }
+  return "choice";
 }
 
 /** Envia intro + inicia sessão (após template da campanha). */
@@ -137,18 +170,29 @@ export async function handleSurveyInbound(
     return true;
   }
 
-  const responseType = resolveResponseType(message);
   const trimmed = responseValue.trim();
+  const displayLabel = extractResponseLabel(message)?.trim() ?? trimmed;
 
   if (currentStep.kind === "text") {
     if (trimmed.length < 1) {
       return true;
     }
   } else {
-    const matched = currentStep.options?.find(
-      (o) => o.id === trimmed || o.label.toLowerCase() === trimmed.toLowerCase(),
-    );
+    const matched = matchChoiceOption(currentStep, trimmed) ??
+      matchChoiceOption(currentStep, displayLabel);
+
     if (!matched && currentStep.options?.length) {
+      // Texto livre (ex.: reserva) não deve prender o cliente na pesquisa.
+      if (!isInteractiveChoiceReply(message)) {
+        await abandonSession(supabase, session.id);
+        console.info("survey_abandoned_non_choice_reply", {
+          contactId,
+          sessionId: session.id,
+          stepIndex,
+        });
+        return false;
+      }
+
       await sendPlainMessage(supabase, {
         phone,
         contactId,
@@ -160,8 +204,12 @@ export async function handleSurveyInbound(
     }
   }
 
+  const matchedOption = currentStep.kind === "choice"
+    ? matchChoiceOption(currentStep, trimmed) ?? matchChoiceOption(currentStep, displayLabel)
+    : null;
+  const storedValue = matchedOption?.id ?? trimmed;
   const label = currentStep.kind === "choice"
-    ? stepLabel(currentStep, trimmed) ?? trimmed
+    ? matchedOption?.label ?? stepLabel(currentStep, trimmed) ?? displayLabel
     : trimmed;
 
   const now = new Date().toISOString();
@@ -169,9 +217,9 @@ export async function handleSurveyInbound(
     session_id: session.id,
     step_index: stepIndex,
     step_id: currentStep.id,
-    response_value: trimmed,
+    response_value: storedValue,
     response_label: label,
-    response_type: currentStep.kind === "text" ? "text" : responseType,
+    response_type: normalizeSurveyResponseType(message, currentStep.kind),
     meta_message_id: message.id,
     received_at: now,
   });
@@ -181,7 +229,12 @@ export async function handleSurveyInbound(
   }
 
   if (answerError) {
-    console.error("survey_answer_insert_failed", answerError.message);
+    console.error("survey_answer_insert_failed", {
+      message: answerError.message,
+      code: answerError.code,
+      details: answerError.details,
+      responseType: normalizeSurveyResponseType(message, currentStep.kind),
+    });
     return true;
   }
 
@@ -198,20 +251,40 @@ export async function handleSurveyInbound(
     return true;
   }
 
+  const updatedSession = { ...session, current_step_index: nextIndex } as SurveySessionRow;
+
+  try {
+    await sendSurveyStep(supabase, {
+      session: updatedSession,
+      flow: flow as SurveyFlowRow,
+      phone,
+      send,
+    });
+  } catch (sendError) {
+    console.error("survey_next_step_send_failed", {
+      sessionId: session.id,
+      nextIndex,
+      message: sendError instanceof Error ? sendError.message : String(sendError),
+    });
+    return true;
+  }
+
   await supabase
     .from("survey_sessions")
     .update({ current_step_index: nextIndex, updated_at: now })
     .eq("id", session.id);
 
-  const updatedSession = { ...session, current_step_index: nextIndex } as SurveySessionRow;
-  await sendSurveyStep(supabase, {
-    session: updatedSession,
-    flow: flow as SurveyFlowRow,
-    phone,
-    send,
-  });
-
   return true;
+}
+
+async function abandonSession(supabase: SupabaseClient, sessionId: string): Promise<void> {
+  await supabase
+    .from("survey_sessions")
+    .update({
+      status: "abandoned",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", sessionId);
 }
 
 async function completeSession(

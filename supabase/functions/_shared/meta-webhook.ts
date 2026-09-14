@@ -109,16 +109,44 @@ export function extractResponseValue(message: MetaWebhookMessage): string | null
     return message.button.text.trim();
   }
   if (message.type === "interactive") {
-    const buttonReply = message.interactive?.button_reply?.title?.trim();
-    if (buttonReply) {
-      return buttonReply;
+    const buttonReply = message.interactive?.button_reply;
+    if (buttonReply?.id?.trim() || buttonReply?.title?.trim()) {
+      return (buttonReply.id ?? buttonReply.title ?? "").trim() || null;
     }
-    const listReply = message.interactive?.list_reply?.title?.trim();
-    if (listReply) {
-      return listReply;
+    const listReply = message.interactive?.list_reply;
+    if (listReply?.id?.trim() || listReply?.title?.trim()) {
+      return (listReply.id ?? listReply.title ?? "").trim() || null;
     }
   }
   return null;
+}
+
+/** Valor exibido (título do botão/lista), quando houver. */
+export function extractResponseLabel(message: MetaWebhookMessage): string | null {
+  if (message.type === "interactive") {
+    const buttonTitle = message.interactive?.button_reply?.title?.trim();
+    if (buttonTitle) {
+      return buttonTitle;
+    }
+    const listTitle = message.interactive?.list_reply?.title?.trim();
+    if (listTitle) {
+      return listTitle;
+    }
+  }
+  return extractResponseValue(message);
+}
+
+export function isInteractiveChoiceReply(message: MetaWebhookMessage): boolean {
+  if (message.type === "button" && message.button) {
+    return true;
+  }
+  if (message.type === "interactive") {
+    return Boolean(
+      message.interactive?.button_reply?.id ||
+        message.interactive?.list_reply?.id,
+    );
+  }
+  return false;
 }
 
 export function resolveResponseType(message: MetaWebhookMessage): string {
