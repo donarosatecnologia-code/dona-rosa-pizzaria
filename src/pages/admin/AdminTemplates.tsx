@@ -270,7 +270,9 @@ export default function AdminTemplates() {
                 {template.status === "approved" && (
                   <>
                     <Button size="sm" variant="outline" asChild>
-                      <Link to="/admin/disparos">Usar em campanha</Link>
+                      <Link to={`/admin/disparos?nova=1&template=${template.id}`}>
+                        Usar em campanha
+                      </Link>
                     </Button>
                     <Button
                       size="sm"

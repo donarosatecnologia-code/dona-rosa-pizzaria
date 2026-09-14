@@ -1,5 +1,5 @@
-import { Link } from "react-router-dom";
-import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Send, Plus, Loader2, ChevronRight, Trash2, CheckCircle2, Search, User } from "lucide-react";
 import { BroadcastSendConfirmDialog } from "@/components/admin/disparos/BroadcastSendConfirmDialog";
 import { SendActiveMessageDialog } from "@/components/admin/disparos/SendActiveMessageDialog";
@@ -66,7 +66,40 @@ function statusLabel(status: BroadcastCampaign["status"]) {
   return map[status] ?? { label: status, variant: "secondary" as const };
 }
 
+function matchTemplateForSurvey(
+  templates: Array<{ id: string; name: string; display_name: string }>,
+  flow: { name: string; suggested_queue_slug: string | null } | undefined,
+) {
+  if (templates.length === 0) {
+    return undefined;
+  }
+  if (!flow) {
+    return templates[0];
+  }
+
+  const hay = `${flow.name} ${flow.suggested_queue_slug ?? ""}`.toLowerCase();
+  const preferInactive = hay.includes("inativ");
+  const preferActive = hay.includes("ativ") && !preferInactive;
+
+  const matched = templates.find((template) => {
+    const label = `${template.name} ${template.display_name}`.toLowerCase();
+    if (preferInactive) {
+      return label.includes("inativ");
+    }
+    if (preferActive) {
+      return label.includes("ativ") && !label.includes("inativ");
+    }
+    return false;
+  });
+
+  return matched ?? templates[0];
+}
+
 export default function AdminDisparos() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const queryBootstrapDone = useRef(false);
+
   const { data: approvedTemplates } = useApprovedWhatsappTemplates();
   const { data: campaigns, isLoading, error } = useBroadcastCampaigns();
   const { data: queues } = useWhatsappQueues();
@@ -91,6 +124,60 @@ export default function AdminDisparos() {
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [confirmCampaignId, setConfirmCampaignId] = useState<string | null>(null);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (queryBootstrapDone.current) {
+      return;
+    }
+    if (searchParams.get("nova") !== "1") {
+      return;
+    }
+
+    const tipo = searchParams.get("tipo");
+    const pesquisaId = searchParams.get("pesquisa");
+    const templateId = searchParams.get("template");
+    const wantsSurvey = tipo === "pesquisa" || Boolean(pesquisaId);
+
+    if (!approvedTemplates) {
+      return;
+    }
+    if (wantsSurvey && !surveyFlows) {
+      return;
+    }
+    if (pesquisaId && !queues) {
+      return;
+    }
+
+    queryBootstrapDone.current = true;
+
+    if (wantsSurvey) {
+      setContentType("survey");
+    }
+
+    if (pesquisaId) {
+      setSurveyFlowId(pesquisaId);
+      const flow = surveyFlows?.find((item) => item.id === pesquisaId);
+      if (flow?.suggested_queue_slug) {
+        const suggestedQueue = queues?.find((queue) => queue.slug === flow.suggested_queue_slug);
+        if (suggestedQueue) {
+          setQueueId(suggestedQueue.id);
+        }
+      }
+      if (!templateId) {
+        const matched = matchTemplateForSurvey(approvedTemplates, flow);
+        if (matched) {
+          setSelectedTemplateId(matched.id);
+        }
+      }
+    }
+
+    if (templateId) {
+      setSelectedTemplateId(templateId);
+    }
+
+    setDialogOpen(true);
+    navigate("/admin/disparos", { replace: true });
+  }, [searchParams, approvedTemplates, surveyFlows, queues, navigate]);
 
   const confirmCampaign = campaigns?.find((c) => c.id === confirmCampaignId);
   const { data: confirmContactCount, isLoading: loadingConfirmCount } = useQueueContactCount(
@@ -255,7 +342,9 @@ export default function AdminDisparos() {
             <DialogHeader>
               <DialogTitle>Nova campanha (rascunho)</DialogTitle>
               <DialogDescription>
-                Escolha um modelo aprovado e quem vai receber.
+                {contentType === "survey"
+                  ? "Tipo Pesquisa: o modelo abre a conversa e em seguida o sistema envia as perguntas."
+                  : "Escolha um modelo aprovado e quem vai receber."}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-2">

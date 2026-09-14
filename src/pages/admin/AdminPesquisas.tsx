@@ -65,7 +65,7 @@ export default function AdminPesquisas() {
               Nova pesquisa
             </Button>
             <Button asChild variant="secondary" className="min-h-[44px] flex-1 sm:flex-none">
-              <Link to="/admin/disparos">
+              <Link to="/admin/disparos?nova=1&tipo=pesquisa">
                 <Send className="h-4 w-4 mr-2" />
                 Criar campanha
               </Link>
@@ -178,7 +178,9 @@ export default function AdminPesquisas() {
                   ))}
                 </ol>
                 <Button asChild variant="secondary" size="sm" className="min-h-[44px]">
-                  <Link to="/admin/disparos">Usar em campanha</Link>
+                  <Link to={`/admin/disparos?nova=1&tipo=pesquisa&pesquisa=${flow.id}`}>
+                    Usar em campanha
+                  </Link>
                 </Button>
               </CardContent>
             </Card>
