@@ -238,6 +238,8 @@ export async function handleSurveyInbound(
     return true;
   }
 
+  await markCampaignRecipientEngaged(supabase, session.campaign_id, contactId);
+
   const nextIndex = stepIndex + 1;
   if (nextIndex >= steps.length) {
     await completeSession(supabase, session.id, flow.slug);
@@ -285,6 +287,51 @@ async function abandonSession(supabase: SupabaseClient, sessionId: string): Prom
       updated_at: new Date().toISOString(),
     })
     .eq("id", sessionId);
+}
+
+/** Se o cliente respondeu a pesquisa, a mensagem ativa chegou — marca entregue. */
+async function markCampaignRecipientEngaged(
+  supabase: SupabaseClient,
+  campaignId: string | null,
+  contactId: string,
+): Promise<void> {
+  if (!campaignId) {
+    return;
+  }
+
+  const { data: recipient } = await supabase
+    .from("broadcast_campaign_recipients")
+    .select("id, send_status")
+    .eq("campaign_id", campaignId)
+    .eq("contact_id", contactId)
+    .maybeSingle();
+
+  if (!recipient) {
+    return;
+  }
+
+  if (recipient.send_status === "delivered" || recipient.send_status === "read") {
+    return;
+  }
+
+  const now = new Date().toISOString();
+  const { error } = await supabase
+    .from("broadcast_campaign_recipients")
+    .update({
+      send_status: "delivered",
+      delivered_at: now,
+      failure_reason: null,
+    })
+    .eq("id", recipient.id);
+
+  if (error) {
+    console.error("mark_recipient_engaged_failed", error.message);
+    return;
+  }
+
+  await supabase.rpc("increment_broadcast_campaign_delivered", {
+    p_campaign_id: campaignId,
+  });
 }
 
 async function completeSession(

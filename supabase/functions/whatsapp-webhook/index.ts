@@ -225,7 +225,8 @@ async function handleDeliveryStatus(
     await supabase
       .from("broadcast_campaign_recipients")
       .update({ send_status: "sent", sent_at: now })
-      .eq("meta_message_id", metaMessageId);
+      .eq("meta_message_id", metaMessageId)
+      .in("send_status", ["pending", "sent"]);
     return;
   }
 
@@ -245,6 +246,7 @@ async function handleDeliveryStatus(
       .update({
         send_status: status === "read" ? "read" : "delivered",
         delivered_at: now,
+        failure_reason: null,
       })
       .eq("id", recipient.id);
 
@@ -256,10 +258,44 @@ async function handleDeliveryStatus(
   }
 
   if (status === "failed") {
+    const failureReason = (errors ?? [])
+      .map((error) => error.message || error.title || (error.code != null ? `Meta ${error.code}` : null))
+      .filter(Boolean)
+      .join("; ") || "Falha reportada pela Meta";
+
+    const { data: recipient } = await supabase
+      .from("broadcast_campaign_recipients")
+      .select("id, send_status")
+      .eq("meta_message_id", metaMessageId)
+      .maybeSingle();
+
+    if (!recipient) {
+      return;
+    }
+
+    // Não rebaixa entrega confirmada; e se já estava "sent", a Meta às vezes
+    // manda "failed" indevido — o cliente pode ter recebido (ex.: pesquisa respondida).
+    if (recipient.send_status === "delivered" || recipient.send_status === "read") {
+      return;
+    }
+
+    if (recipient.send_status === "sent") {
+      console.warn("meta_failed_after_sent_ignored", {
+        metaMessageId,
+        recipientPhone,
+        failureReason,
+      });
+      await supabase
+        .from("broadcast_campaign_recipients")
+        .update({ failure_reason: failureReason })
+        .eq("id", recipient.id);
+      return;
+    }
+
     await supabase
       .from("broadcast_campaign_recipients")
-      .update({ send_status: "failed" })
-      .eq("meta_message_id", metaMessageId);
+      .update({ send_status: "failed", failure_reason: failureReason })
+      .eq("id", recipient.id);
   }
 
   if (normalizedPhone) {

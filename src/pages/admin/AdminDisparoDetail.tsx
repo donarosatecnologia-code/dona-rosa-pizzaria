@@ -74,11 +74,21 @@ export default function AdminDisparoDetail() {
 
   const completedSurveys = (surveySessions ?? []).filter((s) => s.status === "completed").length;
   const responseCount = isSurveyCampaign ? completedSurveys : (responses?.length ?? 0);
+  const engagedContactIds = new Set(
+    (surveySessions ?? [])
+      .filter((session) => session.status === "completed" || (session.answers?.length ?? 0) > 0)
+      .map((session) => session.contact_id),
+  );
+
+  const deliveryBase =
+    (campaign?.total_delivered ?? 0) > 0
+      ? campaign!.total_delivered
+      : isSurveyCampaign && completedSurveys > 0
+        ? Math.max(campaign?.total_sent ?? 0, completedSurveys)
+        : 0;
 
   const responseRate =
-    campaign && campaign.total_delivered > 0
-      ? Math.round((responseCount / campaign.total_delivered) * 100)
-      : 0;
+    deliveryBase > 0 ? Math.round((responseCount / deliveryBase) * 100) : 0;
 
   const dryRunRecipientCount = useMemo(
     () => (recipients ?? []).filter((r) => isDryRunMessageId(r.meta_message_id)).length,
@@ -227,7 +237,8 @@ export default function AdminDisparoDetail() {
       {dryRunRecipientCount === 0 &&
         realMetaIdCount > 0 &&
         (campaign?.total_delivered ?? 0) === 0 &&
-        (campaign?.total_sent ?? 0) > 0 && (
+        (campaign?.total_sent ?? 0) > 0 &&
+        completedSurveys === 0 && (
           <Alert className="mb-6 border-blue-200 bg-blue-50 text-blue-950">
             <AlertTitle>Envio aceito pela Meta, sem confirmação de entrega</AlertTitle>
             <AlertDescription className="text-sm">
@@ -236,6 +247,16 @@ export default function AdminDisparoDetail() {
             </AlertDescription>
           </Alert>
         )}
+
+      {isSurveyCampaign && completedSurveys > 0 && (campaign?.total_delivered ?? 0) === 0 && (
+        <Alert className="mb-6 border-emerald-200 bg-emerald-50 text-emerald-950">
+          <AlertTitle>Pesquisa respondida com sucesso</AlertTitle>
+          <AlertDescription className="text-sm">
+            Houve resposta concluída, então a mensagem chegou ao cliente. O contador &quot;Entregues&quot;
+            pode ficar atrasado se a Meta não enviar o status de entrega — isso não invalida as respostas.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {isSurveyCampaign && surveySteps.length > 0 && (
         <Card className="mb-6">
@@ -342,6 +363,11 @@ export default function AdminDisparoDetail() {
                 <TableBody>
                   {recipients.map((r) => {
                     const contact = contactById.get(r.contact_id);
+                    const engaged = engagedContactIds.has(r.contact_id);
+                    const displayStatus =
+                      engaged && (r.send_status === "failed" || r.send_status === "sent")
+                        ? "delivered"
+                        : r.send_status;
                     return (
                       <TableRow key={r.id}>
                         <TableCell>
@@ -349,15 +375,17 @@ export default function AdminDisparoDetail() {
                         </TableCell>
                         <TableCell>
                           <Badge
-                            variant={r.send_status === "failed" ? "destructive" : "outline"}
+                            variant={displayStatus === "failed" ? "destructive" : "outline"}
                           >
-                            {r.send_status}
+                            {displayStatus}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground max-w-[220px]">
-                          {r.send_status === "failed" && r.failure_reason
+                          {displayStatus === "failed" && r.failure_reason
                             ? r.failure_reason
-                            : "—"}
+                            : engaged && r.send_status === "failed"
+                              ? "Respondida — status Meta inconsistente"
+                              : "—"}
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
                           {r.sent_at ? new Date(r.sent_at).toLocaleString("pt-BR") : "—"}
