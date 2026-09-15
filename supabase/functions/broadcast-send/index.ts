@@ -10,6 +10,7 @@ import { startSurveySession } from "../_shared/survey-orchestrator.ts";
 import { AuthError, createServiceClient, requireAdmin } from "../_shared/supabase-auth.ts";
 
 const DEFAULT_BATCH_LIMIT = 50;
+const SURVEY_BATCH_LIMIT = 10;
 const MESSAGES_PER_SECOND = 50;
 const MIN_SEND_INTERVAL_MS = Math.ceil(1000 / MESSAGES_PER_SECOND);
 const MAX_RATE_LIMIT_RETRIES = 3;
@@ -76,14 +77,7 @@ async function handleBroadcastSend(req: Request): Promise<Response> {
     return jsonResponse({ error: "campaign_id_required" }, 400);
   }
 
-  const batchLimit = Math.min(Math.max(body.limit ?? DEFAULT_BATCH_LIMIT, 1), 200);
   const isDryRun = Deno.env.get("BROADCAST_DRY_RUN") === "true";
-
-  console.info("broadcast_send_request", {
-    campaignId,
-    batchLimit,
-    isDryRun,
-  });
 
   const accessToken = Deno.env.get("META_ACCESS_TOKEN");
   const phoneNumberId = Deno.env.get("META_PHONE_NUMBER_ID");
@@ -116,6 +110,17 @@ async function handleBroadcastSend(req: Request): Promise<Response> {
   }
 
   const row = campaign as CampaignRow;
+  // Pesquisa: template + intro + 1ª pergunta por contato — lote menor evita 546 (WORKER_RESOURCE_LIMIT).
+  const maxBatch = row.survey_flow_id ? SURVEY_BATCH_LIMIT : 200;
+  const batchLimit = Math.min(Math.max(body.limit ?? DEFAULT_BATCH_LIMIT, 1), maxBatch);
+
+  console.info("broadcast_send_request", {
+    campaignId,
+    batchLimit,
+    isDryRun,
+    hasSurvey: Boolean(row.survey_flow_id),
+  });
+
   const validationError = validateCampaignForSend(row);
   if (validationError) {
     console.error("broadcast_send_rejected", {

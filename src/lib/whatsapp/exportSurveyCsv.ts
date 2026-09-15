@@ -1,45 +1,72 @@
-import type { SurveySessionWithAnswers } from "@/integrations/supabase/types/survey-flows";
 import type { SurveyStep } from "@/integrations/supabase/types/survey-flows";
-import type { WhatsappContact } from "@/integrations/supabase/types/whatsapp-broadcast";
+
+/** Separador para Excel em português (Brasil) abrir colunas corretamente. */
+const CSV_SEPARATOR = ";";
 
 function escapeCsvCell(value: string): string {
-  if (value.includes('"') || value.includes(",") || value.includes("\n")) {
-    return `"${value.replace(/"/g, '""')}"`;
+  const normalized = value.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  if (
+    normalized.includes('"') ||
+    normalized.includes(CSV_SEPARATOR) ||
+    normalized.includes("\n")
+  ) {
+    return `"${normalized.replace(/"/g, '""')}"`;
   }
-  return value;
+  return normalized;
 }
 
-export function buildSurveyResultsCsv(
-  sessions: SurveySessionWithAnswers[],
-  contactById: Map<string, WhatsappContact>,
+function joinCsvRow(cells: string[]): string {
+  return cells.map((cell) => escapeCsvCell(cell)).join(CSV_SEPARATOR);
+}
+
+/** Linha no mesmo formato da tabela do relatório de disparo. */
+export interface CampaignReportExportRow {
+  name: string;
+  phone: string;
+  sendStatus: string;
+  responseLabel: string;
+  failureReason: string;
+  sentAt: string;
+  /** Respostas por pergunta (pesquisa), na ordem dos steps. */
+  stepAnswers?: string[];
+}
+
+export function buildCampaignReportCsv(
   campaignLabel: string,
-  steps: SurveyStep[],
+  rows: CampaignReportExportRow[],
+  steps: SurveyStep[] = [],
 ): string {
-  const stepHeaders = steps.map((s, i) => `p${i + 1}_${s.id}`);
-  const header = ["campanha", "telefone", "nome", "status", "concluido_em", ...stepHeaders];
-
-  const rows = sessions.map((session) => {
-    const contact = contactById.get(session.contact_id);
-    const answerByStep = new Map(session.answers.map((a) => [a.step_index, a]));
-
-    const stepCells = steps.map((_, index) => {
-      const answer = answerByStep.get(index);
-      return answer?.response_label ?? answer?.response_value ?? "";
-    });
-
-    return [
-      campaignLabel,
-      contact?.phone_number ?? "",
-      contact?.name ?? "",
-      session.status,
-      session.completed_at ? new Date(session.completed_at).toISOString() : "",
-      ...stepCells,
-    ]
-      .map((cell) => escapeCsvCell(String(cell)))
-      .join(",");
+  const stepHeaders = steps.map((step, index) => {
+    return `${index + 1}. ${step.question}`.slice(0, 80);
   });
 
-  return [header.join(","), ...rows].join("\n");
+  const header = [
+    "campanha",
+    "nome",
+    "telefone",
+    "envio",
+    "resposta",
+    "motivo_da_falha",
+    "enviado_em",
+    ...stepHeaders,
+  ];
+
+  const csvRows = rows.map((row) => {
+    const stepCells = steps.map((_, index) => row.stepAnswers?.[index] ?? "");
+    return joinCsvRow([
+      campaignLabel,
+      row.name,
+      row.phone,
+      row.sendStatus,
+      row.responseLabel,
+      row.failureReason,
+      row.sentAt,
+      ...stepCells,
+    ]);
+  });
+
+  // `sep=;` faz o Excel BR reconhecer o delimitador ao abrir o arquivo.
+  return [`sep=${CSV_SEPARATOR}`, joinCsvRow(header), ...csvRows].join("\r\n");
 }
 
 export { downloadCsvFile } from "./exportBroadcastCsv";

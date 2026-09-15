@@ -26,7 +26,7 @@ const MAX_BATCHES = 200;
 
 async function invokeBroadcastBatch(campaignId: string): Promise<BroadcastSendResult> {
   const { data, error } = await supabase.functions.invoke<BroadcastSendResult>("broadcast-send", {
-    body: { campaign_id: campaignId },
+    body: { campaign_id: campaignId, limit: 10 },
   });
 
   if (error || !data?.ok) {
