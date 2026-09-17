@@ -8,11 +8,13 @@ import ContactPage from "@/pages/ContactPage";
 import PrivacyPolicyPage from "@/pages/PrivacyPolicyPage";
 import TermsOfUsePage from "@/pages/TermsOfUsePage";
 import DataDeletionPage from "@/pages/DataDeletionPage";
+import MemoriasPage from "@/pages/MemoriasPage";
 
 /** Slug da URL do admin → mesma página que o site público. */
 export const ADMIN_PAGE_SLUGS = [
   "home",
   "quem-somos",
+  "memorias",
   "espacos",
   "cursos-e-eventos",
   "saude-e-sustentabilidade",
@@ -27,6 +29,7 @@ export type AdminPageSlug = (typeof ADMIN_PAGE_SLUGS)[number];
 export const ADMIN_PAGE_COMPONENTS: Record<AdminPageSlug, ComponentType> = {
   home: Index,
   "quem-somos": QuemSomosPage,
+  memorias: MemoriasPage,
   espacos: VenuePage,
   "cursos-e-eventos": CoursesPage,
   "saude-e-sustentabilidade": SustainabilityPage,
@@ -43,6 +46,7 @@ export function isAdminPageSlug(value: string | undefined): value is AdminPageSl
 export const ADMIN_PAGE_LABELS: Record<AdminPageSlug, string> = {
   home: "Home",
   "quem-somos": "Quem Somos",
+  memorias: "Memórias",
   espacos: "Espaços",
   "cursos-e-eventos": "Cursos e Eventos",
   "saude-e-sustentabilidade": "Saúde e Sustentabilidade",

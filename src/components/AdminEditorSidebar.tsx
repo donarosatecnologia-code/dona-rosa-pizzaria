@@ -11,6 +11,7 @@ import { AppScrollArea } from "@/components/ui/app-scroll-area";
 
 function getPageKeyFromSectionKey(sectionKey: string) {
   if (sectionKey.startsWith("qs-")) return "quem-somos";
+  if (sectionKey.startsWith("mem-")) return "memorias";
   if (sectionKey.startsWith("card-")) return "cardapio";
   if (sectionKey.startsWith("venue-")) return "espacos";
   if (sectionKey.startsWith("courses-")) return "cursos-e-eventos";

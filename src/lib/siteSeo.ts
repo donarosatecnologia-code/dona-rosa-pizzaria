@@ -34,6 +34,14 @@ export const PAGE_SEO: Record<string, PageSeoMeta> = {
     keywords: ["história Dona Rosa", "pizzaria artesanal SP", "pizza de qualidade"],
     aiDescription: "Página sobre a Dona Rosa Pizzaria: origem, valores, ingredientes e proposta gastronômica em São Paulo.",
   },
+  "/memorias": {
+    title: `Memórias · 10 anos de forno | ${SITE_NAME}`,
+    description:
+      "Relembre a celebração dos 10 anos da Dona Rosa: 10 dias de experiências no forno com amigos, parceiros e muita história na Vila Madalena.",
+    keywords: ["10 anos Dona Rosa", "forno a lenha", "memórias pizzaria", "Vila Madalena"],
+    aiDescription:
+      "Página de memórias da campanha de 10 anos da Dona Rosa Pizzaria: cronologia de experiências no forno em março.",
+  },
   "/cardapio": {
     title: `Cardápio | ${SITE_NAME}`,
     description:

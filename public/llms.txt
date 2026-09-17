@@ -16,6 +16,7 @@
 
 - / — Início: apresentação da pizzaria, destaques e chamadas para cardápio e contato
 - /quem-somos — História, valores e proposta da Dona Rosa
+- /memorias — Celebração dos 10 anos: diário de experiências no forno
 - /cardapio — Cardápio completo com pizzas, vinhos e categorias
 - /espacos — Espaços para eventos e confraternizações
 - /cursos-e-eventos — Cursos de pizza e experiências gastronômicas

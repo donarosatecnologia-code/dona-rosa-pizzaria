@@ -14,6 +14,7 @@ import ContactPage from "./pages/ContactPage";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 import TermsOfUsePage from "./pages/TermsOfUsePage";
 import DataDeletionPage from "./pages/DataDeletionPage";
+import MemoriasPage from "./pages/MemoriasPage";
 import Login from "./pages/Login";
 import ForgotPasswordPage from "./pages/ForgotPassword";
 import ResetPasswordPage from "./pages/ResetPassword";
@@ -65,6 +66,7 @@ const App = () => (
             <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/quem-somos" element={<QuemSomosPage />} />
+            <Route path="/memorias" element={<MemoriasPage />} />
             <Route path="/cardapio" element={<CardapioPage />} />
             <Route path="/espacos" element={<VenuePage />} />
             <Route path="/cursos-e-eventos" element={<CoursesPage />} />
@@ -101,6 +103,7 @@ const App = () => (
                 <Route path="mirror/:pageSlug" element={<AdminMirrorPage />} />
                 <Route path="home" element={<Navigate to="/admin/mirror/home" replace />} />
                 <Route path="quem-somos" element={<Navigate to="/admin/mirror/quem-somos" replace />} />
+                <Route path="memorias" element={<Navigate to="/admin/mirror/memorias" replace />} />
                 <Route path="cardapio" element={<AdminCardapio />} />
                 <Route path="header-footer" element={<AdminHeaderFooter />} />
                 <Route path="configuracoes" element={<AdminConfiguracoes />} />

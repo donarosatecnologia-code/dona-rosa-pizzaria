@@ -6,6 +6,7 @@ export const CMS_READONLY_ROUTES = [
   "/",
   "/cardapio",
   "/quem-somos",
+  "/memorias",
   "/contato",
 ] as const;
 
