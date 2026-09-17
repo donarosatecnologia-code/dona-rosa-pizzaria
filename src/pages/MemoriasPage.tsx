@@ -11,6 +11,7 @@ import { LoadingScreen } from "@/components/LoadingScreen";
 import { useSiteShellReady } from "@/hooks/useSiteShellReady";
 import { useCmsContents } from "@/hooks/useCmsContent";
 import { useCmsCarousel } from "@/hooks/useCmsMedia";
+import { useAdminMirrorSurface } from "@/hooks/useAdminMirrorSurface";
 import { siteContainerClass } from "@/lib/siteLayout";
 import { cn } from "@/lib/utils";
 
@@ -25,109 +26,41 @@ interface MemoriasDayConfig {
   guestKey: string;
   bodyKey: string;
   carouselKey: string;
+  imageKey: string;
+  videoKey: string;
+}
+
+function buildDay(
+  day: number,
+  dayNumber: number,
+  dateLabel: string,
+  navLabel: string,
+): MemoriasDayConfig {
+  return {
+    day,
+    dayNumber,
+    dateLabel,
+    navLabel,
+    titleKey: `mem-dia-${day}-title`,
+    guestKey: `mem-dia-${day}-guest`,
+    bodyKey: `mem-dia-${day}-body`,
+    carouselKey: `mem-dia-${day}-carousel`,
+    imageKey: `mem-dia-${day}-img`,
+    videoKey: `mem-dia-${day}-video`,
+  };
 }
 
 const MEMORIAS_DAYS: MemoriasDayConfig[] = [
-  {
-    day: 15,
-    dayNumber: 1,
-    dateLabel: "15 de março",
-    navLabel: "Marco zero",
-    titleKey: "mem-dia-15-title",
-    guestKey: "mem-dia-15-guest",
-    bodyKey: "mem-dia-15-body",
-    carouselKey: "mem-dia-15-carousel",
-  },
-  {
-    day: 16,
-    dayNumber: 2,
-    dateLabel: "16 de março",
-    navLabel: "Vila Japaí",
-    titleKey: "mem-dia-16-title",
-    guestKey: "mem-dia-16-guest",
-    bodyKey: "mem-dia-16-body",
-    carouselKey: "mem-dia-16-carousel",
-  },
-  {
-    day: 17,
-    dayNumber: 3,
-    dateLabel: "17 de março",
-    navLabel: "Masseria",
-    titleKey: "mem-dia-17-title",
-    guestKey: "mem-dia-17-guest",
-    bodyKey: "mem-dia-17-body",
-    carouselKey: "mem-dia-17-carousel",
-  },
-  {
-    day: 18,
-    dayNumber: 4,
-    dateLabel: "18 de março",
-    navLabel: "Heborá",
-    titleKey: "mem-dia-18-title",
-    guestKey: "mem-dia-18-guest",
-    bodyKey: "mem-dia-18-body",
-    carouselKey: "mem-dia-18-carousel",
-  },
-  {
-    day: 19,
-    dayNumber: 5,
-    dateLabel: "19 de março",
-    navLabel: "Forno na praça",
-    titleKey: "mem-dia-19-title",
-    guestKey: "mem-dia-19-guest",
-    bodyKey: "mem-dia-19-body",
-    carouselKey: "mem-dia-19-carousel",
-  },
-  {
-    day: 22,
-    dayNumber: 6,
-    dateLabel: "22 de março",
-    navLabel: "Lasanheria",
-    titleKey: "mem-dia-22-title",
-    guestKey: "mem-dia-22-guest",
-    bodyKey: "mem-dia-22-body",
-    carouselKey: "mem-dia-22-carousel",
-  },
-  {
-    day: 23,
-    dayNumber: 7,
-    dateLabel: "23 de março",
-    navLabel: "Forno libanês",
-    titleKey: "mem-dia-23-title",
-    guestKey: "mem-dia-23-guest",
-    bodyKey: "mem-dia-23-body",
-    carouselKey: "mem-dia-23-carousel",
-  },
-  {
-    day: 24,
-    dayNumber: 8,
-    dateLabel: "24 de março",
-    navLabel: "Forno PANC",
-    titleKey: "mem-dia-24-title",
-    guestKey: "mem-dia-24-guest",
-    bodyKey: "mem-dia-24-body",
-    carouselKey: "mem-dia-24-carousel",
-  },
-  {
-    day: 25,
-    dayNumber: 9,
-    dateLabel: "25 de março",
-    navLabel: "Quibe no forno",
-    titleKey: "mem-dia-25-title",
-    guestKey: "mem-dia-25-guest",
-    bodyKey: "mem-dia-25-body",
-    carouselKey: "mem-dia-25-carousel",
-  },
-  {
-    day: 26,
-    dayNumber: 10,
-    dateLabel: "26 de março",
-    navLabel: "Doutores ao forno",
-    titleKey: "mem-dia-26-title",
-    guestKey: "mem-dia-26-guest",
-    bodyKey: "mem-dia-26-body",
-    carouselKey: "mem-dia-26-carousel",
-  },
+  buildDay(15, 1, "15 de março", "Marco zero"),
+  buildDay(16, 2, "16 de março", "Vila Japaí"),
+  buildDay(17, 3, "17 de março", "Masseria"),
+  buildDay(18, 4, "18 de março", "Heborá"),
+  buildDay(19, 5, "19 de março", "Forno na praça"),
+  buildDay(22, 6, "22 de março", "Lasanheria"),
+  buildDay(23, 7, "23 de março", "Forno libanês"),
+  buildDay(24, 8, "24 de março", "Forno PANC"),
+  buildDay(25, 9, "25 de março", "Quibe no forno"),
+  buildDay(26, 10, "26 de março", "Doutores ao forno"),
 ];
 
 export const MEMORIAS_CMS_KEYS = [
@@ -139,26 +72,94 @@ export const MEMORIAS_CMS_KEYS = [
   "mem-index-label",
   "mem-closing-body",
   "mem-closing-hashtags",
-  ...MEMORIAS_DAYS.flatMap((day) => [day.titleKey, day.guestKey, day.bodyKey]),
+  ...MEMORIAS_DAYS.flatMap((day) => [
+    day.titleKey,
+    day.guestKey,
+    day.bodyKey,
+    day.imageKey,
+    day.videoKey,
+  ]),
 ] as const;
 
-function DayMediaCarousel({
-  carouselId,
-  carouselLabel,
+function parseYoutubeId(url: string): string | null {
+  try {
+    const parsed = new URL(url.trim());
+    if (parsed.hostname.includes("youtu.be")) {
+      return parsed.pathname.replace(/^\//, "") || null;
+    }
+    if (parsed.hostname.includes("youtube.com")) {
+      return parsed.searchParams.get("v");
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function DayVideoEmbed({ url }: { url: string }) {
+  const youtubeId = parseYoutubeId(url);
+  const isMp4 = /\.mp4($|\?)/i.test(url);
+
+  if (youtubeId) {
+    return (
+      <div className="aspect-video w-full overflow-hidden rounded-xl bg-muted/25 shadow-md ring-1 ring-border/20">
+        <iframe
+          title="Vídeo do dia"
+          src={`https://www.youtube.com/embed/${youtubeId}`}
+          className="h-full w-full"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
+      </div>
+    );
+  }
+
+  if (isMp4) {
+    return (
+      <video
+        src={url}
+        controls
+        className="w-full overflow-hidden rounded-xl bg-muted/25 shadow-md ring-1 ring-border/20"
+      />
+    );
+  }
+
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex text-sm font-medium text-primary underline-offset-4 hover:underline"
+    >
+      Assistir vídeo
+    </a>
+  );
+}
+
+function DayMediaBlock({
+  day,
+  imageSrc,
+  videoUrl,
 }: {
-  carouselId: string;
-  carouselLabel: string;
+  day: MemoriasDayConfig;
+  imageSrc: string;
+  videoUrl: string;
 }) {
-  const { images, columns, isPending } = useCmsCarousel(carouselId, 1);
+  const mirrorSurface = useAdminMirrorSurface();
+  const { images, columns, isPending } = useCmsCarousel(day.carouselKey, 1);
   const [current, setCurrent] = useState(0);
 
+  const hasCarousel = images.length > 0;
+  const hasImage = Boolean(imageSrc.trim());
+  const hasVideo = Boolean(videoUrl.trim());
+  const hasPublicMedia = hasCarousel || hasImage || hasVideo;
+
   const visibleColumns = Math.min(columns, Math.max(1, images.length || 1));
-  const visibleImages =
-    images.length === 0
-      ? []
-      : Array.from({ length: Math.min(visibleColumns, images.length) }, (_, idx) => {
-          return images[(current + idx) % images.length];
-        });
+  const visibleImages = hasCarousel
+    ? Array.from({ length: Math.min(visibleColumns, images.length) }, (_, idx) => {
+        return images[(current + idx) % images.length];
+      })
+    : [];
 
   useEffect(() => {
     if (images.length > 0 && current > images.length - 1) {
@@ -166,92 +167,138 @@ function DayMediaCarousel({
     }
   }, [current, images.length]);
 
-  if (isPending) {
-    return <div className="h-48 w-full animate-pulse rounded-xl bg-muted/40" aria-hidden />;
+  if (isPending && !hasImage && !hasVideo) {
+    return null;
+  }
+
+  if (!hasPublicMedia && !mirrorSurface) {
+    return null;
   }
 
   return (
-    <EditableWrapper id={carouselId} type="carousel" label={carouselLabel}>
-      {images.length === 0 ? (
-        <CmsPlaceholder label="Fotos deste dia (carrossel)" className="min-h-[10rem] py-10" />
-      ) : (
-        <div className="relative w-full">
-          <div className="flex items-center gap-3 justify-center md:gap-4">
-            {images.length > 1 ? (
-              <button
-                type="button"
-                onClick={() => setCurrent((c) => (c === 0 ? images.length - 1 : c - 1))}
-                className="shrink-0 rounded-full bg-primary/10 p-2 transition-colors hover:bg-primary/20"
-                aria-label="Anterior"
-              >
-                <ChevronLeft className="text-primary" size={22} />
-              </button>
-            ) : null}
+    <div className="mt-8 space-y-4">
+      {(hasCarousel || mirrorSurface) && (
+        <EditableWrapper id={day.carouselKey} type="carousel" label={`Dia ${day.day} — Carrossel`}>
+          {hasCarousel ? (
+            <div className="relative w-full">
+              <div className="flex items-center justify-center gap-3 md:gap-4">
+                {images.length > 1 ? (
+                  <button
+                    type="button"
+                    onClick={() => setCurrent((c) => (c === 0 ? images.length - 1 : c - 1))}
+                    className="shrink-0 rounded-full bg-primary/10 p-2 transition-colors hover:bg-primary/20"
+                    aria-label="Anterior"
+                  >
+                    <ChevronLeft className="text-primary" size={22} />
+                  </button>
+                ) : null}
 
-            <div
-              className="grid w-full gap-2 sm:gap-3"
-              style={{ gridTemplateColumns: `repeat(${visibleImages.length}, minmax(0, 1fr))` }}
-            >
-              {visibleImages.map((image, index) => (
                 <div
-                  key={`${image.src}-${current}-${index}`}
-                  className="h-56 w-full overflow-hidden rounded-xl bg-muted/25 shadow-md ring-1 ring-border/20 sm:h-64 md:h-72"
+                  className="grid w-full gap-2 sm:gap-3"
+                  style={{ gridTemplateColumns: `repeat(${visibleImages.length}, minmax(0, 1fr))` }}
                 >
-                  <img
-                    src={image.src}
-                    alt={image.alt || ""}
-                    loading="lazy"
-                    decoding="async"
-                    className="h-full w-full object-cover object-center"
-                  />
+                  {visibleImages.map((image, index) => (
+                    <div
+                      key={`${image.src}-${current}-${index}`}
+                      className="h-56 w-full overflow-hidden rounded-xl bg-muted/25 shadow-md ring-1 ring-border/20 sm:h-64 md:h-72"
+                    >
+                      <img
+                        src={image.src}
+                        alt={image.alt || ""}
+                        loading="lazy"
+                        decoding="async"
+                        className="h-full w-full object-cover object-center"
+                      />
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
 
-            {images.length > 1 ? (
-              <button
-                type="button"
-                onClick={() => setCurrent((c) => (c === images.length - 1 ? 0 : c + 1))}
-                className="shrink-0 rounded-full bg-primary/10 p-2 transition-colors hover:bg-primary/20"
-                aria-label="Próximo"
-              >
-                <ChevronRight className="text-primary" size={22} />
-              </button>
-            ) : null}
-          </div>
+                {images.length > 1 ? (
+                  <button
+                    type="button"
+                    onClick={() => setCurrent((c) => (c === images.length - 1 ? 0 : c + 1))}
+                    className="shrink-0 rounded-full bg-primary/10 p-2 transition-colors hover:bg-primary/20"
+                    aria-label="Próximo"
+                  >
+                    <ChevronRight className="text-primary" size={22} />
+                  </button>
+                ) : null}
+              </div>
 
-          {images.length > 1 ? (
-            <div className="mt-4 flex justify-center gap-2">
-              {images.map((_, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => setCurrent(i)}
-                  className={cn(
-                    "h-2.5 w-2.5 rounded-full transition-colors",
-                    i === current ? "bg-primary" : "bg-border",
-                  )}
-                  aria-label={`Foto ${i + 1}`}
-                />
-              ))}
+              {images.length > 1 ? (
+                <div className="mt-4 flex justify-center gap-2">
+                  {images.map((_, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setCurrent(i)}
+                      className={cn(
+                        "h-2.5 w-2.5 rounded-full transition-colors",
+                        i === current ? "bg-primary" : "bg-border",
+                      )}
+                      aria-label={`Foto ${i + 1}`}
+                    />
+                  ))}
+                </div>
+              ) : null}
             </div>
-          ) : null}
-        </div>
+          ) : (
+            <div className="rounded-lg border border-dashed border-primary/30 px-4 py-3 text-center text-sm text-muted-foreground">
+              Adicionar carrossel de fotos
+            </div>
+          )}
+        </EditableWrapper>
       )}
-    </EditableWrapper>
+
+      {(hasImage || mirrorSurface) && !hasCarousel && (
+        <EditableWrapper id={day.imageKey} type="image" label={`Dia ${day.day} — Foto`}>
+          {hasImage ? (
+            <div className="overflow-hidden rounded-xl bg-muted/25 shadow-md ring-1 ring-border/20">
+              <img
+                src={imageSrc}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                className="mx-auto max-h-[min(32rem,85vh)] w-auto max-w-full object-contain"
+              />
+            </div>
+          ) : (
+            <div className="rounded-lg border border-dashed border-primary/30 px-4 py-3 text-center text-sm text-muted-foreground">
+              Adicionar foto única
+            </div>
+          )}
+        </EditableWrapper>
+      )}
+
+      {(hasVideo || mirrorSurface) && (
+        <EditableWrapper id={day.videoKey} type="text" label={`Dia ${day.day} — URL do vídeo`}>
+          {hasVideo ? (
+            <DayVideoEmbed url={videoUrl.trim()} />
+          ) : (
+            <div className="rounded-lg border border-dashed border-primary/30 px-4 py-3 text-center text-sm text-muted-foreground">
+              Adicionar URL de vídeo (opcional)
+            </div>
+          )}
+        </EditableWrapper>
+      )}
+    </div>
   );
 }
 
 function MemoriasDayChapter({
   day,
   getText,
+  getImage,
 }: {
   day: MemoriasDayConfig;
   getText: (sectionKey: string) => string;
+  getImage: (sectionKey: string) => string;
 }) {
   const title = getText(day.titleKey);
   const guest = getText(day.guestKey);
   const body = getText(day.bodyKey);
+  const imageSrc = getImage(day.imageKey);
+  const videoUrl = getText(day.videoKey);
 
   return (
     <article
@@ -286,17 +333,10 @@ function MemoriasDayChapter({
             content={guest}
             className="mt-2 text-sm text-muted-foreground md:text-base"
           />
-        ) : (
-          <CmsPlaceholder label="Convidado / parceiro" className="mt-2" />
-        )}
+        ) : null}
       </EditableWrapper>
 
-      <div className="mt-8">
-        <DayMediaCarousel
-          carouselId={day.carouselKey}
-          carouselLabel={`Dia ${day.day} — Fotos`}
-        />
-      </div>
+      <DayMediaBlock day={day} imageSrc={imageSrc} videoUrl={videoUrl} />
 
       <div className="mt-8 md:mt-10">
         <EditableWrapper id={day.bodyKey} type="textarea" label={`Dia ${day.day} — Texto`}>
@@ -316,7 +356,7 @@ function MemoriasDayChapter({
 
 function MemoriasPage() {
   const shell = useSiteShellReady();
-  const { getText, isPending, isError } = useCmsContents([...MEMORIAS_CMS_KEYS], MEMORIAS_PAGE_KEY);
+  const { getText, getImage, isPending, isError } = useCmsContents([...MEMORIAS_CMS_KEYS], MEMORIAS_PAGE_KEY);
 
   if (shell.isPending || isPending) {
     return <LoadingScreen message="Carregando conteúdo…" />;
@@ -396,12 +436,11 @@ function MemoriasPage() {
           </div>
         </section>
 
-        {/* Abertura */}
+        {/* Abertura — sem decoração no mobile (não sobrepor o texto) */}
         <section className="relative overflow-hidden bg-background py-14 md:py-20">
-          <BrandTomilhoB className="pointer-events-none absolute right-3 top-10 z-[1] h-28 w-auto max-w-[42%] object-contain drop-shadow-md lg:hidden" />
-          <BrandTomilhoB className="pointer-events-none absolute right-4 top-8 z-[1] hidden h-40 w-auto max-w-[min(48%,20rem)] object-contain drop-shadow-md lg:block lg:opacity-100" />
-          <BrandLinhaDecorativa className="pointer-events-none absolute left-6 top-1/3 hidden h-16 w-auto max-w-[4rem] -rotate-6 opacity-[0.18] 2xl:block" />
-          <BrandTrigo className="pointer-events-none absolute bottom-8 left-0 hidden h-32 w-auto drop-shadow-sm lg:block lg:opacity-100" />
+          <BrandTomilhoB className="pointer-events-none absolute right-4 top-8 z-0 hidden h-40 w-auto max-w-[min(48%,20rem)] object-contain opacity-40 drop-shadow-md lg:block" />
+          <BrandLinhaDecorativa className="pointer-events-none absolute left-6 top-1/3 z-0 hidden h-16 w-auto max-w-[4rem] -rotate-6 opacity-[0.18] 2xl:block" />
+          <BrandTrigo className="pointer-events-none absolute bottom-8 left-0 z-0 hidden h-32 w-auto opacity-50 drop-shadow-sm lg:block" />
 
           <div className={cn(siteContainerClass, "relative z-10 max-w-3xl")}>
             <EditableWrapper id="mem-intro-body" type="textarea" label="Texto de abertura">
@@ -429,11 +468,11 @@ function MemoriasPage() {
 
         {/* Índice + dias */}
         <section className="section-paper relative overflow-hidden py-14 md:py-20">
-          <BrandAlecrim className="pointer-events-none absolute left-2 bottom-16 hidden h-24 w-auto opacity-[0.2] lg:block" />
-          <BrandTomilho className="pointer-events-none absolute right-2 top-10 hidden h-20 w-auto opacity-[0.16] lg:block" />
-          <BrandLinhaDecorativa className="pointer-events-none absolute right-6 top-8 hidden h-10 w-auto opacity-[0.2] md:block" />
-          <BrandTomilhoB className="pointer-events-none absolute right-4 bottom-10 hidden h-20 w-auto md:block" />
-          <BrandTrigo className="pointer-events-none absolute left-1 top-1/2 hidden h-36 w-auto -translate-y-1/2 opacity-[0.14] xl:block" />
+          <BrandAlecrim className="pointer-events-none absolute left-2 bottom-16 z-0 hidden h-24 w-auto opacity-[0.2] lg:block" />
+          <BrandTomilho className="pointer-events-none absolute right-2 top-10 z-0 hidden h-20 w-auto opacity-[0.16] lg:block" />
+          <BrandLinhaDecorativa className="pointer-events-none absolute right-6 top-8 z-0 hidden h-10 w-auto opacity-[0.2] md:block" />
+          <BrandTomilhoB className="pointer-events-none absolute right-4 bottom-10 z-0 hidden h-20 w-auto opacity-50 md:block" />
+          <BrandTrigo className="pointer-events-none absolute left-1 top-1/2 z-0 hidden h-36 w-auto -translate-y-1/2 opacity-[0.14] xl:block" />
 
           <div className={cn(siteContainerClass, "relative z-10")}>
             <EditableWrapper id="mem-index-label" type="text" label="Título do índice">
@@ -467,18 +506,18 @@ function MemoriasPage() {
 
             <div className="mx-auto max-w-3xl space-y-4">
               {MEMORIAS_DAYS.map((day) => (
-                <MemoriasDayChapter key={day.day} day={day} getText={getText} />
+                <MemoriasDayChapter key={day.day} day={day} getText={getText} getImage={getImage} />
               ))}
             </div>
           </div>
         </section>
 
         {/* Encerramento */}
-        <section className="relative overflow-hidden bg-background py-14 md:py-20">
-          <BrandAlecrim className="pointer-events-none absolute left-0 top-10 hidden h-40 w-auto md:block lg:h-48 lg:opacity-100" />
-          <BrandTomilhoB className="pointer-events-none absolute bottom-6 right-0 hidden h-44 w-auto drop-shadow-md lg:block xl:bottom-10 xl:h-52 lg:opacity-100" />
-          <BrandLinhaDecorativa className="pointer-events-none absolute right-8 top-12 hidden h-9 w-auto rotate-6 opacity-[0.18] md:block" />
-          <BrandTrigo className="pointer-events-none absolute left-2 bottom-8 hidden h-28 w-auto opacity-[0.15] lg:block" />
+        <section className="relative overflow-hidden bg-background pb-28 pt-14 md:py-20">
+          <BrandAlecrim className="pointer-events-none absolute left-0 top-10 z-0 hidden h-40 w-auto opacity-50 md:block lg:h-48" />
+          <BrandTomilhoB className="pointer-events-none absolute bottom-6 right-0 z-0 hidden h-44 w-auto opacity-40 drop-shadow-md lg:block xl:bottom-10 xl:h-52" />
+          <BrandLinhaDecorativa className="pointer-events-none absolute right-8 top-12 z-0 hidden h-9 w-auto rotate-6 opacity-[0.18] md:block" />
+          <BrandTrigo className="pointer-events-none absolute left-2 bottom-8 z-0 hidden h-28 w-auto opacity-[0.15] lg:block" />
 
           <div className={cn(siteContainerClass, "relative z-10 max-w-3xl text-center")}>
             <EditableWrapper id="mem-closing-body" type="textarea" label="Texto de encerramento">
