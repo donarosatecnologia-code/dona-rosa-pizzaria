@@ -72,24 +72,43 @@ export async function startSurveySession(
     phone: string;
     send: SurveySendContext;
   },
-): Promise<void> {
+): Promise<"started" | "already_active" | "no_steps" | "failed"> {
   const steps = parseSurveySteps(input.flow.steps);
   if (steps.length === 0) {
-    return;
+    return "no_steps";
   }
 
-  const { data: existing } = await supabase
+  // Nunca reinicia sessão ativa — evita intro + 1ª pergunta duplicados.
+  const { data: existingForCampaign } = await supabase
+    .from("survey_sessions")
+    .select("id")
+    .eq("campaign_id", input.campaignId)
+    .eq("contact_id", input.contactId)
+    .eq("status", "in_progress")
+    .maybeSingle();
+
+  if (existingForCampaign) {
+    console.info("survey_session_already_in_progress", {
+      contactId: input.contactId,
+      campaignId: input.campaignId,
+      sessionId: existingForCampaign.id,
+    });
+    return "already_active";
+  }
+
+  const { data: existingAny } = await supabase
     .from("survey_sessions")
     .select("id")
     .eq("contact_id", input.contactId)
     .eq("status", "in_progress")
     .maybeSingle();
 
-  if (existing) {
-    await supabase
-      .from("survey_sessions")
-      .update({ status: "abandoned", updated_at: new Date().toISOString() })
-      .eq("id", existing.id);
+  if (existingAny) {
+    console.info("survey_session_other_in_progress", {
+      contactId: input.contactId,
+      sessionId: existingAny.id,
+    });
+    return "already_active";
   }
 
   const now = new Date().toISOString();
@@ -108,8 +127,16 @@ export async function startSurveySession(
     .single();
 
   if (error || !session) {
+    // Corrida: outro processo criou a sessão no meio do caminho.
+    if (error?.code === "23505") {
+      console.info("survey_session_start_race_deduped", {
+        contactId: input.contactId,
+        campaignId: input.campaignId,
+      });
+      return "already_active";
+    }
     console.error("survey_session_start_failed", error?.message);
-    return;
+    return "failed";
   }
 
   await sendPlainMessage(supabase, {
@@ -126,11 +153,13 @@ export async function startSurveySession(
     phone: input.phone,
     send: input.send,
   });
+
+  return "started";
 }
 
 /**
  * Após o cliente responder o template da campanha (abre janela 24h),
- * inicia a pesquisa se ainda não tiver sido concluída.
+ * inicia a pesquisa se ainda não tiver sido iniciada/concluída.
  */
 export async function maybeStartSurveyAfterCampaignReply(
   supabase: SupabaseClient,
@@ -163,6 +192,17 @@ export async function maybeStartSurveyAfterCampaignReply(
     return false;
   }
 
+  const { data: inProgress } = await supabase
+    .from("survey_sessions")
+    .select("id")
+    .eq("contact_id", input.contactId)
+    .eq("status", "in_progress")
+    .maybeSingle();
+
+  if (inProgress) {
+    return false;
+  }
+
   const { data: flow } = await supabase
     .from("survey_flows")
     .select("id, slug, name, intro_message, steps")
@@ -174,15 +214,17 @@ export async function maybeStartSurveyAfterCampaignReply(
     return false;
   }
 
-  await abandonEmptyInProgressSessions(supabase, input.contactId, recipient.campaign_id);
-
-  await startSurveySession(supabase, {
+  const outcome = await startSurveySession(supabase, {
     flow: flow as SurveyFlowRow,
     campaignId: recipient.campaign_id,
     contactId: input.contactId,
     phone: input.phone,
     send: input.send,
   });
+
+  if (outcome !== "started") {
+    return false;
+  }
 
   console.info("survey_started_after_template_reply", {
     contactId: input.contactId,
@@ -242,37 +284,10 @@ async function findSurveyCampaignRecipient(
   };
 }
 
-async function abandonEmptyInProgressSessions(
-  supabase: SupabaseClient,
-  contactId: string,
-  campaignId: string,
-): Promise<void> {
-  const { data: sessions } = await supabase
-    .from("survey_sessions")
-    .select("id")
-    .eq("contact_id", contactId)
-    .eq("campaign_id", campaignId)
-    .eq("status", "in_progress");
-
-  for (const session of sessions ?? []) {
-    const { count } = await supabase
-      .from("survey_session_answers")
-      .select("id", { count: "exact", head: true })
-      .eq("session_id", session.id);
-
-    if ((count ?? 0) === 0) {
-      await supabase
-        .from("survey_sessions")
-        .update({ status: "abandoned", updated_at: new Date().toISOString() })
-        .eq("id", session.id);
-    }
-  }
-}
-
 /**
- * Reenvia intro + 1ª pergunta para destinatários que já receberam o template
- * e têm last_inbound_at nas últimas 24h (janela Meta aberta).
+ * Envia intro + 1ª pergunta para destinatários com janela Meta 24h aberta.
  * Opcionalmente restringe a contactIds (seleção / envio individual).
+ * Não reinicia quem já tem sessão in_progress.
  */
 export async function startSurveysForOpenWindowRecipients(
   supabase: SupabaseClient,
@@ -349,24 +364,18 @@ export async function startSurveysForOpenWindowRecipients(
       continue;
     }
 
+    // Qualquer sessão em andamento (com ou sem resposta) = já enviou intro/perguntas.
+    // Antes reiniciávamos sessões vazias a cada lote → 2x/3x a mesma pesquisa.
     const { data: inProgress } = await supabase
       .from("survey_sessions")
       .select("id")
-      .eq("campaign_id", input.campaignId)
       .eq("contact_id", row.contact_id)
       .eq("status", "in_progress")
       .maybeSingle();
 
     if (inProgress) {
-      const { count } = await supabase
-        .from("survey_session_answers")
-        .select("id", { count: "exact", head: true })
-        .eq("session_id", inProgress.id);
-
-      if ((count ?? 0) > 0) {
-        skipped += 1;
-        continue;
-      }
+      skipped += 1;
+      continue;
     }
 
     processedEligible += 1;
@@ -377,15 +386,20 @@ export async function startSurveysForOpenWindowRecipients(
     }
 
     try {
-      await abandonEmptyInProgressSessions(supabase, row.contact_id, input.campaignId);
-      await startSurveySession(supabase, {
+      const outcome = await startSurveySession(supabase, {
         flow: input.flow,
         campaignId: input.campaignId,
         contactId: row.contact_id,
         phone,
         send: input.send,
       });
-      started += 1;
+      if (outcome === "started") {
+        started += 1;
+      } else if (outcome === "already_active") {
+        skipped += 1;
+      } else {
+        failed += 1;
+      }
     } catch (error) {
       failed += 1;
       console.error("survey_open_window_start_failed", {
@@ -395,13 +409,11 @@ export async function startSurveysForOpenWindowRecipients(
     }
   }
 
-  const remainingEligible = Math.max(eligible.length - started - skipped - failed, 0);
-
   return {
     started,
     failed,
     skipped,
-    remaining: remainingEligible,
+    remaining: Math.max(eligible.length - started - skipped - failed, 0),
   };
 }
 
