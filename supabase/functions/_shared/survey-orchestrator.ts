@@ -128,6 +128,283 @@ export async function startSurveySession(
   });
 }
 
+/**
+ * Após o cliente responder o template da campanha (abre janela 24h),
+ * inicia a pesquisa se ainda não tiver sido concluída.
+ */
+export async function maybeStartSurveyAfterCampaignReply(
+  supabase: SupabaseClient,
+  input: {
+    contactId: string;
+    phone: string;
+    contextMessageId?: string | null;
+    send: SurveySendContext;
+  },
+): Promise<boolean> {
+  const { data: recipient } = await findSurveyCampaignRecipient(
+    supabase,
+    input.contactId,
+    input.contextMessageId,
+  );
+
+  if (!recipient?.campaign_id || !recipient.survey_flow_id) {
+    return false;
+  }
+
+  const { data: completed } = await supabase
+    .from("survey_sessions")
+    .select("id")
+    .eq("campaign_id", recipient.campaign_id)
+    .eq("contact_id", input.contactId)
+    .eq("status", "completed")
+    .maybeSingle();
+
+  if (completed) {
+    return false;
+  }
+
+  const { data: flow } = await supabase
+    .from("survey_flows")
+    .select("id, slug, name, intro_message, steps")
+    .eq("id", recipient.survey_flow_id)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (!flow) {
+    return false;
+  }
+
+  await abandonEmptyInProgressSessions(supabase, input.contactId, recipient.campaign_id);
+
+  await startSurveySession(supabase, {
+    flow: flow as SurveyFlowRow,
+    campaignId: recipient.campaign_id,
+    contactId: input.contactId,
+    phone: input.phone,
+    send: input.send,
+  });
+
+  console.info("survey_started_after_template_reply", {
+    contactId: input.contactId,
+    campaignId: recipient.campaign_id,
+  });
+
+  return true;
+}
+
+async function findSurveyCampaignRecipient(
+  supabase: SupabaseClient,
+  contactId: string,
+  contextMessageId?: string | null,
+): Promise<{ campaign_id: string; survey_flow_id: string } | null> {
+  const normalizedContextId = contextMessageId?.trim();
+  let campaignId: string | null = null;
+
+  if (normalizedContextId) {
+    const { data: byContext } = await supabase
+      .from("broadcast_campaign_recipients")
+      .select("campaign_id")
+      .eq("meta_message_id", normalizedContextId)
+      .eq("contact_id", contactId)
+      .maybeSingle();
+    campaignId = byContext?.campaign_id ?? null;
+  }
+
+  if (!campaignId) {
+    const { data: latest } = await supabase
+      .from("broadcast_campaign_recipients")
+      .select("campaign_id")
+      .eq("contact_id", contactId)
+      .in("send_status", ["sent", "delivered", "read"])
+      .order("sent_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    campaignId = latest?.campaign_id ?? null;
+  }
+
+  if (!campaignId) {
+    return null;
+  }
+
+  const { data: campaign } = await supabase
+    .from("broadcast_campaigns")
+    .select("id, survey_flow_id")
+    .eq("id", campaignId)
+    .maybeSingle();
+
+  if (!campaign?.survey_flow_id) {
+    return null;
+  }
+
+  return {
+    campaign_id: campaign.id,
+    survey_flow_id: campaign.survey_flow_id,
+  };
+}
+
+async function abandonEmptyInProgressSessions(
+  supabase: SupabaseClient,
+  contactId: string,
+  campaignId: string,
+): Promise<void> {
+  const { data: sessions } = await supabase
+    .from("survey_sessions")
+    .select("id")
+    .eq("contact_id", contactId)
+    .eq("campaign_id", campaignId)
+    .eq("status", "in_progress");
+
+  for (const session of sessions ?? []) {
+    const { count } = await supabase
+      .from("survey_session_answers")
+      .select("id", { count: "exact", head: true })
+      .eq("session_id", session.id);
+
+    if ((count ?? 0) === 0) {
+      await supabase
+        .from("survey_sessions")
+        .update({ status: "abandoned", updated_at: new Date().toISOString() })
+        .eq("id", session.id);
+    }
+  }
+}
+
+/**
+ * Reenvia intro + 1ª pergunta para destinatários que já receberam o template
+ * e têm last_inbound_at nas últimas 24h (janela Meta aberta).
+ * Opcionalmente restringe a contactIds (seleção / envio individual).
+ */
+export async function startSurveysForOpenWindowRecipients(
+  supabase: SupabaseClient,
+  input: {
+    campaignId: string;
+    flow: SurveyFlowRow;
+    send: SurveySendContext;
+    limit: number;
+    contactIds?: string[];
+  },
+): Promise<{ started: number; failed: number; skipped: number; remaining: number }> {
+  const windowStart = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const requestedIds = (input.contactIds ?? [])
+    .map((id) => id.trim())
+    .filter(Boolean);
+
+  // Busca quem tem janela 24h aberta (e, se houver, só os IDs pedidos).
+  let contactsQuery = supabase
+    .from("whatsapp_contacts")
+    .select("id, phone_number, last_inbound_at, status")
+    .eq("status", "active")
+    .gte("last_inbound_at", windowStart);
+
+  if (requestedIds.length > 0) {
+    contactsQuery = contactsQuery.in("id", requestedIds.slice(0, 200));
+  } else {
+    contactsQuery = contactsQuery
+      .order("last_inbound_at", { ascending: false })
+      .limit(500);
+  }
+
+  const { data: openContacts } = await contactsQuery;
+  const contactById = new Map((openContacts ?? []).map((c) => [c.id, c]));
+  const openContactIds = [...contactById.keys()];
+
+  if (openContactIds.length === 0) {
+    return { started: 0, failed: 0, skipped: 0, remaining: 0 };
+  }
+
+  const { data: recipients } = await supabase
+    .from("broadcast_campaign_recipients")
+    .select("id, contact_id")
+    .eq("campaign_id", input.campaignId)
+    .in("send_status", ["sent", "delivered", "read"])
+    .in("contact_id", openContactIds);
+
+  const eligible = (recipients ?? []).filter((r) => contactById.has(r.contact_id));
+
+  let started = 0;
+  let failed = 0;
+  let skipped = 0;
+  let processedEligible = 0;
+
+  for (const row of eligible) {
+    if (processedEligible >= input.limit) {
+      break;
+    }
+
+    const contact = contactById.get(row.contact_id);
+    if (!contact) {
+      continue;
+    }
+
+    const { data: completed } = await supabase
+      .from("survey_sessions")
+      .select("id")
+      .eq("campaign_id", input.campaignId)
+      .eq("contact_id", row.contact_id)
+      .eq("status", "completed")
+      .maybeSingle();
+
+    if (completed) {
+      skipped += 1;
+      continue;
+    }
+
+    const { data: inProgress } = await supabase
+      .from("survey_sessions")
+      .select("id")
+      .eq("campaign_id", input.campaignId)
+      .eq("contact_id", row.contact_id)
+      .eq("status", "in_progress")
+      .maybeSingle();
+
+    if (inProgress) {
+      const { count } = await supabase
+        .from("survey_session_answers")
+        .select("id", { count: "exact", head: true })
+        .eq("session_id", inProgress.id);
+
+      if ((count ?? 0) > 0) {
+        skipped += 1;
+        continue;
+      }
+    }
+
+    processedEligible += 1;
+    const phone = contact.phone_number?.replace(/\D/g, "") ?? "";
+    if (!phone) {
+      failed += 1;
+      continue;
+    }
+
+    try {
+      await abandonEmptyInProgressSessions(supabase, row.contact_id, input.campaignId);
+      await startSurveySession(supabase, {
+        flow: input.flow,
+        campaignId: input.campaignId,
+        contactId: row.contact_id,
+        phone,
+        send: input.send,
+      });
+      started += 1;
+    } catch (error) {
+      failed += 1;
+      console.error("survey_open_window_start_failed", {
+        contactId: row.contact_id,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  const remainingEligible = Math.max(eligible.length - started - skipped - failed, 0);
+
+  return {
+    started,
+    failed,
+    skipped,
+    remaining: remainingEligible,
+  };
+}
+
 export async function handleSurveyInbound(
   supabase: SupabaseClient,
   message: MetaWebhookMessage,

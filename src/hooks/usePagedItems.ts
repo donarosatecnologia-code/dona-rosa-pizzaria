@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 export const LIST_PAGE_SIZE = 20;
 
@@ -6,18 +6,22 @@ export function usePagedItems<T>(items: T[] | undefined, pageSize = LIST_PAGE_SI
   const [page, setPageRaw] = useState(0);
   const list = items ?? [];
   const total = list.length;
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const totalPages = Math.max(1, Math.ceil(total / pageSize) || 1);
 
-  const setPage = (next: number) => {
-    const maxPage = Math.max(0, totalPages - 1);
-    setPageRaw(Math.max(0, Math.min(next, maxPage)));
-  };
+  // Stable identity — callers often reset page in useEffect([..., setPage]).
+  const setPage = useCallback((next: number) => {
+    setPageRaw((current) => {
+      const clamped = Math.max(0, Math.floor(next));
+      return clamped === current ? current : clamped;
+    });
+  }, []);
 
-  const safePage = Math.min(page, totalPages - 1);
+  const safePage = Math.min(page, Math.max(0, totalPages - 1));
 
   useEffect(() => {
-    if (page > totalPages - 1) {
-      setPageRaw(totalPages - 1);
+    const maxPage = Math.max(0, totalPages - 1);
+    if (page > maxPage) {
+      setPageRaw(maxPage);
     }
   }, [page, totalPages]);
 

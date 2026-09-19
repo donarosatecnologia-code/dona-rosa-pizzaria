@@ -1,14 +1,16 @@
 import { Link, useParams } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Download, Search, Send, Loader2 } from "lucide-react";
+import { ArrowLeft, Download, ExternalLink, Search, Send, Loader2 } from "lucide-react";
 import { BroadcastSendConfirmDialog } from "@/components/admin/disparos/BroadcastSendConfirmDialog";
 import { ListPagination } from "@/components/admin/ListPagination";
 import { toast } from "sonner";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip as RechartsTooltip } from "recharts";
+import { AdminPageShell } from "@/components/admin/AdminPageShell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -44,8 +46,20 @@ import type { SurveySessionAnswer, SurveyStep } from "@/integrations/supabase/ty
 import { formatPhoneDisplay } from "@/lib/format-phone";
 
 const CHART_COLORS = ["#16a34a", "#2563eb", "#ca8a04", "#dc2626", "#9333ea"];
+const WINDOW_24H_MS = 24 * 60 * 60 * 1000;
 
-type RecipientFilter = "all" | "responded" | "not_responded" | "failed";
+type RecipientFilter =
+  | "all"
+  | "received"
+  | "sent_unconfirmed"
+  | "not_sent"
+  | "failed"
+  | "needs_oi"
+  | "ready_questions"
+  | "survey_in_progress"
+  | "survey_done"
+  | "responded"
+  | "not_responded";
 
 function isDryRunMessageId(metaMessageId: string | null | undefined): boolean {
   return Boolean(metaMessageId?.startsWith("dry_run_"));
@@ -59,8 +73,20 @@ function normalizeSearch(value: string): string {
   return value.trim().toLowerCase();
 }
 
+function isWithinLast24Hours(iso: string | null | undefined): boolean {
+  if (!iso) {
+    return false;
+  }
+  const ts = Date.parse(iso);
+  if (Number.isNaN(ts)) {
+    return false;
+  }
+  return Date.now() - ts <= WINDOW_24H_MS;
+}
+
 interface RecipientRowView {
   recipient: BroadcastCampaignRecipient;
+  contactId: string;
   name: string;
   phone: string;
   phoneDigits: string;
@@ -70,6 +96,12 @@ interface RecipientRowView {
   displayStatus: string;
   failureReason: string | null;
   isFailed: boolean;
+  wasSent: boolean;
+  wasReceived: boolean;
+  needsOi: boolean;
+  readyForQuestions: boolean;
+  surveyInProgress: boolean;
+  lastInboundAt: string | null;
 }
 
 export default function AdminDisparoDetail() {
@@ -77,6 +109,8 @@ export default function AdminDisparoDetail() {
   const [confirmSendOpen, setConfirmSendOpen] = useState(false);
   const [recipientFilter, setRecipientFilter] = useState<RecipientFilter>("all");
   const [recipientSearch, setRecipientSearch] = useState("");
+  const [selectedContactIds, setSelectedContactIds] = useState<string[]>([]);
+  const [sendingContactId, setSendingContactId] = useState<string | null>(null);
   useWhatsappBroadcastRealtime();
 
   const { data: campaigns } = useBroadcastCampaigns();
@@ -129,15 +163,6 @@ export default function AdminDisparoDetail() {
     return new Set((responses ?? []).map((response) => response.contact_id));
   }, [isSurveyCampaign, surveySessions, responses]);
 
-  const deliveryBase =
-    (campaign?.total_delivered ?? 0) > 0
-      ? campaign!.total_delivered
-      : isSurveyCampaign && completedSurveys > 0
-        ? Math.max(campaign?.total_sent ?? 0, completedSurveys)
-        : 0;
-
-  const responseRate = deliveryBase > 0 ? Math.round((responseCount / deliveryBase) * 100) : 0;
-
   const dryRunRecipientCount = useMemo(
     () => (recipients ?? []).filter((r) => isDryRunMessageId(r.meta_message_id)).length,
     [recipients],
@@ -170,30 +195,77 @@ export default function AdminDisparoDetail() {
           ? "Respondida — status Meta inconsistente"
           : null;
 
+      const wasSent = ["sent", "delivered", "read"].includes(recipient.send_status) || responded;
+      const wasReceived =
+        ["delivered", "read"].includes(displayStatus) ||
+        responded ||
+        surveySession?.status === "completed" ||
+        surveySession?.status === "in_progress";
+      const lastInboundAt = contact?.last_inbound_at ?? null;
+      const surveyDone = surveySession?.status === "completed";
+      const surveyInProgress = surveySession?.status === "in_progress";
+      const openWindow = isWithinLast24Hours(lastInboundAt);
+      // Só quem ainda não iniciou a pesquisa e tem janela Meta aberta.
+      const readyForQuestions =
+        isSurveyCampaign && wasSent && !surveyDone && !surveyInProgress && openWindow;
+      // Pedir oi = já teve entrega/engajamento, mas sem janela 24h e sem pesquisa ativa.
+      const needsOi =
+        isSurveyCampaign &&
+        wasReceived &&
+        !surveyDone &&
+        !surveyInProgress &&
+        !readyForQuestions &&
+        !isFailed;
+
       return {
         recipient,
+        contactId: recipient.contact_id,
         name: contact?.name?.trim() || "Sem nome",
         phone: contact ? formatPhoneDisplay(contact.phone_number) : "—",
         phoneDigits: contact ? digitsOnly(contact.phone_number) : "",
         responded,
         surveyStatus: surveySession?.status ?? null,
-        answersByStep: new Map((surveySession?.answers ?? []).map((answer) => [answer.step_index, answer])),
+        answersByStep: new Map(
+          (surveySession?.answers ?? []).map((answer) => [answer.step_index, answer]),
+        ),
         displayStatus,
         failureReason,
         isFailed,
+        wasSent,
+        wasReceived,
+        needsOi,
+        readyForQuestions,
+        surveyInProgress,
+        lastInboundAt,
       };
     });
-  }, [recipients, contactById, respondedContactIds, surveySessionByContactId]);
+  }, [recipients, contactById, respondedContactIds, surveySessionByContactId, isSurveyCampaign]);
 
   const recipientSummary = useMemo(() => {
     const responded = recipientRows.filter((row) => row.responded).length;
     const failed = recipientRows.filter((row) => row.isFailed).length;
     const notResponded = recipientRows.filter((row) => !row.responded && !row.isFailed).length;
+    const received = recipientRows.filter((row) => row.wasReceived).length;
+    const sentUnconfirmed = recipientRows.filter(
+      (row) => row.wasSent && !row.wasReceived && !row.isFailed,
+    ).length;
+    const notSent = recipientRows.filter((row) => !row.wasSent && !row.isFailed).length;
+    const needsOi = recipientRows.filter((row) => row.needsOi).length;
+    const readyQuestions = recipientRows.filter((row) => row.readyForQuestions).length;
+    const surveyInProgress = recipientRows.filter((row) => row.surveyInProgress).length;
+    const surveyDone = recipientRows.filter((row) => row.surveyStatus === "completed").length;
     return {
       total: recipientRows.length,
       responded,
       notResponded,
       failed,
+      received,
+      sentUnconfirmed,
+      notSent,
+      needsOi,
+      readyQuestions,
+      surveyInProgress,
+      surveyDone,
     };
   }, [recipientRows]);
 
@@ -209,6 +281,30 @@ export default function AdminDisparoDetail() {
         return false;
       }
       if (recipientFilter === "failed" && !row.isFailed) {
+        return false;
+      }
+      if (recipientFilter === "received" && !row.wasReceived) {
+        return false;
+      }
+      if (
+        recipientFilter === "sent_unconfirmed" &&
+        !(row.wasSent && !row.wasReceived && !row.isFailed)
+      ) {
+        return false;
+      }
+      if (recipientFilter === "not_sent" && !(!row.wasSent && !row.isFailed)) {
+        return false;
+      }
+      if (recipientFilter === "needs_oi" && !row.needsOi) {
+        return false;
+      }
+      if (recipientFilter === "ready_questions" && !row.readyForQuestions) {
+        return false;
+      }
+      if (recipientFilter === "survey_in_progress" && !row.surveyInProgress) {
+        return false;
+      }
+      if (recipientFilter === "survey_done" && row.surveyStatus !== "completed") {
         return false;
       }
 
@@ -234,6 +330,7 @@ export default function AdminDisparoDetail() {
 
   useEffect(() => {
     setRecipientPage(0);
+    setSelectedContactIds([]);
   }, [recipientFilter, recipientSearch, setRecipientPage]);
 
   async function handleSend() {
@@ -268,14 +365,126 @@ export default function AdminDisparoDetail() {
     }
   }
 
-  function responseLabelForRow(row: RecipientRowView): string {
-    if (row.surveyStatus === "completed") {
-      return "Concluída";
+  async function handleStartSurveys(contactIds?: string[]) {
+    if (!id) {
+      return;
     }
-    if (row.surveyStatus === "in_progress") {
+    const ids = contactIds?.filter(Boolean) ?? [];
+    const toastId = toast.loading(
+      ids.length === 1
+        ? "Enviando perguntas para 1 cliente…"
+        : ids.length > 1
+          ? `Enviando perguntas para ${ids.length} clientes…`
+          : "Enviando perguntas da pesquisa…",
+    );
+    try {
+      const result = await send.mutateAsync({
+        campaign_id: id,
+        mode: "start_surveys",
+        contact_ids: ids.length > 0 ? ids : undefined,
+        onProgress: (progress) => {
+          toast.loading(
+            `Perguntas… ${progress.sentTotal} enviada(s), ${progress.pendingRemaining} restante(s)`,
+            { id: toastId },
+          );
+        },
+      });
+      if (result.sent === 0 && result.failed === 0) {
+        const skippedNote =
+          (result.skipped ?? 0) > 0
+            ? ` ${result.skipped} já tinham pesquisa em andamento/concluída.`
+            : "";
+        toast.info(
+          `Ninguém elegível agora.${skippedNote} Use o filtro “Prontos p/ perguntas” ou o botão por linha. Só entram quem escreveu nas últimas 24h.`,
+          { id: toastId },
+        );
+        return;
+      }
+      const failedSuffix = result.failed > 0 ? `, ${result.failed} falha(s)` : "";
+      toast.success(`${result.sent} pesquisa(s) iniciada(s)${failedSuffix}.`, { id: toastId });
+      setSelectedContactIds([]);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Não deu para enviar as perguntas.";
+      toast.error(message, { id: toastId });
+    }
+  }
+
+  async function handleStartSurveyForContact(contactId: string) {
+    setSendingContactId(contactId);
+    try {
+      await handleStartSurveys([contactId]);
+    } finally {
+      setSendingContactId(null);
+    }
+  }
+
+  function toggleSelectedContact(contactId: string, checked: boolean) {
+    setSelectedContactIds((prev) => {
+      if (checked) {
+        return prev.includes(contactId) ? prev : [...prev, contactId];
+      }
+      return prev.filter((id) => id !== contactId);
+    });
+  }
+
+  function toggleSelectAllReadyOnPage(checked: boolean) {
+    const readyOnPage = pagedRecipients
+      .filter((row) => row.readyForQuestions)
+      .map((row) => row.contactId);
+    setSelectedContactIds((prev) => {
+      if (!checked) {
+        const drop = new Set(readyOnPage);
+        return prev.filter((id) => !drop.has(id));
+      }
+      const merged = new Set([...prev, ...readyOnPage]);
+      return [...merged];
+    });
+  }
+
+  function deliveryLabelForRow(row: RecipientRowView): string {
+    if (row.isFailed) {
+      return "Falhou";
+    }
+    if (row.wasReceived) {
+      return "Receberam o template";
+    }
+    if (row.wasSent) {
+      return "Só aceito (sem entrega)";
+    }
+    return "Não enviado";
+  }
+
+  function surveyStageLabelForRow(row: RecipientRowView): string {
+    if (row.surveyStatus === "completed") {
+      return "Pesquisa ok";
+    }
+    if (row.surveyInProgress) {
       return "Em andamento";
     }
-    return row.responded ? "Respondeu" : "Não respondeu";
+    if (row.readyForQuestions) {
+      return "Prontos p/ perguntas";
+    }
+    if (row.needsOi) {
+      return "Pedir oi";
+    }
+    return "—";
+  }
+
+  function filterExportLabel(filter: RecipientFilter): string {
+    const map: Record<RecipientFilter, string> = {
+      all: "Todos",
+      received: "Receberam o template",
+      sent_unconfirmed: "Só aceito (sem entrega)",
+      not_sent: "Ainda não enviados",
+      failed: "Falharam",
+      needs_oi: "Pedir oi",
+      ready_questions: "Prontos p/ perguntas",
+      survey_in_progress: "Em andamento",
+      survey_done: "Pesquisa ok",
+      responded: "Quem respondeu",
+      not_responded: "Quem não respondeu",
+    };
+    return map[filter] ?? filter;
   }
 
   function handleExportCsv() {
@@ -284,14 +493,24 @@ export default function AdminDisparoDetail() {
       return;
     }
 
+    const activeFilterLabel = filterExportLabel(recipientFilter);
+    const searchNote = recipientSearch.trim() ? ` + busca "${recipientSearch.trim()}"` : "";
+    const filterLabel = `${activeFilterLabel}${searchNote}`;
+
     const exportRows = filteredRecipients.map((row) => ({
       name: row.name,
       phone: row.phone,
+      phoneDigits: row.phoneDigits,
       sendStatus: row.displayStatus,
-      responseLabel: responseLabelForRow(row),
+      deliveryLabel: deliveryLabelForRow(row),
+      surveyStageLabel: surveyStageLabelForRow(row),
+      openWindowLabel: isWithinLast24Hours(row.lastInboundAt) ? "Sim" : "Não",
       failureReason: row.failureReason ?? "",
       sentAt: row.recipient.sent_at
         ? new Date(row.recipient.sent_at).toLocaleString("pt-BR").replace(", ", " ")
+        : "",
+      lastInboundAt: row.lastInboundAt
+        ? new Date(row.lastInboundAt).toLocaleString("pt-BR").replace(", ", " ")
         : "",
       stepAnswers: isSurveyCampaign
         ? surveySteps.map((_, index) => {
@@ -303,27 +522,107 @@ export default function AdminDisparoDetail() {
 
     const csv = buildCampaignReportCsv(
       campaignLabel,
+      filterLabel,
       exportRows,
       isSurveyCampaign ? surveySteps : [],
     );
     const safeName = campaignLabel.replace(/[^\w-]+/g, "_").slice(0, 40);
-    downloadCsvFile(`relatorio_${safeName}_${id?.slice(0, 8)}.csv`, csv);
-    toast.success("CSV exportado com as mesmas colunas da tela.");
+    const safeFilter = activeFilterLabel.replace(/[^\w-]+/g, "_").slice(0, 30);
+    downloadCsvFile(
+      `relatorio_${safeName}_${safeFilter}_${id?.slice(0, 8)}.csv`,
+      csv,
+    );
+    toast.success(
+      `CSV com ${filteredRecipients.length} linha(s) do filtro “${activeFilterLabel}”.`,
+    );
   }
+
+  const sentFromRecipients = recipientRows.filter((row) => row.wasSent).length;
+  const deliveredFromRecipients = recipientRows.filter(
+    (row) =>
+      ["delivered", "read"].includes(row.recipient.send_status) ||
+      (row.responded && row.wasSent),
+  ).length;
+  const displaySent =
+    !loadingRecipients && recipientRows.length > 0
+      ? Math.max(campaign?.total_sent ?? 0, sentFromRecipients)
+      : (campaign?.total_sent ?? 0);
+  const displayDelivered =
+    !loadingRecipients && recipientRows.length > 0
+      ? Math.max(campaign?.total_delivered ?? 0, deliveredFromRecipients)
+      : (campaign?.total_delivered ?? 0);
+  const deliveryBase =
+    displayDelivered > 0
+      ? displayDelivered
+      : isSurveyCampaign && completedSurveys > 0
+        ? Math.max(displaySent, completedSurveys)
+        : 0;
+  const responseRate = deliveryBase > 0 ? Math.round((responseCount / deliveryBase) * 100) : 0;
 
   if (!campaign && campaigns) {
     return (
-      <div className="max-w-4xl mx-auto">
+      <AdminPageShell width="2xl">
         <p className="text-muted-foreground">Campanha não encontrada.</p>
         <Link to="/admin/disparos" className="text-sm text-primary hover:underline mt-2 inline-block">
           Voltar aos disparos
         </Link>
-      </div>
+      </AdminPageShell>
     );
   }
 
+  const deliveryChips = isSurveyCampaign
+    ? [
+        { key: "all" as const, label: "Todos", value: recipientSummary.total },
+        {
+          key: "received" as const,
+          label: "Receberam o template",
+          value: recipientSummary.received,
+        },
+        {
+          key: "sent_unconfirmed" as const,
+          label: "Só aceito (sem entrega)",
+          value: recipientSummary.sentUnconfirmed,
+        },
+        { key: "failed" as const, label: "Falharam", value: recipientSummary.failed },
+      ]
+    : [
+        { key: "all" as const, label: "Todos", value: recipientSummary.total },
+        { key: "responded" as const, label: "Responderam", value: recipientSummary.responded },
+        {
+          key: "not_responded" as const,
+          label: "Não responderam",
+          value: recipientSummary.notResponded,
+        },
+        { key: "failed" as const, label: "Falharam", value: recipientSummary.failed },
+      ];
+
+  const surveyStageChips = [
+    {
+      key: "survey_in_progress" as const,
+      label: "Em andamento",
+      value: recipientSummary.surveyInProgress,
+    },
+    {
+      key: "ready_questions" as const,
+      label: "Prontos p/ perguntas",
+      value: recipientSummary.readyQuestions,
+    },
+    { key: "needs_oi" as const, label: "Pedir oi", value: recipientSummary.needsOi },
+    {
+      key: "survey_done" as const,
+      label: "Pesquisa ok",
+      value: recipientSummary.surveyDone,
+    },
+  ];
+
+  const surveyStageSum =
+    recipientSummary.surveyInProgress +
+    recipientSummary.readyQuestions +
+    recipientSummary.needsOi +
+    recipientSummary.surveyDone;
+
   return (
-    <div className="max-w-6xl mx-auto">
+    <AdminPageShell width="2xl">
       <Link
         to="/admin/disparos"
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4"
@@ -342,23 +641,77 @@ export default function AdminDisparoDetail() {
           </p>
         </div>
         {campaign?.published_at && (
-          <Button size="sm" disabled={send.isPending} onClick={() => setConfirmSendOpen(true)}>
-            {send.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" disabled={send.isPending} onClick={() => setConfirmSendOpen(true)}>
+              {send.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <>
+                  <Send className="h-4 w-4 mr-1" />
+                  {campaign.status === "sending" ? "Continuar disparo" : "Disparar"}
+                </>
+              )}
+            </Button>
+            {isSurveyCampaign && (campaign.total_sent ?? 0) > 0 && (
               <>
-                <Send className="h-4 w-4 mr-1" />
-                {campaign.status === "sending" ? "Continuar disparo" : "Disparar"}
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={send.isPending}
+                  onClick={() =>
+                    void handleStartSurveys(
+                      selectedContactIds.length > 0 ? selectedContactIds : undefined,
+                    )
+                  }
+                >
+                  {send.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : selectedContactIds.length > 0 ? (
+                    `Enviar perguntas (${selectedContactIds.length})`
+                  ) : (
+                    "Enviar a todos prontos (24h)"
+                  )}
+                </Button>
               </>
             )}
-          </Button>
+          </div>
         )}
       </div>
 
+      {isSurveyCampaign && (
+        <Alert className="mb-6 border-primary/30 bg-primary/5">
+          <AlertTitle>Como ler estes números</AlertTitle>
+          <AlertDescription className="text-sm space-y-2">
+            <p>
+              <strong>Entrega do template</strong> e <strong>etapa da pesquisa</strong> são coisas
+              diferentes — não some tudo com &quot;Receberam&quot;.
+            </p>
+            <p>
+              Conta da entrega: Receberam ({recipientSummary.received}) + Só aceito (
+              {recipientSummary.sentUnconfirmed}) + Falharam ({recipientSummary.failed}) ≈ Todos (
+              {recipientSummary.total}).
+            </p>
+            <p>
+              Entre quem recebeu, a pesquisa se divide em: Em andamento (
+              {recipientSummary.surveyInProgress}) + Prontos ({recipientSummary.readyQuestions}) +
+              Pedir oi ({recipientSummary.needsOi}) + Ok ({recipientSummary.surveyDone}) ={" "}
+              {surveyStageSum}
+              {surveyStageSum === recipientSummary.received
+                ? " (fecha com Receberam)."
+                : ` (Receberam = ${recipientSummary.received}).`}
+            </p>
+            <p>
+              Marque os prontos (checkbox) ou use <strong>Enviar</strong> na linha. O botão do topo
+              envia aos selecionados — ou a todos prontos, se ninguém estiver marcado.
+            </p>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         {[
-          { label: "Enviadas", value: campaign?.total_sent ?? 0 },
-          { label: "Entregues", value: campaign?.total_delivered ?? 0 },
+          { label: "Enviadas", value: displaySent },
+          { label: "Entregues", value: displayDelivered },
           { label: "Respostas", value: responseCount },
           { label: "Taxa resposta", value: `${responseRate}%` },
         ].map((metric) => (
@@ -406,60 +759,81 @@ export default function AdminDisparoDetail() {
         <Alert className="mb-6 border-emerald-200 bg-emerald-50 text-emerald-950">
           <AlertTitle>Pesquisa respondida com sucesso</AlertTitle>
           <AlertDescription className="text-sm">
-            Houve resposta concluída, então a mensagem chegou ao cliente. O contador &quot;Entregues&quot;
-            pode ficar atrasado se a Meta não enviar o status de entrega — isso não invalida as respostas.
+            Houve resposta concluída, então a mensagem chegou ao cliente. O contador
+            &quot;Entregues&quot; da Meta pode atrasar.
           </AlertDescription>
         </Alert>
       )}
 
+      {(campaign?.queue_id || campaign?.queue_id_draft) && (
+        <p className="text-sm text-muted-foreground mb-4">
+          Segmento: {loadingQueueCount ? "…" : `${queueContactCount ?? 0} contato(s) no grupo`}
+        </p>
+      )}
+
       <Card className="mb-6">
-        <CardHeader className="space-y-4">
+        <CardHeader className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <CardTitle className="text-base">
-                {isSurveyCampaign && surveyFlow
-                  ? `Destinatários e respostas — ${surveyFlow.name}`
-                  : "Destinatários e respostas"}
-              </CardTitle>
-              {isSurveyCampaign && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  Nome, status do envio e respostas de cada pergunta na mesma tabela.
-                </p>
-              )}
-            </div>
+            <CardTitle className="text-base">
+              {isSurveyCampaign && surveyFlow
+                ? `Relatório — ${surveyFlow.name}`
+                : "Destinatários e respostas"}
+            </CardTitle>
             {filteredRecipients.length > 0 && (
               <Button size="sm" variant="outline" onClick={handleExportCsv}>
                 <Download className="h-4 w-4 mr-1" />
-                Exportar CSV
+                Exportar filtro ({filteredRecipients.length})
               </Button>
             )}
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {[
-              { key: "all" as const, label: "Todos", value: recipientSummary.total },
-              { key: "responded" as const, label: "Responderam", value: recipientSummary.responded },
-              {
-                key: "not_responded" as const,
-                label: "Não responderam",
-                value: recipientSummary.notResponded,
-              },
-              { key: "failed" as const, label: "Falharam", value: recipientSummary.failed },
-            ].map((item) => (
-              <button
-                key={item.key}
-                type="button"
-                onClick={() => setRecipientFilter(item.key)}
-                className={`rounded-lg border px-3 py-2 text-left transition-colors min-h-[44px] ${
-                  recipientFilter === item.key
-                    ? "border-primary bg-primary/5"
-                    : "border-border hover:bg-muted/50"
-                }`}
-              >
-                <p className="text-xs text-muted-foreground">{item.label}</p>
-                <p className="text-lg font-semibold">{item.value}</p>
-              </button>
-            ))}
+          <div className="space-y-3">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-2">
+                {isSurveyCampaign ? "1. Entrega do template" : "Resumo"}
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {deliveryChips.map((item) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => setRecipientFilter(item.key)}
+                    className={`rounded-lg border px-3 py-2 text-left transition-colors min-h-[44px] ${
+                      recipientFilter === item.key
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:bg-muted/50"
+                    }`}
+                  >
+                    <p className="text-xs text-muted-foreground">{item.label}</p>
+                    <p className="text-lg font-semibold">{item.value}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+            {isSurveyCampaign && (
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-2">
+                  2. Etapa da pesquisa (entre quem recebeu — não some com o bloco de cima)
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {surveyStageChips.map((item) => (
+                    <button
+                      key={item.key}
+                      type="button"
+                      onClick={() => setRecipientFilter(item.key)}
+                      className={`rounded-lg border px-3 py-2 text-left transition-colors min-h-[44px] ${
+                        recipientFilter === item.key
+                          ? "border-primary bg-primary/5"
+                          : "border-border hover:bg-muted/50"
+                      }`}
+                    >
+                      <p className="text-xs text-muted-foreground">{item.label}</p>
+                      <p className="text-lg font-semibold">{item.value}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex flex-col sm:flex-row gap-2">
@@ -476,13 +850,27 @@ export default function AdminDisparoDetail() {
               value={recipientFilter}
               onValueChange={(value) => setRecipientFilter(value as RecipientFilter)}
             >
-              <SelectTrigger className="min-h-[44px] sm:w-[220px]">
+              <SelectTrigger className="min-h-[44px] sm:w-[240px]">
                 <SelectValue placeholder="Filtrar" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="responded">Quem respondeu</SelectItem>
-                <SelectItem value="not_responded">Quem não respondeu</SelectItem>
+                {isSurveyCampaign ? (
+                  <>
+                    <SelectItem value="received">Receberam (entregue/lido)</SelectItem>
+                    <SelectItem value="sent_unconfirmed">Só aceito (sem entrega Meta)</SelectItem>
+                    <SelectItem value="not_sent">Ainda não enviados</SelectItem>
+                    <SelectItem value="survey_in_progress">Em andamento</SelectItem>
+                    <SelectItem value="ready_questions">Prontos p/ perguntas</SelectItem>
+                    <SelectItem value="needs_oi">Pedir oi (sem janela 24h)</SelectItem>
+                    <SelectItem value="survey_done">Pesquisa concluída</SelectItem>
+                  </>
+                ) : (
+                  <>
+                    <SelectItem value="responded">Quem respondeu</SelectItem>
+                    <SelectItem value="not_responded">Quem não respondeu</SelectItem>
+                  </>
+                )}
                 <SelectItem value="failed">Falhas (com motivo)</SelectItem>
               </SelectContent>
             </Select>
@@ -506,12 +894,36 @@ export default function AdminDisparoDetail() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      {isSurveyCampaign && (
+                        <TableHead className="w-[44px]">
+                          <Checkbox
+                            checked={
+                              pagedRecipients.some((row) => row.readyForQuestions) &&
+                              pagedRecipients
+                                .filter((row) => row.readyForQuestions)
+                                .every((row) => selectedContactIds.includes(row.contactId))
+                            }
+                            disabled={
+                              send.isPending ||
+                              !pagedRecipients.some((row) => row.readyForQuestions)
+                            }
+                            onCheckedChange={(value) =>
+                              toggleSelectAllReadyOnPage(value === true)
+                            }
+                            aria-label="Selecionar prontos nesta página"
+                          />
+                        </TableHead>
+                      )}
                       <TableHead>Nome</TableHead>
                       <TableHead>Telefone</TableHead>
                       <TableHead>Envio</TableHead>
                       <TableHead>Resposta</TableHead>
                       <TableHead>Motivo da falha</TableHead>
                       <TableHead>Enviado em</TableHead>
+                      <TableHead className="w-[72px]">Cadastro</TableHead>
+                      {isSurveyCampaign && (
+                        <TableHead className="w-[100px]">Perguntas</TableHead>
+                      )}
                       {isSurveyCampaign &&
                         surveySteps.map((step, index) => (
                           <TableHead key={step.id} className="min-w-[120px]">
@@ -524,6 +936,18 @@ export default function AdminDisparoDetail() {
                   <TableBody>
                     {pagedRecipients.map((row) => (
                       <TableRow key={row.recipient.id}>
+                        {isSurveyCampaign && (
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedContactIds.includes(row.contactId)}
+                              disabled={!row.readyForQuestions || send.isPending}
+                              onCheckedChange={(value) =>
+                                toggleSelectedContact(row.contactId, value === true)
+                              }
+                              aria-label={`Selecionar ${row.name}`}
+                            />
+                          </TableCell>
+                        )}
                         <TableCell className="font-medium max-w-[160px] truncate">
                           {row.name}
                         </TableCell>
@@ -539,9 +963,13 @@ export default function AdminDisparoDetail() {
                               ? "Concluída"
                               : row.surveyStatus === "in_progress"
                                 ? "Em andamento"
-                                : row.responded
-                                  ? "Respondeu"
-                                  : "Não respondeu"}
+                                : row.needsOi
+                                  ? "Pedir oi"
+                                  : row.readyForQuestions
+                                    ? "Pronto p/ perguntas"
+                                    : row.responded
+                                      ? "Respondeu"
+                                      : "Não respondeu"}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground max-w-[240px]">
@@ -552,6 +980,38 @@ export default function AdminDisparoDetail() {
                             ? new Date(row.recipient.sent_at).toLocaleString("pt-BR")
                             : "—"}
                         </TableCell>
+                        <TableCell>
+                          <Button asChild size="sm" variant="outline" className="min-h-[36px] px-2">
+                            <Link
+                              to={`/admin/contatos/${row.contactId}`}
+                              title="Abrir cadastro do cliente"
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                              <span className="sr-only">Abrir cadastro</span>
+                            </Link>
+                          </Button>
+                        </TableCell>
+                        {isSurveyCampaign && (
+                          <TableCell>
+                            {row.readyForQuestions ? (
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                className="min-h-[36px]"
+                                disabled={send.isPending}
+                                onClick={() => void handleStartSurveyForContact(row.contactId)}
+                              >
+                                {sendingContactId === row.contactId ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  "Enviar"
+                                )}
+                              </Button>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                        )}
                         {isSurveyCampaign &&
                           surveySteps.map((_, index) => {
                             const answer = row.answersByStep.get(index);
@@ -629,11 +1089,11 @@ export default function AdminDisparoDetail() {
       <BroadcastSendConfirmDialog
         open={confirmSendOpen}
         onOpenChange={setConfirmSendOpen}
-        contactCount={queueContactCount ?? 0}
-        isLoadingCount={loadingQueueCount}
-        isSending={send.isPending}
+        campaign={campaign}
+        contactCount={recipients?.length ?? queueContactCount ?? 0}
         onConfirm={handleSend}
+        isSending={send.isPending}
       />
-    </div>
+    </AdminPageShell>
   );
 }

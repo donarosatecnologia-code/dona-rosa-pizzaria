@@ -27,6 +27,7 @@ export function useWhatsappBroadcastRealtime(enabled = true) {
         .on("broadcast", { event: "survey_response_received" }, () => {
           queryClient.invalidateQueries({ queryKey: ["whatsapp", "responses"] });
           queryClient.invalidateQueries({ queryKey: ["whatsapp", "campaigns"] });
+          queryClient.invalidateQueries({ queryKey: ["whatsapp", "campaign-recipients"] });
         })
         .subscribe();
     });

@@ -1,12 +1,13 @@
 import { cn } from "@/lib/utils";
 
-type AdminPageWidth = "sm" | "md" | "lg" | "xl";
+type AdminPageWidth = "sm" | "md" | "lg" | "xl" | "2xl";
 
 const WIDTH_CLASS: Record<AdminPageWidth, string> = {
   sm: "max-w-3xl",
   md: "max-w-4xl",
   lg: "max-w-5xl",
   xl: "max-w-6xl",
+  "2xl": "max-w-7xl",
 };
 
 interface AdminPageShellProps {

@@ -4,7 +4,11 @@ import { LIST_PAGE_SIZE } from "@/hooks/usePagedItems";
 import { supabase } from "@/integrations/supabase/client";
 import type { WhatsappContact } from "@/integrations/supabase/types/whatsapp-broadcast";
 import { TELEFONE_FIXO_TAG_SLUG } from "@/lib/whatsapp/contactTelefoneFixo";
-import { LANDLINE_STORED_PHONE_REGEX } from "@/lib/whatsapp/normalizePhone";
+import {
+  isLandlineStoredPhone,
+  LANDLINE_STORED_PHONE_REGEX,
+  normalizeBrazilPhone,
+} from "@/lib/whatsapp/normalizePhone";
 import { fetchAllRows } from "@/lib/supabase/fetchAllRows";
 
 export const CONTACTS_KEY = ["whatsapp", "contacts"] as const;
@@ -153,20 +157,52 @@ export function useCreateWhatsappContact() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (input: { name: string; phone_number: string }) => {
-      const phone = input.phone_number.replace(/\D/g, "");
+    mutationFn: async (input: {
+      name: string;
+      phone_number: string;
+      confirmTermsConsent?: boolean;
+    }) => {
+      const normalized = normalizeBrazilPhone(input.phone_number);
+      if (!normalized.valid || !normalized.normalized) {
+        throw new Error("invalid_phone");
+      }
+
+      const phone = normalized.normalized;
+      const now = new Date().toISOString();
+      const registeredAt = new Date().toLocaleDateString("en-CA", {
+        timeZone: "America/Sao_Paulo",
+      });
+
       const { data, error } = await supabase
         .from("whatsapp_contacts")
         .insert({
           name: input.name.trim(),
           phone_number: phone,
           status: "active",
+          is_landline: isLandlineStoredPhone(phone),
+          registered_at: registeredAt,
+          ...(input.confirmTermsConsent
+            ? {
+                terms_accepted_at: now,
+                terms_accepted_source: "admin_manual",
+              }
+            : {}),
         })
         .select("*")
         .single();
 
       if (error) {
+        if (error.code === "23505") {
+          throw Object.assign(new Error("duplicate_phone"), { code: "23505" });
+        }
         throw error;
+      }
+
+      const { error: relinkError } = await supabase.rpc("relink_whatsapp_conversations_for_phones", {
+        p_phones: [phone],
+      });
+      if (relinkError) {
+        console.warn("create_contact_relink_failed", relinkError.message);
       }
 
       return data as WhatsappContact;

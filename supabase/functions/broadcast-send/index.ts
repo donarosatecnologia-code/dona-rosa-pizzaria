@@ -6,7 +6,9 @@ import {
   parseTemplateParams,
   sendWhatsAppTemplate,
 } from "../_shared/meta-graph-api.ts";
-import { startSurveySession } from "../_shared/survey-orchestrator.ts";
+import {
+  startSurveysForOpenWindowRecipients,
+} from "../_shared/survey-orchestrator.ts";
 import { AuthError, createServiceClient, requireAdmin } from "../_shared/supabase-auth.ts";
 
 const DEFAULT_BATCH_LIMIT = 50;
@@ -18,6 +20,10 @@ const MAX_RATE_LIMIT_RETRIES = 3;
 interface BroadcastSendRequest {
   campaign_id?: string;
   limit?: number;
+  /** template = envia modelos pendentes; start_surveys = envia perguntas a quem já respondeu (janela 24h) */
+  mode?: "template" | "start_surveys";
+  /** Opcional: restringe start_surveys a estes contact_ids */
+  contact_ids?: string[];
 }
 
 interface CampaignRow {
@@ -78,6 +84,7 @@ async function handleBroadcastSend(req: Request): Promise<Response> {
   }
 
   const isDryRun = Deno.env.get("BROADCAST_DRY_RUN") === "true";
+  const mode = body.mode === "start_surveys" ? "start_surveys" : "template";
 
   const accessToken = Deno.env.get("META_ACCESS_TOKEN");
   const phoneNumberId = Deno.env.get("META_PHONE_NUMBER_ID");
@@ -110,7 +117,21 @@ async function handleBroadcastSend(req: Request): Promise<Response> {
   }
 
   const row = campaign as CampaignRow;
-  // Pesquisa: template + intro + 1ª pergunta por contato — lote menor evita 546 (WORKER_RESOURCE_LIMIT).
+
+  if (mode === "start_surveys") {
+    return await handleStartSurveysMode(
+      supabase,
+      row,
+      accessToken ?? "",
+      phoneNumberId ?? "",
+      isDryRun,
+      body.limit,
+      body.contact_ids,
+    );
+  }
+
+  // Pesquisa: só o template aqui. Perguntas após resposta do cliente (janela 24h)
+  // ou via mode=start_surveys para quem já escreveu.
   const maxBatch = row.survey_flow_id ? SURVEY_BATCH_LIMIT : 200;
   const batchLimit = Math.min(Math.max(body.limit ?? DEFAULT_BATCH_LIMIT, 1), maxBatch);
 
@@ -277,23 +298,6 @@ async function processPendingRecipients(
   }
 
   const templateConfig = parseTemplateParams(campaign.template_params);
-  let surveyFlow: {
-    id: string;
-    slug: string;
-    name: string;
-    intro_message: string;
-    steps: unknown;
-  } | null = null;
-
-  if (campaign.survey_flow_id) {
-    const { data: flowRow } = await supabase
-      .from("survey_flows")
-      .select("id, slug, name, intro_message, steps")
-      .eq("id", campaign.survey_flow_id)
-      .eq("is_active", true)
-      .maybeSingle();
-    surveyFlow = flowRow;
-  }
 
   const sendContext = {
     accessToken,
@@ -367,22 +371,8 @@ async function processPendingRecipients(
         .update({ last_outbound_at: now, updated_at: now })
         .eq("id", row.contact_id);
 
-      if (surveyFlow) {
-        try {
-          await startSurveySession(supabase, {
-            flow: surveyFlow,
-            campaignId: campaign.id,
-            contactId: row.contact_id,
-            phone,
-            send: sendContext,
-          });
-        } catch (surveyError) {
-          console.error("survey_session_start_failed", {
-            contactId: row.contact_id,
-            message: surveyError instanceof Error ? surveyError.message : String(surveyError),
-          });
-        }
-      }
+      // Não inicia pesquisa aqui: free-form exige janela 24h (cliente respondeu).
+      // Webhook chama maybeStartSurveyAfterCampaignReply; admin pode usar mode=start_surveys.
 
       sent += 1;
     } catch (error) {
@@ -436,6 +426,76 @@ async function processPendingRecipients(
     pending_remaining: pendingRemaining ?? 0,
     status,
   };
+}
+
+async function handleStartSurveysMode(
+  supabase: ReturnType<typeof createServiceClient>,
+  campaign: CampaignRow,
+  accessToken: string,
+  phoneNumberId: string,
+  isDryRun: boolean,
+  limit?: number,
+  contactIds?: string[],
+): Promise<Response> {
+  if (!campaign.survey_flow_id) {
+    return jsonResponse({ error: "campaign_not_survey" }, 400);
+  }
+
+  if (!campaign.published_at) {
+    return jsonResponse({ error: "campaign_not_published" }, 400);
+  }
+
+  const { data: flow } = await supabase
+    .from("survey_flows")
+    .select("id, slug, name, intro_message, steps")
+    .eq("id", campaign.survey_flow_id)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (!flow) {
+    return jsonResponse({ error: "survey_flow_missing" }, 400);
+  }
+
+  const normalizedContactIds = (contactIds ?? [])
+    .filter((id): id is string => typeof id === "string" && id.trim().length > 0)
+    .map((id) => id.trim());
+
+  const batchLimit =
+    normalizedContactIds.length > 0
+      ? Math.min(Math.max(normalizedContactIds.length, 1), 50)
+      : Math.min(Math.max(limit ?? SURVEY_BATCH_LIMIT, 1), SURVEY_BATCH_LIMIT);
+
+  console.info("broadcast_start_surveys_request", {
+    campaignId: campaign.id,
+    batchLimit,
+    isDryRun,
+    contactIds: normalizedContactIds.length,
+  });
+
+  const result = await startSurveysForOpenWindowRecipients(supabase, {
+    campaignId: campaign.id,
+    flow,
+    send: { accessToken, phoneNumberId, isDryRun },
+    limit: batchLimit,
+    contactIds: normalizedContactIds.length > 0 ? normalizedContactIds : undefined,
+  });
+
+  console.info("broadcast_start_surveys_done", {
+    campaignId: campaign.id,
+    ...result,
+  });
+
+  return jsonResponse({
+    ok: true,
+    campaign_id: campaign.id,
+    dry_run: isDryRun,
+    mode: "start_surveys",
+    sent: result.started,
+    failed: result.failed,
+    skipped: result.skipped,
+    pending_remaining: result.remaining,
+    status: campaign.status,
+  }, 200);
 }
 
 function formatMetaSendFailure(error: MetaApiError): string {

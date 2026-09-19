@@ -12,6 +12,8 @@ const CAMPAIGNS_KEY = ["whatsapp", "campaigns"] as const;
 export function useBroadcastCampaigns() {
   return useQuery({
     queryKey: CAMPAIGNS_KEY,
+    refetchInterval: 20_000,
+    refetchOnWindowFocus: true,
     queryFn: async (): Promise<BroadcastCampaign[]> => {
       return fetchAllRows<BroadcastCampaign>((from, to) =>
         supabase

@@ -83,7 +83,11 @@ function resolveContactName(
   waId: string,
   contacts?: Array<{ profile?: { name?: string }; wa_id?: string }>,
 ): string | null {
-  const match = contacts?.find((c) => c.wa_id === waId);
+  const waDigits = digitsOnly(waId);
+  const match = contacts?.find((c) => {
+    const contactDigits = digitsOnly(c.wa_id ?? "");
+    return c.wa_id === waId || (contactDigits.length > 0 && contactDigits === waDigits);
+  });
   return match?.profile?.name?.trim() ?? null;
 }
 
@@ -108,19 +112,38 @@ async function canonicalBrazilPhone(
   return digits.length > 0 ? digits : phone;
 }
 
-/** Upsert conversa CRM por wa_id; retorna conversation_id. */
+/** Garante contato CRM por telefone; retorna id. Cria se não existir; atualiza nome se vier do WhatsApp. */
 export async function ensureWhatsappContact(
   supabase: SupabaseClient,
   phone: string,
   options?: { name?: string | null },
 ): Promise<string | null> {
+  const row = await ensureWhatsappContactRow(supabase, phone, options);
+  return row?.id ?? null;
+}
+
+export interface EnsuredWhatsappContactRow {
+  id: string;
+  name: string;
+  status: string;
+  inbound_count: number | null;
+  terms_accepted_at: string | null;
+  terms_prompt_sent_at: string | null;
+}
+
+/** Upsert contato por telefone (vários formatos) e sincroniza nome das mensagens. */
+export async function ensureWhatsappContactRow(
+  supabase: SupabaseClient,
+  phone: string,
+  options?: { name?: string | null },
+): Promise<EnsuredWhatsappContactRow | null> {
   const contactName = options?.name?.trim() || null;
   const canonical = await canonicalBrazilPhone(supabase, phone);
   const rawDigits = digitsOnly(phone);
 
   const { data: existing } = await supabase
     .from("whatsapp_contacts")
-    .select("id, name, status, phone_number")
+    .select("id, name, status, phone_number, inbound_count, terms_accepted_at, terms_prompt_sent_at")
     .or(
       `phone_number.eq.${canonical},phone_number.eq.${phone},phone_number.eq.${rawDigits}`,
     )
@@ -136,9 +159,10 @@ export async function ensureWhatsappContact(
         .from("whatsapp_contacts")
         .update({ name: contactName, updated_at: new Date().toISOString() })
         .eq("id", existing.id);
+      existing.name = contactName;
     }
 
-    return existing.id as string;
+    return existing as EnsuredWhatsappContactRow;
   }
 
   const registeredAt = new Date().toLocaleDateString("en-CA", {
@@ -153,15 +177,41 @@ export async function ensureWhatsappContact(
       status: "active",
       registered_at: registeredAt,
     })
-    .select("id")
+    .select("id, name, status, inbound_count, terms_accepted_at, terms_prompt_sent_at")
     .single();
 
   if (error) {
+    // Corrida: outro processo criou o mesmo telefone — busca e atualiza nome.
+    if (error.code === "23505") {
+      const { data: raced } = await supabase
+        .from("whatsapp_contacts")
+        .select("id, name, status, inbound_count, terms_accepted_at, terms_prompt_sent_at")
+        .or(
+          `phone_number.eq.${canonical},phone_number.eq.${phone},phone_number.eq.${rawDigits}`,
+        )
+        .maybeSingle();
+
+      if (raced) {
+        if (raced.status === "opted_out") {
+          return null;
+        }
+        if (contactName && contactName !== raced.name) {
+          await supabase
+            .from("whatsapp_contacts")
+            .update({ name: contactName, updated_at: new Date().toISOString() })
+            .eq("id", raced.id);
+          raced.name = contactName;
+        }
+        return raced as EnsuredWhatsappContactRow;
+      }
+    }
+
     console.error("crm_contact_ensure_failed", error.message, { phone: canonical });
     return null;
   }
 
-  return created.id as string;
+  console.info("inbound_contact_created", { phone: canonical });
+  return created as EnsuredWhatsappContactRow;
 }
 
 export async function upsertConversation(

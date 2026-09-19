@@ -1,6 +1,7 @@
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Send, Plus, Loader2, ChevronRight, Trash2, CheckCircle2, Search, User } from "lucide-react";
+import { AdminPageShell } from "@/components/admin/AdminPageShell";
 import { BroadcastSendConfirmDialog } from "@/components/admin/disparos/BroadcastSendConfirmDialog";
 import { SendActiveMessageDialog } from "@/components/admin/disparos/SendActiveMessageDialog";
 import { toast } from "sonner";
@@ -311,7 +312,7 @@ export default function AdminDisparos() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <AdminPageShell width="2xl">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
@@ -660,6 +661,6 @@ export default function AdminDisparos() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </AdminPageShell>
   );
 }

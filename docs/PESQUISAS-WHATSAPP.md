@@ -68,6 +68,8 @@ Também dá para **etiquetar clientes** e criar **segmentos** para campanhas fut
    - Pergunta aberta → digita texto livre
 5. Ao terminar: "Obrigada! Sua resposta foi registrada 🍕"
 
+**Importante:** as perguntas só saem depois que o cliente responde o modelo (ou use no painel o botão **Enviar perguntas (janela 24h)** para quem já escreveu nas últimas 24h).
+
 ---
 
 ## Bloqueio atual (Meta)

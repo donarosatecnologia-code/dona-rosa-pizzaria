@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Users, Upload, Search, Trash2, Loader2, Send, Eye } from "lucide-react";
+import { Users, Upload, Search, Trash2, Loader2, Send, Eye, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { ContactTagsEditor } from "@/components/admin/contatos/ContactTagsEditor";
+import { CreateContactDialog } from "@/components/admin/contatos/CreateContactDialog";
 import { DeleteContactDialog } from "@/components/admin/contatos/DeleteContactDialog";
 import { ImportContactsModal } from "@/components/admin/contatos/ImportContactsModal";
 import { ImportHistoryCard } from "@/components/admin/contatos/ImportHistoryCard";
@@ -76,6 +77,7 @@ export default function AdminContatos() {
   const { data: allTags } = useWhatsappTags();
   const qaContactIds = qaIds ?? [];
   const [importOpen, setImportOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [tagFilterSlug, setTagFilterSlug] = useState("all");
   const [page, setPage] = useState(0);
@@ -186,13 +188,23 @@ export default function AdminContatos() {
     <AdminPageShell width="lg" className="max-md:pb-2">
       <AdminPageHeader
         title="Contatos"
-        description="Importe sua lista, consulte endereços e histórico de compras dos clientes."
+        description="Cadastre clientes, importe listas e consulte histórico de compras."
         icon={Users}
         actions={
-          <Button onClick={() => setImportOpen(true)} className="shrink-0 min-h-[44px] w-full sm:w-auto">
-            <Upload className="h-4 w-4 mr-2" />
-            Importar lista
-          </Button>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+            <Button
+              variant="outline"
+              onClick={() => setCreateOpen(true)}
+              className="shrink-0 min-h-[44px] w-full sm:w-auto"
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              Novo cliente
+            </Button>
+            <Button onClick={() => setImportOpen(true)} className="shrink-0 min-h-[44px] w-full sm:w-auto">
+              <Upload className="h-4 w-4 mr-2" />
+              Importar lista
+            </Button>
+          </div>
         }
       />
 
@@ -288,10 +300,16 @@ export default function AdminContatos() {
         <Card>
           <CardContent className="pt-6 text-center text-sm text-muted-foreground">
             <p className="font-medium text-foreground mb-1">Nenhum contato ainda</p>
-            <p>Importe uma lista CSV ou Excel (.xlsx) para começar.</p>
-            <Button className="mt-4 min-h-[44px]" variant="secondary" onClick={() => setImportOpen(true)}>
-              Importar lista
-            </Button>
+            <p>Cadastre um cliente ou importe uma lista CSV/Excel para começar.</p>
+            <div className="mt-4 flex flex-col items-center justify-center gap-2 sm:flex-row">
+              <Button className="min-h-[44px]" onClick={() => setCreateOpen(true)}>
+                <UserPlus className="h-4 w-4 mr-2" />
+                Novo cliente
+              </Button>
+              <Button className="min-h-[44px]" variant="secondary" onClick={() => setImportOpen(true)}>
+                Importar lista
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -473,6 +491,7 @@ export default function AdminContatos() {
       )}
 
       <ImportContactsModal open={importOpen} onOpenChange={setImportOpen} />
+      <CreateContactDialog open={createOpen} onOpenChange={setCreateOpen} />
 
       <SendActiveMessageDialog
         open={Boolean(activeMessageContactId)}

@@ -1,6 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2.100.0";
 import {
   ensureWhatsappContact,
+  ensureWhatsappContactRow,
   logWebhookEvent,
   markWebhookEventProcessed,
   persistInboundCrmMessage,
@@ -20,7 +21,10 @@ import {
   type MetaWebhookPayload,
 } from "../_shared/meta-webhook.ts";
 import { findCampaignIdForInboundResponse } from "../_shared/broadcast-response-link.ts";
-import { handleSurveyInbound } from "../_shared/survey-orchestrator.ts";
+import {
+  handleSurveyInbound,
+  maybeStartSurveyAfterCampaignReply,
+} from "../_shared/survey-orchestrator.ts";
 import {
   handleTermsConsentFlow,
   type ContactConsentRow,
@@ -427,6 +431,30 @@ async function handleInboundMessage(
     return;
   }
 
+  const sendCtx = {
+    accessToken: Deno.env.get("META_ACCESS_TOKEN") ?? "",
+    phoneNumberId: Deno.env.get("META_PHONE_NUMBER_ID") ?? "",
+    isDryRun: Deno.env.get("BROADCAST_DRY_RUN") === "true",
+  };
+
+  // Cliente respondeu o template → janela 24h aberta → inicia intro + 1ª pergunta
+  try {
+    const surveyStarted = await maybeStartSurveyAfterCampaignReply(supabase, {
+      contactId: contact.id,
+      phone,
+      contextMessageId: message.context?.id,
+      send: sendCtx,
+    });
+    if (surveyStarted) {
+      return;
+    }
+  } catch (surveyStartError) {
+    console.error("survey_start_after_reply_failed", {
+      phone,
+      message: surveyStartError instanceof Error ? surveyStartError.message : String(surveyStartError),
+    });
+  }
+
   const responseValue = extractResponseValue(message);
   if (!responseValue) {
     console.info("inbound_stored_engagement_only", { phone, type: message.type });
@@ -479,54 +507,24 @@ async function ensureActiveContact(
   phone: string,
   ctx: WebhookChangeContext,
 ): Promise<ContactConsentRow | null> {
-  const { data: existing } = await supabase
-    .from("whatsapp_contacts")
-    .select("id, name, status, inbound_count, terms_accepted_at, terms_prompt_sent_at")
-    .eq("phone_number", phone)
-    .maybeSingle();
-
-  if (existing) {
-    if (existing.status === "opted_out") {
-      return null;
-    }
-
-    const contactName =
-      ctx.contacts?.find((c) => c.wa_id === phone)?.profile?.name?.trim();
-    if (contactName && contactName !== existing.name) {
-      await supabase
-        .from("whatsapp_contacts")
-        .update({ name: contactName, updated_at: new Date().toISOString() })
-        .eq("id", existing.id);
-    }
-
-    return existing as ContactConsentRow;
-  }
-
   const contactName =
-    ctx.contacts?.find((c) => c.wa_id === phone)?.profile?.name?.trim() ?? phone;
+    ctx.contacts?.find((c) => {
+      const waDigits = normalizePhoneNumber(c.wa_id ?? "");
+      return c.wa_id === phone || (waDigits.length > 0 && waDigits === phone);
+    })?.profile?.name?.trim() ?? null;
 
-  const registeredAt = new Date().toLocaleDateString("en-CA", {
-    timeZone: "America/Sao_Paulo",
-  });
-
-  const { data: created, error: insertError } = await supabase
-    .from("whatsapp_contacts")
-    .insert({
-      phone_number: phone,
-      name: contactName,
-      status: "active",
-      registered_at: registeredAt,
-    })
-    .select("id, status, inbound_count, terms_accepted_at, terms_prompt_sent_at")
-    .single();
-
-  if (insertError) {
-    console.error("inbound_contact_upsert_failed", insertError.message, { phone });
+  const row = await ensureWhatsappContactRow(supabase, phone, { name: contactName });
+  if (!row) {
     return null;
   }
 
-  console.info("inbound_contact_created", { phone });
-  return created as ContactConsentRow;
+  return {
+    id: row.id,
+    status: row.status,
+    inbound_count: row.inbound_count,
+    terms_accepted_at: row.terms_accepted_at,
+    terms_prompt_sent_at: row.terms_prompt_sent_at,
+  } as ContactConsentRow;
 }
 
 async function handleTemplateStatusUpdate(
