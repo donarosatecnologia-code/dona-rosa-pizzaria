@@ -240,30 +240,20 @@ async function findSurveyCampaignRecipient(
   contextMessageId?: string | null,
 ): Promise<{ campaign_id: string; survey_flow_id: string } | null> {
   const normalizedContextId = contextMessageId?.trim();
-  let campaignId: string | null = null;
-
-  if (normalizedContextId) {
-    const { data: byContext } = await supabase
-      .from("broadcast_campaign_recipients")
-      .select("campaign_id")
-      .eq("meta_message_id", normalizedContextId)
-      .eq("contact_id", contactId)
-      .maybeSingle();
-    campaignId = byContext?.campaign_id ?? null;
+  if (!normalizedContextId) {
+    // Sem reply ao template da pesquisa: não inicia pesquisa.
+    // Evita que um "oi" / pedido após outra mensagem ativa dispare intro + Q1.
+    return null;
   }
 
-  if (!campaignId) {
-    const { data: latest } = await supabase
-      .from("broadcast_campaign_recipients")
-      .select("campaign_id")
-      .eq("contact_id", contactId)
-      .in("send_status", ["sent", "delivered", "read"])
-      .order("sent_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    campaignId = latest?.campaign_id ?? null;
-  }
+  const { data: byContext } = await supabase
+    .from("broadcast_campaign_recipients")
+    .select("campaign_id")
+    .eq("meta_message_id", normalizedContextId)
+    .eq("contact_id", contactId)
+    .maybeSingle();
 
+  const campaignId = byContext?.campaign_id ?? null;
   if (!campaignId) {
     return null;
   }
@@ -417,6 +407,8 @@ export async function startSurveysForOpenWindowRecipients(
   };
 }
 
+const SURVEY_SESSION_TTL_MS = 24 * 60 * 60 * 1000;
+
 export async function handleSurveyInbound(
   supabase: SupabaseClient,
   message: MetaWebhookMessage,
@@ -426,12 +418,24 @@ export async function handleSurveyInbound(
 ): Promise<boolean> {
   const { data: session } = await supabase
     .from("survey_sessions")
-    .select("id, flow_id, campaign_id, contact_id, current_step_index, status")
+    .select("id, flow_id, campaign_id, contact_id, current_step_index, status, started_at, updated_at")
     .eq("contact_id", contactId)
     .eq("status", "in_progress")
     .maybeSingle();
 
   if (!session) {
+    return false;
+  }
+
+  const sessionAnchor = session.updated_at ?? session.started_at;
+  const sessionAgeMs = sessionAnchor ? Date.now() - Date.parse(sessionAnchor) : Number.POSITIVE_INFINITY;
+  if (!Number.isFinite(sessionAgeMs) || sessionAgeMs > SURVEY_SESSION_TTL_MS) {
+    await abandonSession(supabase, session.id);
+    console.info("survey_abandoned_expired", {
+      contactId,
+      sessionId: session.id,
+      sessionAnchor,
+    });
     return false;
   }
 
@@ -456,7 +460,7 @@ export async function handleSurveyInbound(
 
   const responseValue = extractResponseValue(message);
   if (!responseValue?.trim()) {
-    return true;
+    return false;
   }
 
   const trimmed = responseValue.trim();
@@ -464,14 +468,23 @@ export async function handleSurveyInbound(
 
   if (currentStep.kind === "text") {
     if (trimmed.length < 1) {
-      return true;
+      return false;
+    }
+    // Texto livre longo demais para uma pesquisa costuma ser pedido/atendimento.
+    if (trimmed.length > 280 && !isInteractiveChoiceReply(message)) {
+      await abandonSession(supabase, session.id);
+      console.info("survey_abandoned_long_free_text", {
+        contactId,
+        sessionId: session.id,
+      });
+      return false;
     }
   } else {
     const matched = matchChoiceOption(currentStep, trimmed) ??
       matchChoiceOption(currentStep, displayLabel);
 
     if (!matched && currentStep.options?.length) {
-      // Texto livre (ex.: reserva) não deve prender o cliente na pesquisa.
+      // Texto livre (ex.: pedido) não deve prender o cliente na pesquisa.
       if (!isInteractiveChoiceReply(message)) {
         await abandonSession(supabase, session.id);
         console.info("survey_abandoned_non_choice_reply", {
@@ -722,6 +735,7 @@ async function sendSurveyStep(
     bodyText: body,
     content: { survey_step_id: step.id, options },
     whatsappContactId: input.session.contact_id,
+    isAutomated: true,
   });
 }
 
@@ -749,6 +763,7 @@ async function sendPlainMessage(
     bodyText: input.body,
     content: { survey_part: input.label },
     whatsappContactId: input.contactId,
+    isAutomated: true,
   });
 }
 

@@ -169,6 +169,9 @@ export function SendActiveMessageDialog({
 
             <div className="space-y-2">
               <Label>Tipo de conteúdo</Label>
+              <p className="text-xs text-muted-foreground">
+                Deixe em Informativo. Pesquisa só se a intenção for enviar as perguntas.
+              </p>
               <Select value={contentType} onValueChange={setContentType}>
                 <SelectTrigger className="min-h-[44px]">
                   <SelectValue />

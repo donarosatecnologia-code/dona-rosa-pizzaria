@@ -389,6 +389,10 @@ export default function AdminDisparos() {
                 </Select>
               </div>
               <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  Só escolha Pesquisa se quiser enviar as perguntas depois. Informativo / promoção
+                  nunca disparam a pesquisa antiga.
+                </p>
                 <Label>Tipo de conteúdo</Label>
                 <Select value={contentType} onValueChange={setContentType}>
                   <SelectTrigger>
