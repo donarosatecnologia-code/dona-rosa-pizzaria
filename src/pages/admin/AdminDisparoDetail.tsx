@@ -44,9 +44,12 @@ import { buildCampaignReportCsv, downloadCsvFile } from "@/lib/whatsapp/exportSu
 import type { BroadcastCampaignRecipient } from "@/integrations/supabase/types/whatsapp-broadcast";
 import type { SurveySessionAnswer, SurveyStep } from "@/integrations/supabase/types/survey-flows";
 import { formatPhoneDisplay } from "@/lib/format-phone";
+import {
+  classifyCampaignRecipient,
+  isWithinLast24Hours,
+} from "@/lib/whatsapp/campaignRecipientReport";
 
 const CHART_COLORS = ["#16a34a", "#2563eb", "#ca8a04", "#dc2626", "#9333ea"];
-const WINDOW_24H_MS = 24 * 60 * 60 * 1000;
 
 type RecipientFilter =
   | "all"
@@ -71,17 +74,6 @@ function digitsOnly(value: string): string {
 
 function normalizeSearch(value: string): string {
   return value.trim().toLowerCase();
-}
-
-function isWithinLast24Hours(iso: string | null | undefined): boolean {
-  if (!iso) {
-    return false;
-  }
-  const ts = Date.parse(iso);
-  if (Number.isNaN(ts)) {
-    return false;
-  }
-  return Date.now() - ts <= WINDOW_24H_MS;
 }
 
 interface RecipientRowView {
@@ -184,38 +176,25 @@ export default function AdminDisparoDetail() {
       const contact = contactById.get(recipient.contact_id);
       const surveySession = surveySessionByContactId.get(recipient.contact_id);
       const responded = respondedContactIds.has(recipient.contact_id);
-      const displayStatus =
-        responded && (recipient.send_status === "failed" || recipient.send_status === "sent")
-          ? "delivered"
-          : recipient.send_status;
-      const isFailed = displayStatus === "failed";
-      const failureReason = isFailed
-        ? recipient.failure_reason
-        : responded && recipient.send_status === "failed"
-          ? "Respondida — status Meta inconsistente"
-          : null;
-
-      const wasSent = ["sent", "delivered", "read"].includes(recipient.send_status) || responded;
-      const wasReceived =
-        ["delivered", "read"].includes(displayStatus) ||
-        responded ||
-        surveySession?.status === "completed" ||
-        surveySession?.status === "in_progress";
       const lastInboundAt = contact?.last_inbound_at ?? null;
-      const surveyDone = surveySession?.status === "completed";
-      const surveyInProgress = surveySession?.status === "in_progress";
-      const openWindow = isWithinLast24Hours(lastInboundAt);
-      // Só quem ainda não iniciou a pesquisa e tem janela Meta aberta.
-      const readyForQuestions =
-        isSurveyCampaign && wasSent && !surveyDone && !surveyInProgress && openWindow;
-      // Pedir oi = já teve entrega/engajamento, mas sem janela 24h e sem pesquisa ativa.
-      const needsOi =
-        isSurveyCampaign &&
-        wasReceived &&
-        !surveyDone &&
-        !surveyInProgress &&
-        !readyForQuestions &&
-        !isFailed;
+      const flags = classifyCampaignRecipient({
+        sendStatus: recipient.send_status,
+        failureReason: recipient.failure_reason,
+        responded,
+        surveyStatus: surveySession?.status ?? null,
+        lastInboundAt,
+        isSurveyCampaign,
+      });
+      const {
+        displayStatus,
+        isFailed,
+        failureReason,
+        wasSent,
+        wasReceived,
+        surveyInProgress,
+        readyForQuestions,
+        needsOi,
+      } = flags;
 
       return {
         recipient,

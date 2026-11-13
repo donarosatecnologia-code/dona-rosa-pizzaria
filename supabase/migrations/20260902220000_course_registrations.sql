@@ -13,7 +13,8 @@ alter table public.whatsapp_contacts
       'site_reserve',
       'site_course',
       'whatsapp',
-      'csv_import'
+      'csv_import',
+      'admin_manual'
     )
   );
 
@@ -36,6 +37,8 @@ create index if not exists idx_course_registrations_created_at
   on public.course_registrations using btree (created_at desc);
 
 alter table public.course_registrations enable row level security;
+
+drop policy if exists "admin_select_course_registrations" on public.course_registrations;
 
 create policy "admin_select_course_registrations" on public.course_registrations
   for select to authenticated

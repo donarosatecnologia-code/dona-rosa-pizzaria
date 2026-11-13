@@ -41,14 +41,32 @@ export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  retries: process.env.CI ? 2 : 1,
+  workers: process.env.CI ? 1 : 4,
   reporter: "html",
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:8080",
     trace: "on-first-retry",
+    screenshot: "only-on-failure",
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    { name: "setup", testMatch: /auth\.setup\.ts/ },
+    {
+      name: "chromium",
+      use: { ...devices["Desktop Chrome"] },
+      testIgnore: /whatsapp-admin-readonly|disparos-report|auth\.setup/,
+    },
+    {
+      name: "chromium-admin",
+      dependencies: ["setup"],
+      fullyParallel: false,
+      testMatch: /whatsapp-admin-readonly|disparos-report/,
+      use: {
+        ...devices["Desktop Chrome"],
+        storageState: "e2e/.auth/admin.json",
+      },
+    },
+  ],
   webServer: {
     command: "npm run dev",
     url: "http://localhost:8080",

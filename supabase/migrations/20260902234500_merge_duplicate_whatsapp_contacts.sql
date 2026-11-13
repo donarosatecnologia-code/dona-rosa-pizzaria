@@ -37,9 +37,9 @@ begin
       where public.normalize_brazil_phone_e164(wc.phone_number) = v_canon
         and wc.id <> v_keeper_id
     loop
+      -- Não altera phone_number aqui: o duplicado ainda ocupa o número canônico.
       update public.whatsapp_contacts as k
       set
-        phone_number = v_canon,
         name = case
           when k.import_batch_id is not null then k.name
           when d.import_batch_id is not null then d.name
@@ -118,11 +118,38 @@ begin
       delete from public.whatsapp_contact_tags
       where contact_id = v_dupe_id;
 
+      -- Evita unique (contact_id) em sessão in_progress no keeper.
+      update public.survey_sessions as dupe
+      set
+        status = 'abandoned',
+        updated_at = now()
+      where dupe.contact_id = v_dupe_id
+        and dupe.status = 'in_progress'
+        and exists (
+          select 1
+          from public.survey_sessions as keeper
+          where keeper.contact_id = v_keeper_id
+            and keeper.status = 'in_progress'
+        );
+
       delete from public.whatsapp_contacts
       where id = v_dupe_id;
 
       v_merged := v_merged + 1;
     end loop;
+
+    update public.whatsapp_contacts
+    set
+      phone_number = v_canon,
+      updated_at = now()
+    where id = v_keeper_id
+      and phone_number is distinct from v_canon
+      and not exists (
+        select 1
+        from public.whatsapp_contacts as other
+        where other.phone_number = v_canon
+          and other.id <> v_keeper_id
+      );
   end loop;
 
   return v_merged;

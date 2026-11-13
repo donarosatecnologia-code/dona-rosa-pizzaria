@@ -130,11 +130,20 @@ export function ImportHistoryCard() {
   const [dialogOpen, setDialogOpen] = useState(false);
 
   if (loadingPreview) {
-    return <Skeleton className="h-12 w-full rounded-xl" />;
+    return <Skeleton className="h-12 w-full rounded-xl mb-4" />;
   }
 
   if (!previewBatches?.length) {
-    return null;
+    return (
+      <Card className="mb-4 w-full min-w-0 max-md:rounded-xl">
+        <CardContent className="py-3 px-4">
+          <p className="font-medium leading-snug">Nenhuma importação ainda</p>
+          <p className="text-muted-foreground text-xs mt-0.5">
+            Use Importar lista para trazer clientes de um CSV ou Excel.
+          </p>
+        </CardContent>
+      </Card>
+    );
   }
 
   const latest = previewBatches[0];

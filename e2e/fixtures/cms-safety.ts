@@ -19,14 +19,14 @@ export const ADMIN_CMS_READONLY_ROUTES = [
 
 /** Módulos WhatsApp/CRM — permitido navegar e abrir diálogos se cancelar sem salvar. */
 export const WHATSAPP_ADMIN_ROUTES = [
-  { path: "/admin/dashboard", heading: /início|dashboard|painel/i },
+  { path: "/admin/dashboard", heading: /início/i },
   { path: "/admin/contatos", heading: /contatos/i },
   { path: "/admin/etiquetas", heading: /etiquetas/i },
   { path: "/admin/segmentos", heading: /segmentos/i },
   { path: "/admin/pesquisas", heading: /pesquisas/i },
-  { path: "/admin/disparos", heading: /promoções/i },
-  { path: "/admin/templates", heading: /mensagens prontas|templates/i },
-  { path: "/admin/conversas", heading: /mensagens|conversas/i },
+  { path: "/admin/disparos", heading: /mensagens ativas/i },
+  { path: "/admin/templates", heading: /template de mensagens/i },
+  { path: "/admin/conversas", heading: /^mensagens$/i },
   { path: "/admin/configuracoes", heading: /ajustes|configurações/i },
 ] as const;
 

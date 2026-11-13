@@ -63,7 +63,10 @@ const Dashboard = () => {
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <Skeleton className="h-8 w-48" />
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground mb-1">Início</h1>
+          <p className="text-sm text-muted-foreground">Carregando o resumo…</p>
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map((i) => (
             <Skeleton key={i} className="h-28" />
